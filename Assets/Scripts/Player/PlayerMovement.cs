@@ -56,6 +56,8 @@ public class PlayerMovement : MonoBehaviour
 
     private PlayerStamina stamina;
 
+    private PlayerStateManager stateManager;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -66,14 +68,15 @@ public class PlayerMovement : MonoBehaviour
         controls.Player.Move.canceled += ctx => moveInput = Vector2.zero;
 
         stamina = GetComponent<PlayerStamina>();
+        stateManager = GetComponent<PlayerStateManager>();
 
-        controls.Player.Sprint.performed += _ => isSprinting = true;
-        controls.Player.Sprint.canceled += _ => isSprinting = false;
+        controls.Player.Sprint.performed += _ => StartSprint();
+        controls.Player.Sprint.canceled += _ => StopSprint();
 
         targetHeight = standingHeight;
         targetCameraHeight = standingCameraHeight;
 
-        controls.Player.Croutch.performed += _ => isCrouching = !isCrouching;
+        controls.Player.Croutch.performed += _ => ToggleCrouch();
 
         controls.Player.Jump.performed += _ => Jump();
     }
@@ -97,28 +100,128 @@ public class PlayerMovement : MonoBehaviour
         ApplyGravity();
 
         HandleCrouch();
+
+        // =====================================
+        // FORCE RESTRICTIONS
+        // =====================================
+
+        // If sprinting becomes disabled while
+        // already sprinting, immediately stop it.
+        if (!stateManager.CanSprint())
+        {
+            isSprinting = false;
+        }
+
+        // If crouching becomes disabled while
+        // already crouching, attempt to stand.
+        if (!stateManager.CanCrouch())
+        {
+            isCrouching = false;
+        }
+    }
+
+    private void StartSprint()
+    {
+        // =====================================
+        // SPRINT PERMISSION
+        // =====================================
+
+        if (!stateManager.CanSprint())
+        {
+            Debug.Log(
+                "[Player] Sprinting is currently disabled.");
+
+            isSprinting = false;
+
+            return;
+        }
+
+        // =====================================
+        // START SPRINT
+        // =====================================
+
+        isSprinting = true;
+    }
+
+    private void ToggleCrouch()
+    {
+        // =====================================
+        // CROUCH PERMISSION
+        // =====================================
+
+        if (!stateManager.CanCrouch())
+        {
+            Debug.Log(
+                "[Player] Crouching is currently disabled.");
+
+            return;
+        }
+
+        isCrouching = !isCrouching;
+    }
+
+    private void StopSprint()
+    {
+        isSprinting = false;
     }
 
     private void Move()
     {
+        // =====================================
+        // MOVEMENT LOCK
+        // =====================================
+
+        if (!stateManager.CanMove())
+        {
+            // Stop horizontal movement
+            // when movement is disabled.
+            Vector3 lockedVelocity = controller.velocity;
+
+            lockedVelocity.y = 0f;
+
+            controller.Move(
+                -lockedVelocity * Time.deltaTime);
+
+            // Sprinting must also stop.
+            stamina.SetSprinting(false);
+
+            return;
+        }
+
+
+        // =====================================
+        // MOVEMENT SPEED
+        // =====================================
+
         float speed = stamina.GetMovementSpeed(
-        walkSpeed,
-        sprintSpeed,
-        crouchSpeed,
-        isCrouching);
+            walkSpeed,
+            sprintSpeed,
+            crouchSpeed,
+            isCrouching);
+
+
+        // =====================================
+        // MOVEMENT DIRECTION
+        // =====================================
 
         Vector3 direction =
-        transform.right * moveInput.x +
-        transform.forward * moveInput.y;
+            transform.right * moveInput.x +
+            transform.forward * moveInput.y;
 
-        controller.Move(direction * speed * Time.deltaTime);
 
+        controller.Move(
+            direction * speed * Time.deltaTime);
+
+
+        // =====================================
+        // SPRINTING
+        // =====================================
 
         stamina.SetSprinting(
-        isSprinting &&
-        moveInput != Vector2.zero &&
-        !isCrouching);
-
+            isSprinting &&
+            moveInput != Vector2.zero &&
+            !isCrouching &&
+            stateManager.CanSprint());
     }
 
     private void CheckGround()
@@ -155,12 +258,34 @@ public class PlayerMovement : MonoBehaviour
     }
 
     private void Jump()
-    {
-        if (!isGrounded)
-            return;
+{
+    // =====================================
+    // JUMP PERMISSION
+    // =====================================
 
-        velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+    if (!stateManager.CanJump())
+    {
+        return;
     }
+
+
+    // =====================================
+    // GROUND CHECK
+    // =====================================
+
+    if (!isGrounded)
+    {
+        return;
+    }
+
+
+    // =====================================
+    // JUMP
+    // =====================================
+
+    velocity.y = Mathf.Sqrt(
+        jumpHeight * -2f * gravity);
+}
 
     private void HandleCrouch()
     {
@@ -217,5 +342,37 @@ public class PlayerMovement : MonoBehaviour
                 ceilingCheck.position,
                 ceilingDistance);
         }
+    }
+
+    // Headbobbing functions
+    public Vector3 GetHorizontalVelocity()
+    {
+        Vector3 velocity = controller.velocity;
+
+        velocity.y = 0f;
+
+        return velocity;
+    }
+
+    // Used by the footstep system to determine
+    // whether the player is actually trying to move.
+    public bool IsMoving()
+    {
+        return moveInput.sqrMagnitude > 0.01f;
+    }
+
+    public bool IsCrouching()
+    {
+        return isCrouching;
+    }
+
+    public bool IsSprinting()
+    {
+        return isSprinting;
+    }
+
+    public bool IsGrounded()
+    {
+        return isGrounded;
     }
 }
