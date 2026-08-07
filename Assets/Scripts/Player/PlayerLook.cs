@@ -23,9 +23,18 @@ public class PlayerLook : MonoBehaviour
     // Change vertical rotation
     private float xRotation = 0f;
 
+    private PlayerStateManager stateManager;
+
     private void Awake()
     {
         controls = new PlayerControls();
+        stateManager = GetComponent<PlayerStateManager>();
+
+        if (stateManager == null)
+        {
+            Debug.LogError(
+                "[PlayerLook] PlayerStateManager is missing from the Player!");
+        }
 
         controls.Player.Look.performed += ctx =>
             lookInput = ctx.ReadValue<Vector2>();
@@ -60,10 +69,37 @@ public class PlayerLook : MonoBehaviour
 
     private void Look()
     {
-        float mouseX = lookInput.x * sensitivity * Time.deltaTime * 100f;
-        float mouseY = lookInput.y * sensitivity * Time.deltaTime * 100f;
+        // =====================================
+        // CAMERA LOOK PERMISSION
+        // =====================================
 
-        // Vertical camera rotation
+        if (!stateManager.CanLook())
+        {
+            return;
+        }
+
+
+        // =====================================
+        // LOOK INPUT
+        // =====================================
+
+        float mouseX =
+            lookInput.x *
+            sensitivity *
+            Time.deltaTime *
+            100f;
+
+        float mouseY =
+            lookInput.y *
+            sensitivity *
+            Time.deltaTime *
+            100f;
+
+
+        // =====================================
+        // VERTICAL CAMERA ROTATION
+        // =====================================
+
         xRotation -= mouseY;
 
         xRotation = Mathf.Clamp(
@@ -71,10 +107,19 @@ public class PlayerLook : MonoBehaviour
             -maxLookAngle,
             maxLookAngle);
 
-        cameraTransform.localRotation =
-            Quaternion.Euler(xRotation, 0f, 0f);
 
-        // Horizontal player rotation
-        transform.Rotate(Vector3.up * mouseX);
+        cameraTransform.localRotation =
+            Quaternion.Euler(
+                xRotation,
+                0f,
+                0f);
+
+
+        // =====================================
+        // HORIZONTAL PLAYER ROTATION
+        // =====================================
+
+        transform.Rotate(
+            Vector3.up * mouseX);
     }
 }

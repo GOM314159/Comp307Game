@@ -98,9 +98,23 @@ public class PlayerFootsteps : MonoBehaviour
 
     private int lastClipIndex = -1;
 
+    private PlayerStateManager stateManager;
+
     private void Start()
     {
         Debug.Log("[Footsteps] PlayerFootsteps script has started.");
+    }
+
+
+    private void Awake()
+    {
+        stateManager = GetComponent<PlayerStateManager>();
+
+        if (stateManager == null)
+        {
+            Debug.LogError(
+                "[PlayerFootsteps] PlayerStateManager is missing from the Player!");
+        }
     }
 
     private void Update()
@@ -113,32 +127,44 @@ public class PlayerFootsteps : MonoBehaviour
 
     private void HandleFootsteps()
     {
+
+        if (!stateManager.CanMove()) //StateManager check
+        {
+            footstepTimer = 0f;
+            return;
+        }
         // Check whether the player is trying to move
-        if (!playerMovement.IsMoving())
+        Vector3 velocity = playerMovement.GetHorizontalVelocity();
+
+        float movementAmount = velocity.magnitude;
+
+        // Player isn't moving
+        if (movementAmount < 0.1f)
         {
             footstepTimer = 0f;
             return;
         }
 
-        // Player isn't on the ground
         if (!playerMovement.IsGrounded())
         {
             footstepTimer = 0f;
             return;
         }
-
-        // Determine step interval
-
         float stepInterval;
 
+        // Crouching has its own slower footsteps
         if (playerMovement.IsCrouching())
         {
             stepInterval = crouchStepInterval;
         }
+
+        // Sprinting has faster footsteps
         else if (playerMovement.IsSprinting())
         {
             stepInterval = sprintStepInterval;
         }
+
+        // Normal walking
         else
         {
             stepInterval = walkStepInterval;
