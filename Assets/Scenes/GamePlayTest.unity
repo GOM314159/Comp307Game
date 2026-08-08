@@ -527,6 +527,74 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+--- !u!1 &1075630661
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1075630664}
+  - component: {fileID: 1075630663}
+  - component: {fileID: 1075630662}
+  m_Layer: 0
+  m_Name: NoJumpZone
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1075630662
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075630661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bc32ca1eedcb32a4294db952eef2b0d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerStateZone
+  state: 8
+  debugZone: 1
+--- !u!65 &1075630663
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075630661}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!4 &1075630664
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1075630661}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 4.58, y: 0.49, z: 4.62}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1184859160
 GameObject:
   m_ObjectHideFlags: 0
@@ -563,7 +631,7 @@ AudioSource:
   Mute: 0
   Spatialize: 0
   SpatializePostEffects: 0
-  Priority: 128
+  Priority: 93
   DopplerLevel: 1
   MinDistance: 1
   MaxDistance: 500
@@ -865,6 +933,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ba772841f19b9041819cf3943c2f961, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
+  cameraTransform: {fileID: 0}
+  inventory: {fileID: 0}
+  stateManager: {fileID: 0}
+  interactionRange: 3
+  interactionMask:
+    serializedVersion: 2
+    m_Bits: 0
+  debugInteraction: 1
 --- !u!114 &1442830819
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -892,6 +968,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfe5641ea8a535c4e92c908e4088fe65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
+  inventorySize: 20
+  slots: []
+  selectedSlot: 0
+  baseAttackDamage: 1
 --- !u!114 &1442830821
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -982,7 +1062,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a82b16d36125e2d46bb49c0f30fdfd51, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerStateManager
-  playerMovement: {fileID: 1442830817}
+  currentState: 0
   debugStateChanges: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
@@ -991,3 +1071,4 @@ SceneRoots:
   - {fileID: 864730634}
   - {fileID: 1442830814}
   - {fileID: 332719956}
+  - {fileID: 1075630664}

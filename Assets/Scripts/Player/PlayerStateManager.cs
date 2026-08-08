@@ -1,66 +1,54 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
+using System.Collections.Generic;
 
 public class PlayerStateManager : MonoBehaviour
 {
-    // =========================================
-    // PLAYER MODES
-    // =========================================
-    // These describe WHY the player's controls
-    // may currently be restricted.
-    public enum PlayerMode
+    // =========================================================
+    // PLAYER STATES
+    // =========================================================
+
+    public enum PlayerState
     {
-        Normal,
+        AllMovement,
+
+        NoCrouch,
+
+        NoSprint,
+
+        NoCrouchOrSprint,
+
+        NoInteract,
+
         ShopMenu,
+
         Cutscene,
-        NoCrouchZone,
-        NoSprintZone,
-        NoCrouchOrSprintZone,
-        PauseMenu,
-        NoMovementZone,
-        NoJumpZone,
-        NoMovementOrCameraZone
+
+        NoMovement,
+
+        NoJump,
+
+        NoMovementNoCamera,
+
+        PauseMenu
     }
 
 
-    // =========================================
-    // MOVEMENT STATES
-    // =========================================
-    // These describe WHAT the player is doing.
-    public enum MovementState
-    {
-        Idle,
-        Walking,
-        Sprinting,
-        Crouching,
-        Jumping,
-        Falling
-    }
+    // =========================================================
+    // CURRENT STATE
+    // =========================================================
 
-
-    // =========================================
-    // CURRENT STATES
-    // =========================================
-
-    private PlayerMode currentMode = PlayerMode.Normal;
-
-    private MovementState currentMovementState =
-        MovementState.Idle;
-
-
-    // =========================================
-    // REFERENCES
-    // =========================================
-
-    [Header("References")]
+    [Header("Current Player State")]
 
     [SerializeField]
-    private PlayerMovement playerMovement;
+    private PlayerState currentState = PlayerState.AllMovement;
+
+    private List<PlayerStateZone> activeZones =
+    new List<PlayerStateZone>();
 
 
-    // =========================================
+    // =========================================================
     // DEBUG
-    // =========================================
+    // =========================================================
 
     [Header("Debug")]
 
@@ -68,415 +56,376 @@ public class PlayerStateManager : MonoBehaviour
     private bool debugStateChanges = true;
 
 
-    // =========================================
-    // STATE CHANGE TRACKING
-    // =========================================
+    // =========================================================
+    // STATE GETTER
+    // =========================================================
 
-    private PlayerMode previousMode;
-
-    private MovementState previousMovementState;
-
-
-    // =========================================
-    // UNITY
-    // =========================================
-
-    private void Awake()
+    public PlayerState GetCurrentState()
     {
-        if (playerMovement == null)
-        {
-            playerMovement = GetComponent<PlayerMovement>();
-        }
-
-        previousMode = currentMode;
-        previousMovementState = currentMovementState;
+        return currentState;
     }
 
 
-    private void Update()
+    // =========================================================
+    // CHANGE STATE
+    // =========================================================
+
+    public void SetState(PlayerState newState)
     {
-        DetermineMovementState();
-
-        CheckForStateChanges();
-
-        // TEMPORARY TESTING
-        TestStates();
-    }
-
-
-    // =========================================
-    // DETERMINE MOVEMENT STATE
-    // =========================================
-
-    private void DetermineMovementState()
-    {
-        // -------------------------------------
-        // PLAYER CANNOT MOVE
-        // -------------------------------------
-
-        if (!CanMove())
+        if (currentState == newState)
         {
-            currentMovementState = MovementState.Idle;
             return;
         }
 
-
-        // -------------------------------------
-        // AIRBORNE
-        // -------------------------------------
-
-        if (!playerMovement.IsGrounded())
-        {
-            currentMovementState = MovementState.Falling;
-            return;
-        }
-
-
-        // -------------------------------------
-        // CROUCHING
-        // -------------------------------------
-
-        if (playerMovement.IsCrouching())
-        {
-            currentMovementState = MovementState.Crouching;
-            return;
-        }
-
-
-        // -------------------------------------
-        // SPRINTING
-        // -------------------------------------
-
-        if (CanSprint()
-            && playerMovement.IsSprinting()
-            && playerMovement.IsMoving())
-        {
-            currentMovementState = MovementState.Sprinting;
-            return;
-        }
-
-
-        // -------------------------------------
-        // WALKING
-        // -------------------------------------
-
-        if (playerMovement.IsMoving())
-        {
-            currentMovementState = MovementState.Walking;
-            return;
-        }
-
-
-        // -------------------------------------
-        // IDLE
-        // -------------------------------------
-
-        currentMovementState = MovementState.Idle;
-    }
-
-
-    // =========================================
-    // CONTROL PERMISSIONS
-    // =========================================
-
-    public bool CanMove()
-    {
-        switch (currentMode)
-        {
-            case PlayerMode.ShopMenu:
-            case PlayerMode.Cutscene:
-            case PlayerMode.PauseMenu:
-            case PlayerMode.NoMovementZone:
-            case PlayerMode.NoMovementOrCameraZone:
-
-                return false;
-        }
-
-        return true;
-    }
-
-
-    public bool CanLook()
-    {
-        switch (currentMode)
-        {
-            case PlayerMode.ShopMenu:
-            case PlayerMode.Cutscene:
-            case PlayerMode.PauseMenu:
-            case PlayerMode.NoMovementOrCameraZone:
-
-                return false;
-        }
-
-        return true;
-    }
-
-
-    public bool CanJump()
-    {
-        switch (currentMode)
-        {
-            case PlayerMode.ShopMenu:
-            case PlayerMode.Cutscene:
-            case PlayerMode.PauseMenu:
-            case PlayerMode.NoMovementZone:
-            case PlayerMode.NoJumpZone:
-            case PlayerMode.NoMovementOrCameraZone:
-
-                return false;
-        }
-
-        return true;
-    }
-
-
-    public bool CanCrouch()
-    {
-        switch (currentMode)
-        {
-            case PlayerMode.ShopMenu:
-            case PlayerMode.Cutscene:
-            case PlayerMode.PauseMenu:
-            case PlayerMode.NoCrouchZone:
-            case PlayerMode.NoCrouchOrSprintZone:
-            case PlayerMode.NoMovementZone:
-            case PlayerMode.NoMovementOrCameraZone:
-
-                return false;
-        }
-
-        return true;
-    }
-
-
-    public bool CanSprint()
-    {
-        switch (currentMode)
-        {
-            case PlayerMode.ShopMenu:
-            case PlayerMode.Cutscene:
-            case PlayerMode.PauseMenu:
-            case PlayerMode.NoSprintZone:
-            case PlayerMode.NoCrouchOrSprintZone:
-            case PlayerMode.NoMovementZone:
-            case PlayerMode.NoMovementOrCameraZone:
-
-                return false;
-        }
-
-        return true;
-    }
-
-
-    // =========================================
-    // CHANGE PLAYER MODE
-    // =========================================
-
-    public void SetPlayerMode(PlayerMode newMode)
-    {
-        if (currentMode == newMode)
-            return;
-
-        currentMode = newMode;
+        currentState = newState;
 
         if (debugStateChanges)
         {
             Debug.Log(
-                "[Player Mode] Changed to: "
-                + currentMode);
+                "[Player State] Changed to: "
+                + currentState);
         }
     }
 
 
-    // =========================================
-    // RETURN TO NORMAL
-    // =========================================
+    // =========================================================
+    // MOVEMENT
+    // =========================================================
 
-    public void ReturnToNormal()
+    public bool CanMove()
     {
-        SetPlayerMode(PlayerMode.Normal);
-    }
-
-
-    // =========================================
-    // GET CURRENT MODE
-    // =========================================
-
-    public PlayerMode GetPlayerMode()
-    {
-        return currentMode;
-    }
-
-
-    // =========================================
-    // GET MOVEMENT STATE
-    // =========================================
-
-    public MovementState GetMovementState()
-    {
-        return currentMovementState;
-    }
-
-
-    // =========================================
-    // STATE CHECKS
-    // =========================================
-
-    public bool IsNormal()
-    {
-        return currentMode == PlayerMode.Normal;
-    }
-
-
-    public bool IsInShopMenu()
-    {
-        return currentMode == PlayerMode.ShopMenu;
-    }
-
-
-    public bool IsInCutscene()
-    {
-        return currentMode == PlayerMode.Cutscene;
-    }
-
-
-    public bool IsPaused()
-    {
-        return currentMode == PlayerMode.PauseMenu;
-    }
-
-
-    public bool IsInNoCrouchZone()
-    {
-        return currentMode == PlayerMode.NoCrouchZone;
-    }
-
-
-    public bool IsInNoSprintZone()
-    {
-        return currentMode == PlayerMode.NoSprintZone;
-    }
-
-
-    public bool IsInNoCrouchOrSprintZone()
-    {
-        return currentMode ==
-               PlayerMode.NoCrouchOrSprintZone;
-    }
-
-
-    public bool IsInNoMovementZone()
-    {
-        return currentMode ==
-               PlayerMode.NoMovementZone;
-    }
-
-
-    public bool IsInNoJumpZone()
-    {
-        return currentMode ==
-               PlayerMode.NoJumpZone;
-    }
-
-
-    public bool IsInNoMovementOrCameraZone()
-    {
-        return currentMode ==
-               PlayerMode.NoMovementOrCameraZone;
-    }
-
-
-    // =========================================
-    // STATE CHANGE DEBUGGING
-    // =========================================
-
-    private void CheckForStateChanges()
-    {
-        if (currentMode != previousMode)
+        switch (currentState)
         {
-            if (debugStateChanges)
-            {
-                Debug.Log(
-                    "[Player Mode] "
-                    + previousMode
-                    + " → "
-                    + currentMode);
-            }
+            case PlayerState.AllMovement:
+            case PlayerState.NoCrouch:
+            case PlayerState.NoSprint:
+            case PlayerState.NoCrouchOrSprint:
+            case PlayerState.NoJump:
 
-            previousMode = currentMode;
+                return true;
+
+
+            case PlayerState.ShopMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.NoMovement:
+            case PlayerState.NoMovementNoCamera:
+            case PlayerState.PauseMenu:
+
+                return false;
         }
 
+        return false;
+    }
 
-        if (currentMovementState !=
-            previousMovementState)
+
+    // =========================================================
+    // CAMERA
+    // =========================================================
+    public bool CanInteract()
+    {
+        switch (currentState)
         {
-            if (debugStateChanges)
-            {
-                Debug.Log(
-                    "[Movement State] "
-                    + previousMovementState
-                    + " → "
-                    + currentMovementState);
-            }
+            // ---------------------------------------------
+            // INTERACTION ALLOWED
+            // ---------------------------------------------
 
-            previousMovementState =
-                currentMovementState;
+            case PlayerState.AllMovement:
+            case PlayerState.NoCrouch:
+            case PlayerState.NoSprint:
+            case PlayerState.NoCrouchOrSprint:
+            case PlayerState.NoJump:
+            case PlayerState.NoMovement:
+
+                return true;
+
+
+            // ---------------------------------------------
+            // INTERACTION DISABLED
+            // ---------------------------------------------
+
+            case PlayerState.NoInteract:
+            case PlayerState.ShopMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.NoMovementNoCamera:
+            case PlayerState.PauseMenu:
+
+                return false;
+        }
+
+        return false;
+    }
+    public bool CanLook()
+    {
+        switch (currentState)
+        {
+            case PlayerState.AllMovement:
+            case PlayerState.NoCrouch:
+            case PlayerState.NoSprint:
+            case PlayerState.NoCrouchOrSprint:
+            case PlayerState.NoJump:
+            case PlayerState.NoMovement:
+
+                return true;
+
+
+            case PlayerState.ShopMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.NoMovementNoCamera:
+            case PlayerState.PauseMenu:
+
+                return false;
+        }
+
+        return false;
+    }
+
+
+    // =========================================================
+    // SPRINT
+    // =========================================================
+
+    public bool CanSprint()
+    {
+        switch (currentState)
+        {
+            case PlayerState.AllMovement:
+            case PlayerState.NoCrouch:
+            case PlayerState.NoJump:
+            case PlayerState.NoMovement:
+
+                return true;
+
+
+            case PlayerState.NoSprint:
+            case PlayerState.NoCrouchOrSprint:
+            case PlayerState.ShopMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.NoMovementNoCamera:
+            case PlayerState.PauseMenu:
+
+                return false;
+        }
+
+        return false;
+    }
+
+
+    // =========================================================
+    // CROUCH
+    // =========================================================
+
+    public bool CanCrouch()
+    {
+        switch (currentState)
+        {
+            case PlayerState.AllMovement:
+            case PlayerState.NoSprint:
+            case PlayerState.NoJump:
+            case PlayerState.NoMovement:
+
+                return true;
+
+
+            case PlayerState.NoCrouch:
+            case PlayerState.NoCrouchOrSprint:
+            case PlayerState.ShopMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.NoMovementNoCamera:
+            case PlayerState.PauseMenu:
+
+                return false;
+        }
+
+        return false;
+    }
+
+
+    // =========================================================
+    // JUMP
+    // =========================================================
+
+    public bool CanJump()
+    {
+        switch (currentState)
+        {
+            case PlayerState.AllMovement:
+            case PlayerState.NoCrouch:
+            case PlayerState.NoSprint:
+            case PlayerState.NoCrouchOrSprint:
+
+                return true;
+
+
+            case PlayerState.ShopMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.NoMovement:
+            case PlayerState.NoJump:
+            case PlayerState.NoMovementNoCamera:
+            case PlayerState.PauseMenu:
+
+                return false;
+        }
+
+        return false;
+    }
+
+    public bool CanPause()
+    {
+        switch (currentState)
+        {
+            case PlayerState.NoInteract:
+            case PlayerState.ShopMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.PauseMenu:
+                return false;
+
+            default:
+                return true;
         }
     }
 
-    private void TestStates()
+
+    // =========================================================
+    // INTERACTION
+    // =========================================================
+
+    // =========================================================
+    // REGISTER STATE ZONE
+    // =========================================================
+
+    public void RegisterZone(PlayerStateZone zone)
     {
-        if (Keyboard.current == null)
+        if (zone == null)
+        {
             return;
-
-        if (Keyboard.current.f1Key.wasPressedThisFrame)
-        {
-            SetPlayerMode(PlayerMode.Normal);
         }
 
-        if (Keyboard.current.f2Key.wasPressedThisFrame)
+        // Prevent the same zone from being registered twice.
+        if (activeZones.Contains(zone))
         {
-            SetPlayerMode(PlayerMode.NoCrouchZone);
+            return;
         }
 
-        if (Keyboard.current.f3Key.wasPressedThisFrame)
+        activeZones.Add(zone);
+
+        // The most recently entered zone takes priority.
+        SetState(zone.GetState());
+
+        Debug.Log(
+            "[Player State] Entered zone: "
+            + zone.GetState());
+    }
+
+    // =========================================================
+    // UNREGISTER STATE ZONE
+    // =========================================================
+
+    public void UnregisterZone(PlayerStateZone zone)
+    {
+        if (zone == null)
         {
-            SetPlayerMode(PlayerMode.NoSprintZone);
+            return;
         }
 
-        if (Keyboard.current.f4Key.wasPressedThisFrame)
+        activeZones.Remove(zone);
+
+
+        // =====================================================
+        // ANOTHER ZONE IS STILL ACTIVE
+        // =====================================================
+
+        if (activeZones.Count > 0)
         {
-            SetPlayerMode(PlayerMode.NoCrouchOrSprintZone);
+            PlayerStateZone latestZone =
+                activeZones[activeZones.Count - 1];
+
+            SetState(latestZone.GetState());
+
+            Debug.Log(
+                "[Player State] Returned to zone: "
+                + latestZone.GetState());
+
+            return;
         }
 
-        if (Keyboard.current.f5Key.wasPressedThisFrame)
-        {
-            SetPlayerMode(PlayerMode.NoMovementZone);
-        }
 
-        if (Keyboard.current.f6Key.wasPressedThisFrame)
-        {
-            SetPlayerMode(PlayerMode.NoJumpZone);
-        }
+        // =====================================================
+        // NO ZONES ACTIVE
+        // =====================================================
 
-        if (Keyboard.current.f7Key.wasPressedThisFrame)
-        {
-            SetPlayerMode(PlayerMode.NoMovementOrCameraZone);
-        }
+        SetState(PlayerState.AllMovement);
 
-        if (Keyboard.current.f8Key.wasPressedThisFrame)
-        {
-            SetPlayerMode(PlayerMode.ShopMenu);
-        }
+        Debug.Log(
+            "[Player State] No active zones. "
+            + "Returned to AllMovement.");
+    }
 
-        if (Keyboard.current.f9Key.wasPressedThisFrame)
-        {
-            SetPlayerMode(PlayerMode.Cutscene);
-        }
 
-        if (Keyboard.current.f10Key.wasPressedThisFrame)
-        {
-            SetPlayerMode(PlayerMode.PauseMenu);
-        }
+    // =========================================================
+    // DEBUG
+    // =========================================================
+
+    public void DebugSetAllMovement()
+    {
+        SetState(PlayerState.AllMovement);
+    }
+
+
+    public void DebugSetNoCrouch()
+    {
+        SetState(PlayerState.NoCrouch);
+    }
+
+
+    public void DebugSetNoSprint()
+    {
+        SetState(PlayerState.NoSprint);
+    }
+
+
+    public void DebugSetNoInteract()
+    {
+        SetState(PlayerState.NoInteract);
+    }
+
+    public void DebugSetNoCrouchOrSprint()
+    {
+        SetState(PlayerState.NoCrouchOrSprint);
+    }
+
+
+    public void DebugSetShopMenu()
+    {
+        SetState(PlayerState.ShopMenu);
+    }
+
+
+    public void DebugSetCutscene()
+    {
+        SetState(PlayerState.Cutscene);
+    }
+
+
+    public void DebugSetNoMovement()
+    {
+        SetState(PlayerState.NoMovement);
+    }
+
+
+    public void DebugSetNoJump()
+    {
+        SetState(PlayerState.NoJump);
+    }
+
+
+    public void DebugSetNoMovementNoCamera()
+    {
+        SetState(PlayerState.NoMovementNoCamera);
+    }
+
+
+    public void DebugSetPauseMenu()
+    {
+        SetState(PlayerState.PauseMenu);
     }
 }

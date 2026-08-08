@@ -1,0 +1,555 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+public class PlayerInventory : MonoBehaviour
+{
+
+    [Header("Inventory Settings")]
+
+    // Adjust inventory size here.
+    [SerializeField] private int inventorySize = 5;
+
+
+
+    [Header("Inventory")]
+
+    [SerializeField]
+    private List<InventorySlot> slots =
+        new List<InventorySlot>();
+
+    // SELECTED SLOT
+
+    [Header("Selected Item")]
+
+    // The slot currently being used.
+    [SerializeField] private int selectedSlot = 0;
+    // BASE ATTACK
+
+    [Header("Attack Settings")]
+
+    // Damage when attacking without a weapon.
+    //
+    // Adjust base attack damage here.
+    [SerializeField] private float baseAttackDamage = 1f;
+
+    // INPUT
+
+    private PlayerControls controls;
+
+    // INITIALIZATION
+
+    private void Awake()
+    {
+        controls = new PlayerControls();
+
+        // Left click can be moved to seperate thing later
+
+        controls.Player.Attack.performed +=
+            _ => Attack();
+
+        // Right click handled in interaction
+
+        // CREATE INVENTORY SLOTS
+
+        for (int i = 0; i < inventorySize; i++)
+        {
+            slots.Add(
+                new InventorySlot(null, 0));
+        }
+
+
+        Debug.Log(
+            "[Inventory] Created with "
+            + inventorySize
+            + " slots.");
+    }
+
+    // ENABLE / DISABLE
+
+    private void OnEnable()
+    {
+        controls.Enable();
+    }
+
+
+    private void OnDisable()
+    {
+        controls.Disable();
+    }
+
+    // ATTACK
+
+    private void Attack()
+    {
+        InventorySlot slot =
+            GetSelectedSlot();
+
+        // NO ITEM
+
+        if (slot == null || slot.IsEmpty())
+        {
+            Debug.Log(
+                "[Inventory] Attack: Empty hands.");
+
+            DealAttackDamage(
+                baseAttackDamage);
+
+            return;
+        }
+
+        // WEAPON
+
+        if (slot.item is WeaponItem weapon)
+        {
+            float damage =
+                weapon.GetAttackDamage();
+
+
+            Debug.Log(
+                "[Inventory] Attack with: "
+                + weapon.itemName
+                + " | Type: "
+                + weapon.weaponType
+                + " | Damage: "
+                + damage);
+
+            // MELEE
+
+            if (weapon is MeleeWeaponItem)
+            {
+                PerformMeleeAttack(
+                    weapon as MeleeWeaponItem);
+
+                return;
+            }
+
+            // RANGED
+
+            if (weapon is RangedWeaponItem)
+            {
+                PerformRangedAttack(
+                    weapon as RangedWeaponItem);
+
+                return;
+            }
+
+
+            // Fallback
+            DealAttackDamage(damage);
+
+            return;
+        }
+        // NON-WEAPON
+
+        Debug.Log(
+            "[Inventory] "
+            + slot.item.itemName
+            + " is not a weapon.");
+
+        // The player can still perform the base attack.
+        DealAttackDamage(
+            baseAttackDamage);
+    }
+
+
+    // MELEE ATTACK
+
+    private void PerformMeleeAttack(
+        MeleeWeaponItem weapon)
+    {
+        Debug.Log(
+            "[Inventory] MELEE ATTACK"
+            + " | Weapon: "
+            + weapon.itemName
+            + " | Damage: "
+            + weapon.weaponDamage
+            + " | Range: "
+            + weapon.attackRange);
+
+
+        // Actual melee hit detection will be added later. Please Sidd, detect the enemy, deal damage, handle cooldowns
+    }
+
+
+    // RANGED ATTACK
+
+    private void PerformRangedAttack(
+        RangedWeaponItem weapon)
+    {
+        Debug.Log(
+            "[Inventory] RANGED ATTACK"
+            + " | Weapon: "
+            + weapon.itemName
+            + " | Damage: "
+            + weapon.weaponDamage
+            + " | Ammo: "
+            + weapon.GetCurrentAmmo());
+
+
+        // Actual shooting will be added later. Please marmz firerate, damage, detect hit, projectile
+    }
+
+
+    // BASE ATTACK DAMAGE
+
+
+    private void DealAttackDamage(
+        float damage)
+    {
+        Debug.Log(
+            "[Inventory] Attack dealt "
+            + damage
+            + " damage.");
+    }
+
+
+    // RIGHT CLICK / USE
+
+    public void UseSelectedItem()
+    {
+        InventorySlot slot =
+            GetSelectedSlot();
+
+        // NO ITEM
+
+
+        if (slot == null || slot.IsEmpty())
+        {
+            Debug.Log(
+                "[Inventory] Nothing selected.");
+
+            return;
+        }
+
+
+        ItemData item =
+            slot.item;
+
+
+        // WEAPON
+
+
+        if (item is WeaponItem)
+        {
+            item.Use();
+
+            return;
+        }
+
+        // CONSUMABLE
+
+
+        if (item is ConsumableItem)
+        {
+            item.Use();
+
+
+            // Remove one consumable after use.
+            RemoveItem(
+                selectedSlot,
+                1);
+
+            return;
+        }
+
+        // INTERACTABLE
+
+        if (item is InteractableItem)
+        {
+            item.Use();
+
+            return;
+        }
+
+
+        // FUTURE ITEM TYPES
+        // If we add another ItemData type later,
+        // its own Use() function will be called here.
+
+        item.Use();
+    }
+
+    // GET SELECTED SLOT
+
+    public InventorySlot GetSelectedSlot()
+    {
+        if (selectedSlot < 0 ||
+            selectedSlot >= slots.Count)
+        {
+            return null;
+        }
+
+
+        return slots[selectedSlot];
+    }
+
+
+    // =========================================================
+    // SELECT SLOT
+    // =========================================================
+
+    public void SelectSlot(
+        int index)
+    {
+        if (index < 0 ||
+            index >= slots.Count)
+        {
+            return;
+        }
+
+
+        selectedSlot = index;
+
+
+        Debug.Log(
+            "[Inventory] Selected slot: "
+            + selectedSlot);
+    }
+
+    // ADD ITEM
+
+    public bool AddItem(
+        ItemData item,
+        int amount = 1)
+    {
+        if (item == null)
+        {
+            Debug.Log(
+                "[Inventory] Cannot add null item.");
+
+            return false;
+        }
+
+
+        if (amount <= 0)
+        {
+            return false;
+        }
+
+        // TRY TO STACK
+
+        if (item.stackable)
+        {
+            for (int i = 0;
+                i < slots.Count;
+                i++)
+            {
+                InventorySlot slot =
+                    slots[i];
+
+
+                if (slot.item == item &&
+                    slot.quantity < item.maxStackSize)
+                {
+                    int availableSpace =
+                        item.maxStackSize -
+                        slot.quantity;
+
+
+                    int amountToAdd =
+                        Mathf.Min(
+                            amount,
+                            availableSpace);
+
+
+                    slot.quantity +=
+                        amountToAdd;
+
+
+                    amount -=
+                        amountToAdd;
+
+
+                    if (amount <= 0)
+                    {
+                        Debug.Log(
+                            "[Inventory] Added "
+                            + item.itemName);
+
+                        return true;
+                    }
+                }
+            }
+        }
+
+        // FIND EMPTY SLOT
+
+        for (int i = 0;
+            i < slots.Count;
+            i++)
+        {
+            if (slots[i].IsEmpty())
+            {
+                int amountToAdd;
+
+
+                if (item.stackable)
+                {
+                    amountToAdd =
+                        Mathf.Min(
+                            amount,
+                            item.maxStackSize);
+                }
+                else
+                {
+                    amountToAdd = 1;
+                }
+
+
+                slots[i] =
+                    new InventorySlot(
+                        item,
+                        amountToAdd);
+
+
+                amount -=
+                    amountToAdd;
+
+
+                Debug.Log(
+                    "[Inventory] Added "
+                    + item.itemName
+                    + " to slot "
+                    + i);
+
+
+                if (amount <= 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        // INVENTORY FULL
+
+        Debug.Log(
+            "[Inventory] Inventory is full.");
+
+        return false;
+    }
+
+    // REMOVE ITEM
+
+    public bool RemoveItem(
+        int slotIndex,
+        int amount = 1)
+    {
+        if (slotIndex < 0 ||
+            slotIndex >= slots.Count)
+        {
+            return false;
+        }
+
+
+        InventorySlot slot =
+            slots[slotIndex];
+
+
+        if (slot.IsEmpty())
+        {
+            return false;
+        }
+
+
+        slot.quantity -=
+            amount;
+
+        // SLOT IS NOW EMPTY
+
+        if (slot.quantity <= 0)
+        {
+            slots[slotIndex] =
+                new InventorySlot(
+                    null,
+                    0);
+        }
+
+
+        return true;
+    }
+    // CHECK IF PLAYER HAS ITEM
+
+    public bool HasItem(
+        ItemData item)
+    {
+        if (item == null)
+        {
+            return false;
+        }
+
+
+        foreach (InventorySlot slot in slots)
+        {
+            if (slot.item == item &&
+                slot.quantity > 0)
+            {
+                return true;
+            }
+        }
+
+
+        return false;
+    }
+
+    // GET TOTAL ITEM COUNT
+
+    public int GetItemCount(
+        ItemData item)
+    {
+        int total = 0;
+
+
+        foreach (InventorySlot slot in slots)
+        {
+            if (slot.item == item)
+            {
+                total +=
+                    slot.quantity;
+            }
+        }
+
+
+        return total;
+    }
+
+    // DEBUG
+
+    public void PrintInventory()
+    {
+        Debug.Log(
+            "========== INVENTORY ==========");
+
+
+        for (int i = 0;
+            i < slots.Count;
+            i++)
+        {
+            InventorySlot slot =
+                slots[i];
+
+
+            if (slot.IsEmpty())
+            {
+                Debug.Log(
+                    "Slot "
+                    + i
+                    + ": EMPTY");
+            }
+            else
+            {
+                Debug.Log(
+                    "Slot "
+                    + i
+                    + ": "
+                    + slot.item.itemName
+                    + " x"
+                    + slot.quantity);
+            }
+        }
+
+
+        Debug.Log(
+            "================================");
+    }
+}
