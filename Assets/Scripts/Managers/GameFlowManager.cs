@@ -1,0 +1,402 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using System.Collections;
+
+public class GameFlowManager : MonoBehaviour
+{
+    public static GameFlowManager Instance { get; private set; }
+
+    // =========================================================
+    // SCENE REFERENCES
+    // =========================================================
+
+    [Header("Scenes")]
+
+    [SerializeField] private string loadingScene = "Loading";
+    [SerializeField] private string menuScene = "MainMenu";
+    [SerializeField] private string lobbyScene = "Lobby";
+    [SerializeField] private string theaterScene = "Theater";
+    [SerializeField] private string caseScene = "Case";
+    [SerializeField] private string creditsScene = "Credits";
+
+    [Header("Transition")]
+
+    [SerializeField] private float transitionDelay = 0.25f;
+
+    [Header("Debug")]
+
+    [SerializeField] private bool debugFlow = true;
+
+    // =========================================================
+    // UNITY
+    // =========================================================
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    // =========================================================
+    // MENU
+    // =========================================================
+
+    public void OpenMainMenu()
+    {
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.MainMenu);
+
+        LoadScene(menuScene);
+    }
+
+    public void OpenCredits()
+    {
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.Credits);
+
+        LoadScene(creditsScene);
+    }
+
+    public void QuitGame()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
+    }
+
+    // =========================================================
+    // NEW GAME
+    // =========================================================
+
+    public void StartNormalGame()
+    {
+        StartNewGame(
+            GameStateManager.DifficultyMode.Normal);
+    }
+
+    public void StartHardcoreGame()
+    {
+        StartNewGame(
+            GameStateManager.DifficultyMode.Hardcore);
+    }
+
+    private void StartNewGame(
+        GameStateManager.DifficultyMode difficulty)
+    {
+        GameStateManager.Instance.ResetEntireGame();
+
+        GameStateManager.Instance.SetDifficulty(difficulty);
+
+        StartIntro();
+    }
+
+    // =========================================================
+    // INTRO
+    // =========================================================
+
+    public void StartIntro()
+    {
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.Cutscene);
+
+        LoadScene(loadingScene);
+    }
+
+    public void IntroFinished()
+    {
+        StartDay(1);
+    }
+
+    // =========================================================
+    // DAY FLOW
+    // =========================================================
+
+    public void StartDay(int day)
+    {
+        GameStateManager.Instance.SetDay(day);
+
+        GameStateManager.Instance.ResetCurrentDay();
+
+        if (TheaterManager.Instance != null)
+        {
+            TheaterManager.Instance.SetTheaterDay(day);
+        }
+
+        OpenLobby();
+    }
+
+    public void CompleteDay()
+    {
+        if (GameStateManager.Instance.IsFinalDay())
+        {
+            StartFinalPlay();
+            return;
+        }
+
+        GameStateManager.Instance.AdvanceDay();
+
+        StartDay(GameStateManager.Instance.GetCurrentDay());
+    }
+
+    // =========================================================
+    // LOBBY
+    // =========================================================
+
+    public void OpenLobby()
+    {
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.Lobby);
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Lobby);
+
+            AudioManager.Instance.PlayAmbience(
+                AudioManager.AmbienceType.Lobby);
+        }
+
+        LoadScene(lobbyScene);
+    }
+
+    // =========================================================
+    // PLAY
+    // =========================================================
+
+    public void StartPlay(int playID)
+    {
+        LoadScene(theaterScene);
+
+        StartCoroutine(
+            InitializePlayAfterLoad(playID));
+    }
+
+    private IEnumerator InitializePlayAfterLoad(int playID)
+    {
+        yield return new WaitForSeconds(transitionDelay);
+
+        if (TheaterManager.Instance != null)
+        {
+            TheaterManager.Instance.StartPlay(playID);
+        }
+    }
+
+    public void PlayFinished()
+    {
+        if (TheaterManager.Instance == null)
+            return;
+
+        if (TheaterManager.Instance.HasCaseAfterCurrentPlay())
+        {
+            TheaterManager.Instance.StartCaseAfterPlay();
+        }
+        else
+        {
+            TheaterManager.Instance.StartNextPlay();
+        }
+    }
+
+    // =========================================================
+    // CASE
+    // =========================================================
+
+    public void StartCase(int caseID)
+    {
+        LoadScene(caseScene);
+
+        StartCoroutine(
+            InitializeCaseAfterLoad(caseID));
+    }
+
+    private IEnumerator InitializeCaseAfterLoad(int caseID)
+    {
+        yield return new WaitForSeconds(transitionDelay);
+
+        if (CaseManager.Instance != null)
+        {
+            CaseManager.Instance.StartCase(caseID);
+        }
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Case);
+
+            AudioManager.Instance.PlayAmbience(
+                AudioManager.AmbienceType.Case);
+        }
+    }
+
+    public void CaseCompleted()
+    {
+        OpenLobby();
+    }
+
+    // =========================================================
+    // FINAL PLAY
+    // =========================================================
+
+    public void StartFinalPlay()
+    {
+        if (TheaterManager.Instance == null)
+            return;
+
+        TheaterManager.PlayData finalPlay =
+            TheaterManager.Instance.GetFinalPlay();
+
+        if (finalPlay == null)
+        {
+            Debug.LogError(
+                "No Final Play configured.");
+
+            return;
+        }
+
+        StartPlay(finalPlay.playID);
+    }
+
+    public void FinalPlayFinished()
+    {
+        StartBossFight();
+    }
+
+    // =========================================================
+    // BOSS
+    // =========================================================
+
+    public void StartBossFight()
+    {
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.BossFight);
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Boss);
+
+            AudioManager.Instance.PlayAmbience(
+                AudioManager.AmbienceType.Boss);
+        }
+    }
+
+    public void FinalBossDefeated()
+    {
+        GameStateManager.Instance.DefeatFinalBoss();
+
+        StartFinalCutscene();
+    }
+
+    // =========================================================
+    // CUTSCENE
+    // =========================================================
+
+    public void StartFinalCutscene()
+    {
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.Cutscene);
+    }
+
+    public void FinalCutsceneFinished()
+    {
+        GameStateManager.Instance.CompleteFinalCutscene();
+
+        OpenCredits();
+    }
+
+    // =========================================================
+    // LOSS
+    // =========================================================
+
+    public void PlayerDied()
+    {
+        GameStateManager.Instance.HandlePlayerDeath();
+
+        HandleLoss();
+    }
+
+    public void TimerExpired()
+    {
+        HandleLoss();
+    }
+
+    private void HandleLoss()
+    {
+        if (GameStateManager.Instance.IsHardcore())
+        {
+            RestartEntireGame();
+        }
+        else
+        {
+            RestartCurrentDay();
+        }
+    }
+
+    // =========================================================
+    // RESTARTS
+    // =========================================================
+
+    private void RestartCurrentDay()
+    {
+        int day =
+            GameStateManager.Instance.GetCurrentDay();
+
+        DebugFlow(
+            "Restarting Day " + day);
+
+        GameStateManager.Instance.ClearLossState();
+
+        StartDay(day);
+    }
+
+    private void RestartEntireGame()
+    {
+        GameStateManager.DifficultyMode difficulty =
+            GameStateManager.Instance.GetDifficulty();
+
+        DebugFlow("Restarting Entire Game");
+
+        GameStateManager.Instance.ResetEntireGame();
+
+        GameStateManager.Instance.SetDifficulty(difficulty);
+
+        StartDay(1);
+    }
+
+    // =========================================================
+    // SCENE LOADING
+    // =========================================================
+
+    public void LoadScene(string sceneName)
+    {
+        StartCoroutine(
+            LoadSceneRoutine(sceneName));
+    }
+
+    private IEnumerator LoadSceneRoutine(string sceneName)
+    {
+        yield return new WaitForSeconds(transitionDelay);
+
+        SceneManager.LoadScene(sceneName);
+    }
+
+    // =========================================================
+    // DEBUG
+    // =========================================================
+
+    private void DebugFlow(string message)
+    {
+        if (!debugFlow)
+            return;
+
+        Debug.Log(
+            "[Game Flow] " + message);
+    }
+}

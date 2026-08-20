@@ -1,8 +1,10 @@
 using UnityEngine;
+using System;
 
 public class GameStateManager : MonoBehaviour
 {
     public static GameStateManager Instance { get; private set; }
+
 
     // =========================================================
     // GAME MODE
@@ -10,21 +12,15 @@ public class GameStateManager : MonoBehaviour
 
     public enum GameMode
     {
-        LoadingCredits,
-
+        Loading,
         MainMenu,
-        Settings,
-        Credits,
-
-        DifficultySelection,
-        IntroVideo,
-
         Lobby,
         WatchingPlay,
         Case,
-
         BossFight,
-        Cutscene
+        Cutscene,
+        Credits,
+        Paused
     }
 
 
@@ -32,7 +28,7 @@ public class GameStateManager : MonoBehaviour
     // DIFFICULTY
     // =========================================================
 
-    public enum Difficulty
+    public enum DifficultyMode
     {
         Normal,
         Hardcore
@@ -47,13 +43,14 @@ public class GameStateManager : MonoBehaviour
     {
         NotStarted,
         FindObject,
-        KillBoss,
+        BossUnlocked,
+        BossDefeated,
         Complete
     }
 
 
     // =========================================================
-    // LOSS TYPE
+    // LOSS REASON
     // =========================================================
 
     public enum LossReason
@@ -64,47 +61,59 @@ public class GameStateManager : MonoBehaviour
 
 
     // =========================================================
-    // CURRENT GAME STATE
+    // OVERALL GAME STATE
     // =========================================================
 
-    [Header("Current Game State")]
+    [Header("Game State")]
 
     [SerializeField]
-    private GameMode currentGameMode = GameMode.LoadingCredits;
+    private GameMode currentGameMode =
+        GameMode.Loading;
 
     [SerializeField]
-    private Difficulty currentDifficulty = Difficulty.Normal;
+    private DifficultyMode difficulty =
+        DifficultyMode.Normal;
+
+
+    // =========================================================
+    // DAY
+    // =========================================================
+
+    [Header("Day Progression")]
 
     [SerializeField]
     [Range(1, 4)]
     private int currentDay = 1;
 
+
+    // =========================================================
+    // PLAY
+    // =========================================================
+
+    [Header("Theater Progression")]
+
     [SerializeField]
-    private int currentCase = 0;
+    private int currentPlay = -1;
 
 
     // =========================================================
-    // INVENTORY
+    // CASE
     // =========================================================
 
-    public enum InventoryStatus
-    {
-        Closed,
-        Open,
-        Locked
-    }
-
-    [Header("Inventory")]
+    [Header("Case Progression")]
 
     [SerializeField]
-    private InventoryStatus inventoryStatus = InventoryStatus.Closed;
+    private int currentCase = -1;
+
+    [SerializeField]
+    private bool caseActive = false;
 
 
     // =========================================================
     // OBJECTIVES
     // =========================================================
 
-    [Header("Current Case Objectives")]
+    [Header("Objectives")]
 
     [SerializeField]
     private ObjectiveState currentObjective =
@@ -114,6 +123,9 @@ public class GameStateManager : MonoBehaviour
     private bool objectFound = false;
 
     [SerializeField]
+    private bool bossUnlocked = false;
+
+    [SerializeField]
     private bool bossDefeated = false;
 
     [SerializeField]
@@ -121,36 +133,33 @@ public class GameStateManager : MonoBehaviour
 
 
     // =========================================================
-    // CASE TIMER
+    // CASE TIMER STATE
+    // =========================================================
+    //
+    // GameStateManager STORES timer information.
+    //
+    // CaseManager is responsible for actually counting
+    // the timer down.
+    //
     // =========================================================
 
     [Header("Case Timer")]
 
     [SerializeField]
-    private bool caseHasTimer = false;
+    private bool caseTimerActive = false;
 
     [SerializeField]
-    private bool timerActive = false;
+    private float caseTimeLimit = 0f;
 
     [SerializeField]
-    private float timeRemaining = 0f;
+    private float caseTimeRemaining = 0f;
 
 
     // =========================================================
-    // GACHA
+    // FINAL GAME STATE
     // =========================================================
 
-    [Header("Gacha")]
-
-    [SerializeField]
-    private int gachaCurrency = 0;
-
-
-    // =========================================================
-    // FINAL GAME PROGRESSION
-    // =========================================================
-
-    [Header("Final Game Progression")]
+    [Header("Final Progression")]
 
     [SerializeField]
     private bool finalPlayComplete = false;
@@ -161,31 +170,69 @@ public class GameStateManager : MonoBehaviour
     [SerializeField]
     private bool finalCutsceneComplete = false;
 
+
+    // =========================================================
+    // GACHA / CURRENCY
+    // =========================================================
+
+    [Header("Gacha")]
+
     [SerializeField]
-    private bool gameCompleted = false;
+    private int gachaCurrency = 0;
 
 
     // =========================================================
-    // LOSS
+    // LOSS STATE
     // =========================================================
 
     [Header("Loss State")]
 
     [SerializeField]
-    private bool gameLost = false;
+    private bool gameOver = false;
 
     [SerializeField]
     private LossReason lastLossReason;
 
 
     // =========================================================
-    // DEBUG
+    // EVENTS
     // =========================================================
 
-    [Header("Debug")]
+    public event Action<GameMode> OnGameModeChanged;
 
-    [SerializeField]
-    private bool debugStateChanges = true;
+    public event Action<DifficultyMode> OnDifficultyChanged;
+
+    public event Action<int> OnDayChanged;
+
+    public event Action<int> OnPlayChanged;
+
+    public event Action<int> OnCaseChanged;
+
+    public event Action<ObjectiveState> OnObjectiveChanged;
+
+    public event Action OnObjectFound;
+
+    public event Action OnBossUnlocked;
+
+    public event Action OnBossDefeated;
+
+    public event Action OnSideQuestCompleted;
+
+    public event Action OnCaseStarted;
+
+    public event Action OnCaseCompleted;
+
+    public event Action OnFinalPlayCompleted;
+
+    public event Action OnFinalBossDefeated;
+
+    public event Action OnFinalCutsceneCompleted;
+
+    public event Action<float> OnCaseTimerStarted;
+
+    public event Action OnCaseTimerStopped;
+
+    public event Action<LossReason> OnLoss;
 
 
     // =========================================================
@@ -202,8 +249,6 @@ public class GameStateManager : MonoBehaviour
 
         Instance = this;
 
-        // Survives scene changes.
-        // It does NOT save anything after the game closes.
         DontDestroyOnLoad(gameObject);
     }
 
@@ -211,12 +256,6 @@ public class GameStateManager : MonoBehaviour
     // =========================================================
     // GAME MODE
     // =========================================================
-
-    public GameMode GetCurrentGameMode()
-    {
-        return currentGameMode;
-    }
-
 
     public void SetGameMode(GameMode newMode)
     {
@@ -227,13 +266,15 @@ public class GameStateManager : MonoBehaviour
 
         currentGameMode = newMode;
 
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Game Mode changed to: "
-                + currentGameMode
-            );
-        }
+        OnGameModeChanged?.Invoke(
+            currentGameMode
+        );
+    }
+
+
+    public GameMode GetGameMode()
+    {
+        return currentGameMode;
     }
 
 
@@ -247,35 +288,34 @@ public class GameStateManager : MonoBehaviour
     // DIFFICULTY
     // =========================================================
 
-    public Difficulty GetDifficulty()
+    public void SetDifficulty(
+        DifficultyMode newDifficulty)
     {
-        return currentDifficulty;
+        difficulty = newDifficulty;
+
+        OnDifficultyChanged?.Invoke(
+            difficulty
+        );
     }
 
 
-    public void SetDifficulty(Difficulty difficulty)
+    public DifficultyMode GetDifficulty()
     {
-        currentDifficulty = difficulty;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Difficulty selected: "
-                + currentDifficulty
-            );
-        }
+        return difficulty;
     }
 
 
-    public bool IsNormalMode()
+    public bool IsHardcore()
     {
-        return currentDifficulty == Difficulty.Normal;
+        return difficulty ==
+               DifficultyMode.Hardcore;
     }
 
 
-    public bool IsHardcoreMode()
+    public bool IsNormal()
     {
-        return currentDifficulty == Difficulty.Hardcore;
+        return difficulty ==
+               DifficultyMode.Normal;
     }
 
 
@@ -283,32 +323,20 @@ public class GameStateManager : MonoBehaviour
     // DAY
     // =========================================================
 
-    public int GetCurrentDay()
-    {
-        return currentDay;
-    }
-
-
     public void SetDay(int day)
     {
-        if (day < 1 || day > 4)
-        {
-            Debug.LogWarning(
-                "[Game State] Invalid day: " + day
-            );
+        day = Mathf.Clamp(day, 1, 4);
 
+        if (currentDay == day)
+        {
             return;
         }
 
         currentDay = day;
 
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Day changed to: "
-                + currentDay
-            );
-        }
+        OnDayChanged?.Invoke(
+            currentDay
+        );
     }
 
 
@@ -316,24 +344,42 @@ public class GameStateManager : MonoBehaviour
     {
         if (currentDay >= 4)
         {
-            Debug.LogWarning(
-                "[Game State] Cannot advance beyond Day 4."
-            );
-
             return;
         }
 
-        currentDay++;
+        SetDay(currentDay + 1);
+    }
 
-        ResetCaseProgress();
 
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Advanced to Day "
-                + currentDay
-            );
-        }
+    public int GetCurrentDay()
+    {
+        return currentDay;
+    }
+
+
+    public bool IsFinalDay()
+    {
+        return currentDay == 4;
+    }
+
+
+    // =========================================================
+    // PLAY
+    // =========================================================
+
+    public void SetCurrentPlay(int playID)
+    {
+        currentPlay = playID;
+
+        OnPlayChanged?.Invoke(
+            currentPlay
+        );
+    }
+
+
+    public int GetCurrentPlay()
+    {
+        return currentPlay;
     }
 
 
@@ -341,44 +387,104 @@ public class GameStateManager : MonoBehaviour
     // CASE
     // =========================================================
 
+    public void SetCase(int caseID)
+    {
+        currentCase = caseID;
+
+        OnCaseChanged?.Invoke(
+            currentCase
+        );
+    }
+
+
     public int GetCurrentCase()
     {
         return currentCase;
     }
 
 
-    public void SetCase(int caseNumber)
+    public void StartCase()
     {
-        if (caseNumber < 0)
-        {
-            Debug.LogWarning(
-                "[Game State] Invalid case number."
-            );
+        caseActive = true;
 
-            return;
-        }
+        currentObjective =
+            ObjectiveState.FindObject;
 
-        currentCase = caseNumber;
+        objectFound = false;
 
-        ResetCaseProgress();
+        bossUnlocked = false;
 
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Current case: "
-                + currentCase
-            );
-        }
+        bossDefeated = false;
+
+        sideQuestComplete = false;
+
+        gameOver = false;
+
+        SetGameMode(
+            GameMode.Case
+        );
+
+        OnCaseStarted?.Invoke();
+
+        OnObjectiveChanged?.Invoke(
+            currentObjective
+        );
+    }
+
+
+    public void CompleteCase()
+    {
+        caseActive = false;
+
+        currentObjective =
+            ObjectiveState.Complete;
+
+        StopCaseTimer();
+
+        OnCaseCompleted?.Invoke();
+
+        OnObjectiveChanged?.Invoke(
+            currentObjective
+        );
+    }
+
+
+    public bool IsCaseActive()
+    {
+        return caseActive;
     }
 
 
     // =========================================================
-    // OBJECTIVES
+    // OBJECTIVE 1
     // =========================================================
 
-    public ObjectiveState GetCurrentObjective()
+    public void FindObject()
     {
-        return currentObjective;
+        if (!caseActive)
+        {
+            return;
+        }
+
+        if (objectFound)
+        {
+            return;
+        }
+
+        objectFound = true;
+
+        bossUnlocked = true;
+
+        currentObjective =
+            ObjectiveState.BossUnlocked;
+
+        OnObjectFound?.Invoke();
+
+        OnBossUnlocked?.Invoke();
+
+        OnObjectiveChanged?.Invoke(
+            currentObjective
+        );
     }
 
 
@@ -388,9 +494,91 @@ public class GameStateManager : MonoBehaviour
     }
 
 
+    // =========================================================
+    // OBJECTIVE 2
+    // =========================================================
+
+    public void UnlockBoss()
+    {
+        if (!objectFound)
+        {
+            return;
+        }
+
+        if (bossUnlocked)
+        {
+            return;
+        }
+
+        bossUnlocked = true;
+
+        currentObjective =
+            ObjectiveState.BossUnlocked;
+
+        OnBossUnlocked?.Invoke();
+
+        OnObjectiveChanged?.Invoke(
+            currentObjective
+        );
+    }
+
+
+    public bool IsBossUnlocked()
+    {
+        return bossUnlocked;
+    }
+
+
+    public void DefeatCaseBoss()
+    {
+        if (!bossUnlocked)
+        {
+            return;
+        }
+
+        if (bossDefeated)
+        {
+            return;
+        }
+
+        bossDefeated = true;
+
+        currentObjective =
+            ObjectiveState.BossDefeated;
+
+        OnBossDefeated?.Invoke();
+
+        OnObjectiveChanged?.Invoke(
+            currentObjective
+        );
+    }
+
+
     public bool IsBossDefeated()
     {
         return bossDefeated;
+    }
+
+
+    // =========================================================
+    // SIDE QUEST
+    // =========================================================
+
+    public void CompleteSideQuest()
+    {
+        if (!caseActive)
+        {
+            return;
+        }
+
+        if (sideQuestComplete)
+        {
+            return;
+        }
+
+        sideQuestComplete = true;
+
+        OnSideQuestCompleted?.Invoke();
     }
 
 
@@ -400,289 +588,121 @@ public class GameStateManager : MonoBehaviour
     }
 
 
-    // ---------------------------------------------------------
-    // START CASE
-    // ---------------------------------------------------------
-
-    public void StartCase()
-    {
-        currentObjective = ObjectiveState.FindObject;
-
-        objectFound = false;
-        bossDefeated = false;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Case started. "
-                + "Objective: Find Object."
-            );
-        }
-    }
-
-
-    // ---------------------------------------------------------
-    // OBJECT FOUND
-    // ---------------------------------------------------------
-
-    public void FindObject()
-    {
-        if (currentObjective != ObjectiveState.FindObject)
-        {
-            Debug.LogWarning(
-                "[Game State] Object cannot be found "
-                + "at the current objective state."
-            );
-
-            return;
-        }
-
-        objectFound = true;
-
-        currentObjective = ObjectiveState.KillBoss;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Object found. "
-                + "Objective changed to: Kill Boss."
-            );
-        }
-    }
-
-
-    // ---------------------------------------------------------
-    // BOSS DEFEATED
-    // ---------------------------------------------------------
-
-    public void DefeatCaseBoss()
-    {
-        if (currentObjective != ObjectiveState.KillBoss)
-        {
-            Debug.LogWarning(
-                "[Game State] Boss cannot be defeated "
-                + "at the current objective state."
-            );
-
-            return;
-        }
-
-        bossDefeated = true;
-
-        currentObjective = ObjectiveState.Complete;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Case boss defeated. "
-                + "Case complete."
-            );
-        }
-    }
-
-
-    // ---------------------------------------------------------
-    // SIDE QUEST
-    // ---------------------------------------------------------
-
-    public void CompleteSideQuest()
-    {
-        sideQuestComplete = true;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Side quest completed."
-            );
-        }
-    }
-
-
-    // ---------------------------------------------------------
-    // CASE COMPLETE
-    // ---------------------------------------------------------
-
-    public bool IsCaseComplete()
-    {
-        return currentObjective == ObjectiveState.Complete;
-    }
-
-
     // =========================================================
-    // CASE TIMER
+    // TIMER
     // =========================================================
-
-    public bool HasCaseTimer()
-    {
-        return caseHasTimer;
-    }
-
-
-    public bool IsTimerActive()
-    {
-        return timerActive;
-    }
-
-
-    public float GetTimeRemaining()
-    {
-        return timeRemaining;
-    }
-
+    //
+    // IMPORTANT:
+    // CaseManager owns the actual countdown.
+    //
+    // This class ONLY stores the timer state.
+    //
+    // =========================================================
 
     public void StartCaseTimer(float duration)
     {
         if (duration <= 0f)
         {
-            Debug.LogWarning(
-                "[Game State] Invalid timer duration."
-            );
-
             return;
         }
 
-        caseHasTimer = true;
-        timerActive = true;
-        timeRemaining = duration;
+        caseTimerActive = true;
 
-        if (debugStateChanges)
+        caseTimeLimit = duration;
+
+        caseTimeRemaining = duration;
+
+        OnCaseTimerStarted?.Invoke(
+            duration
+        );
+    }
+
+
+    public void UpdateCaseTimer(
+        float remainingTime)
+    {
+        if (!caseTimerActive)
         {
-            Debug.Log(
-                "[Game State] Case timer started: "
-                + duration
-                + " seconds."
-            );
+            return;
         }
+
+        caseTimeRemaining =
+            Mathf.Max(
+                0f,
+                remainingTime
+            );
     }
 
 
     public void StopCaseTimer()
     {
-        timerActive = false;
-    }
-
-
-    private void Update()
-    {
-        if (!timerActive)
+        if (!caseTimerActive)
         {
             return;
         }
 
-        timeRemaining -= Time.deltaTime;
+        caseTimerActive = false;
 
-        if (timeRemaining <= 0f)
-        {
-            timeRemaining = 0f;
-            timerActive = false;
+        caseTimeRemaining = 0f;
 
-            HandleLoss(LossReason.TimerExpired);
-        }
+        OnCaseTimerStopped?.Invoke();
+    }
+
+
+    public bool IsCaseTimerActive()
+    {
+        return caseTimerActive;
+    }
+
+
+    public float GetCaseTimeLimit()
+    {
+        return caseTimeLimit;
+    }
+
+
+    public float GetTimeRemaining()
+    {
+        return caseTimeRemaining;
     }
 
 
     // =========================================================
-    // LOSS SYSTEM
+    // FINAL PLAY
     // =========================================================
 
-    public bool IsGameLost()
+    public void CompleteFinalPlay()
     {
-        return gameLost;
-    }
+        finalPlayComplete = true;
 
-
-    public LossReason GetLastLossReason()
-    {
-        return lastLossReason;
-    }
-
-
-    public void PlayerDied()
-    {
-        HandleLoss(LossReason.PlayerDeath);
-    }
-
-
-    public void HandleLoss(LossReason reason)
-    {
-        gameLost = true;
-        lastLossReason = reason;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Player lost. Reason: "
-                + reason
-            );
-        }
-
-        if (currentDifficulty == Difficulty.Hardcore)
-        {
-            HandleHardcoreLoss();
-        }
-        else
-        {
-            HandleNormalLoss();
-        }
-    }
-
-
-    private void HandleNormalLoss()
-    {
-        Debug.Log(
-            "[Game State] Normal Mode loss. "
-            + "Restart current day."
+        SetGameMode(
+            GameMode.BossFight
         );
 
-        // Scene/day restart will be handled by
-        // the GameFlowManager / SceneManager.
-
-        ResetCurrentDay();
+        OnFinalPlayCompleted?.Invoke();
     }
 
-
-    private void HandleHardcoreLoss()
-    {
-        Debug.Log(
-            "[Game State] Hardcore Mode loss. "
-            + "Restart entire game."
-        );
-
-        // Full game restart will be handled by
-        // the GameFlowManager / SceneManager.
-
-        ResetGameProgress();
-    }
-
-
-    // =========================================================
-    // NORMAL MODE DAY RESET
-    // =========================================================
-
-    public void ResetCurrentDay()
-    {
-        currentCase = 0;
-
-        ResetCaseProgress();
-
-        gameLost = false;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Current day reset."
-            );
-        }
-    }
-
-
-    // =========================================================
-    // FINAL GAME PROGRESSION
-    // =========================================================
 
     public bool IsFinalPlayComplete()
     {
         return finalPlayComplete;
+    }
+
+
+    // =========================================================
+    // FINAL BOSS
+    // =========================================================
+
+    public void DefeatFinalBoss()
+    {
+        if (finalBossDefeated)
+        {
+            return;
+        }
+
+        finalBossDefeated = true;
+
+        OnFinalBossDefeated?.Invoke();
     }
 
 
@@ -692,87 +712,31 @@ public class GameStateManager : MonoBehaviour
     }
 
 
+    // =========================================================
+    // FINAL CUTSCENE
+    // =========================================================
+
+    public void CompleteFinalCutscene()
+    {
+        finalCutsceneComplete = true;
+
+        OnFinalCutsceneCompleted?.Invoke();
+
+        SetGameMode(
+            GameMode.Credits
+        );
+    }
+
+
     public bool IsFinalCutsceneComplete()
     {
         return finalCutsceneComplete;
     }
 
 
-    public bool IsGameCompleted()
-    {
-        return gameCompleted;
-    }
-
-
-    public void CompleteFinalPlay()
-    {
-        finalPlayComplete = true;
-    }
-
-
-    public void DefeatFinalBoss()
-    {
-        finalBossDefeated = true;
-    }
-
-
-    public void CompleteFinalCutscene()
-    {
-        finalCutsceneComplete = true;
-    }
-
-
-    public void CompleteGame()
-    {
-        gameCompleted = true;
-    }
-
-
     // =========================================================
-    // INVENTORY
+    // GACHA CURRENCY
     // =========================================================
-
-    public InventoryStatus GetInventoryStatus()
-    {
-        return inventoryStatus;
-    }
-
-
-    public void SetInventoryStatus(InventoryStatus status)
-    {
-        inventoryStatus = status;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Inventory status: "
-                + inventoryStatus
-            );
-        }
-    }
-
-
-    public bool IsInventoryOpen()
-    {
-        return inventoryStatus == InventoryStatus.Open;
-    }
-
-
-    public bool IsInventoryLocked()
-    {
-        return inventoryStatus == InventoryStatus.Locked;
-    }
-
-
-    // =========================================================
-    // GACHA
-    // =========================================================
-
-    public int GetGachaCurrency()
-    {
-        return gachaCurrency;
-    }
-
 
     public void AddGachaCurrency(int amount)
     {
@@ -803,78 +767,211 @@ public class GameStateManager : MonoBehaviour
     }
 
 
+    public int GetGachaCurrency()
+    {
+        return gachaCurrency;
+    }
+
+
+    public void SetGachaCurrency(int amount)
+    {
+        gachaCurrency =
+            Mathf.Max(0, amount);
+    }
+
+
+    // =========================================================
+    // LOSS / DEATH
+    // =========================================================
+
+    public void HandleLoss(
+        LossReason reason)
+    {
+        if (gameOver)
+        {
+            return;
+        }
+
+        gameOver = true;
+
+        lastLossReason = reason;
+
+        StopCaseTimer();
+
+        OnLoss?.Invoke(
+            reason
+        );
+    }
+
+
+    public void HandlePlayerDeath()
+    {
+        HandleLoss(
+            LossReason.PlayerDeath
+        );
+    }
+
+
+    public LossReason GetLastLossReason()
+    {
+        return lastLossReason;
+    }
+
+
+    public bool HasLost()
+    {
+        return gameOver;
+    }
+
+
+    public void ClearLossState()
+    {
+        gameOver = false;
+    }
+
+
     // =========================================================
     // CASE RESET
     // =========================================================
 
     public void ResetCaseProgress()
     {
-        currentObjective = ObjectiveState.NotStarted;
+        caseActive = false;
 
         objectFound = false;
+
+        bossUnlocked = false;
+
         bossDefeated = false;
+
         sideQuestComplete = false;
 
-        caseHasTimer = false;
-        timerActive = false;
-        timeRemaining = 0f;
+        currentObjective =
+            ObjectiveState.NotStarted;
+
+        StopCaseTimer();
+
+        gameOver = false;
     }
 
 
     // =========================================================
-    // COMPLETE GAME RESET
+    // DAY RESET
+    // =========================================================
+    //
+    // Used by NORMAL difficulty after death/loss.
+    //
+    // This resets gameplay progress for the current day
+    // without changing the day itself.
+    //
     // =========================================================
 
-    public void ResetGameProgress()
+    public void ResetCurrentDay()
     {
-        currentDay = 1;
-        currentCase = 0;
+        currentPlay = -1;
 
-        currentDifficulty = Difficulty.Normal;
+        currentCase = -1;
 
         ResetCaseProgress();
 
-        inventoryStatus = InventoryStatus.Closed;
-
-        gachaCurrency = 0;
-
         finalPlayComplete = false;
+
         finalBossDefeated = false;
+
         finalCutsceneComplete = false;
-        gameCompleted = false;
 
-        gameLost = false;
+        gameOver = false;
 
-        currentGameMode = GameMode.MainMenu;
-
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] Entire game progress reset."
-            );
-        }
+        SetGameMode(
+            GameMode.Lobby
+        );
     }
 
 
     // =========================================================
-    // NEW GAME
+    // FULL GAME RESET
+    // =========================================================
+    //
+    // Used by HARDCORE after death/loss.
+    //
+    // No saving/loading is involved.
+    //
     // =========================================================
 
-    public void StartNewGame(Difficulty difficulty)
+    public void ResetEntireGame()
     {
-        ResetGameProgress();
-
-        currentDifficulty = difficulty;
         currentDay = 1;
 
-        SetGameMode(GameMode.IntroVideo);
+        currentPlay = -1;
 
-        if (debugStateChanges)
-        {
-            Debug.Log(
-                "[Game State] New game started. Mode: "
-                + difficulty
-            );
-        }
+        currentCase = -1;
+
+        ResetCaseProgress();
+
+        finalPlayComplete = false;
+
+        finalBossDefeated = false;
+
+        finalCutsceneComplete = false;
+
+        gachaCurrency = 0;
+
+        gameOver = false;
+
+        difficulty =
+            DifficultyMode.Normal;
+
+        SetGameMode(
+            GameMode.MainMenu
+        );
+
+        OnDayChanged?.Invoke(
+            currentDay
+        );
+    }
+
+
+    // =========================================================
+    // GETTERS
+    // =========================================================
+
+    public GameMode CurrentGameMode
+    {
+        get { return currentGameMode; }
+    }
+
+
+    public DifficultyMode Difficulty
+    {
+        get { return difficulty; }
+    }
+
+
+    public int CurrentDay
+    {
+        get { return currentDay; }
+    }
+
+
+    public int CurrentPlay
+    {
+        get { return currentPlay; }
+    }
+
+
+    public int CurrentCase
+    {
+        get { return currentCase; }
+    }
+
+
+    public ObjectiveState CurrentObjective
+    {
+        get { return currentObjective; }
+    }
+
+    public ObjectiveState GetCurrentObjective()
+    {
+        return currentObjective;
     }
 }
