@@ -10,7 +10,17 @@ public class PlayerInventory : MonoBehaviour
     // Adjust inventory size here.
     [SerializeField] private int inventorySize = 5;
 
+    [Header("Inventory UI")]
 
+    [Header("Inventory UI")]
+    [SerializeField] private GameObject inventoryUI;
+
+    private GameStateManager.GameMode previousGameMode;
+    private PlayerStateManager.PlayerState previousPlayerState;
+
+    private PlayerStateManager playerStateManager;
+
+    private bool inventoryOpen;
 
     [Header("Inventory")]
 
@@ -48,6 +58,16 @@ public class PlayerInventory : MonoBehaviour
         controls.Player.Attack.performed +=
             _ => Attack();
 
+        if (inventoryUI != null)
+        {
+            inventoryUI.SetActive(false);
+        }
+
+        // PlayerControls already contains the Inventory action.
+        // Bind I / D-Pad Up to that action in the existing Input Actions asset.
+        controls.Player.Inventory.performed +=
+            _ => ToggleInventory();
+
         // Right click handled in interaction
 
         // CREATE INVENTORY SLOTS
@@ -56,6 +76,21 @@ public class PlayerInventory : MonoBehaviour
         {
             slots.Add(
                 new InventorySlot(null, 0));
+        }
+
+        playerStateManager =
+    GetComponent<PlayerStateManager>();
+
+        if (inventoryUI != null)
+        {
+            inventoryUI.SetActive(false);
+        }
+
+        if (playerStateManager == null)
+        {
+            Debug.LogWarning(
+                "[Inventory] PlayerStateManager not found on Player."
+            );
         }
 
 
@@ -78,10 +113,137 @@ public class PlayerInventory : MonoBehaviour
         controls.Disable();
     }
 
+
+    // =========================================================
+    // INVENTORY OPEN / CLOSE
+    // =========================================================
+
+    private void ToggleInventory()
+    {
+        if (inventoryOpen)
+        {
+            CloseInventory();
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+        else
+        {
+            OpenInventory();
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+    }
+
+    public void OpenInventory()
+    {
+        if (inventoryOpen)
+        {
+            return;
+        }
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "[Inventory] GameStateManager instance not found."
+            );
+
+            return;
+        }
+
+        if (playerStateManager == null)
+        {
+            Debug.LogWarning(
+                "[Inventory] PlayerStateManager not found."
+            );
+
+            return;
+        }
+
+        // Save the states before changing them.
+        previousGameMode =
+            GameStateManager.Instance.GetGameMode();
+
+        previousPlayerState =
+            playerStateManager.GetCurrentState();
+
+        // Change GAME state.
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.Paused
+        );
+
+        // Change PLAYER state.
+        playerStateManager.SetState(
+            PlayerStateManager.PlayerState.PauseMenu
+        );
+
+        // Show inventory.
+        if (inventoryUI != null)
+        {
+            inventoryUI.SetActive(true);
+        }
+
+        inventoryOpen = true;
+
+        Debug.Log(
+            "[Inventory] Opened."
+            + " Game State: Paused"
+            + " | Player State: PauseMenu"
+        );
+    }
+
+    public void CloseInventory()
+    {
+        if (!inventoryOpen)
+        {
+            return;
+        }
+
+        // Hide inventory.
+        if (inventoryUI != null)
+        {
+            inventoryUI.SetActive(false);
+        }
+
+        // Restore GAME state.
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                previousGameMode
+            );
+        }
+
+        // Restore PLAYER state.
+        if (playerStateManager != null)
+        {
+            playerStateManager.SetState(
+                previousPlayerState
+            );
+        }
+
+        inventoryOpen = false;
+
+        Debug.Log(
+            "[Inventory] Closed."
+            + " Game State restored to: "
+            + previousGameMode
+            + " | Player State restored to: "
+            + previousPlayerState
+        );
+    }
+
+    public bool IsInventoryOpen()
+    {
+        return inventoryOpen;
+    }
+
     // ATTACK
 
     private void Attack()
     {
+        if (!playerStateManager.CanAttack())
+        {
+            return;
+        }
         InventorySlot slot =
             GetSelectedSlot();
 

@@ -1,34 +1,64 @@
 using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine.EventSystems;
-using Unity.VisualScripting;
+
 public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler
 {
     [Header("UI")]
-    public Image image;
+    [SerializeField] private Image image;
 
     [HideInInspector] public Transform parentAfterDrag;
 
+    private void Awake()
+    {
+        if (image == null)
+            image = GetComponent<Image>();
+    }
+
+    public void SetItem(ItemData item)
+    {
+        if (image == null)
+            image = GetComponent<Image>();
+
+        if (image == null)
+            return;
+
+        image.sprite = item != null ? item.icon : null;
+        image.enabled = item != null && item.icon != null;
+    }
+
+    public void ClearItem()
+    {
+        SetItem(null);
+    }
+
     public void OnBeginDrag(PointerEventData eventData)
     {
-        image.raycastTarget = false;
+        if (image == null || image.sprite == null)
+            return;
+
         parentAfterDrag = transform.parent;
-        transform.SetParent(transform.root);
-        throw new System.NotImplementedException();
+        transform.SetParent(transform.root, true);
+        transform.SetAsLastSibling();
+        image.raycastTarget = false;
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        transform.position = Input.mousePosition;
-        throw new System.NotImplementedException();
+        if (image == null || image.sprite == null)
+            return;
+
+        transform.position = eventData.position;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
+        if (image == null)
+            return;
+
         image.raycastTarget = true;
-        transform.SetParent(parentAfterDrag);
-        throw new System.NotImplementedException();
+
+        if (parentAfterDrag != null)
+            transform.SetParent(parentAfterDrag, false);
     }
 }
