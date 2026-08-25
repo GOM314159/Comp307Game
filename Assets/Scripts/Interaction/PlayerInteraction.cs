@@ -125,7 +125,7 @@ public class PlayerInteraction : MonoBehaviour
 
     private void HandleInteract()
     {
-
+        Debug.Log("[Interaction TEST] HandleInteract was triggered.");
         if (stateManager != null &&
             !stateManager.CanInteract())
         {
