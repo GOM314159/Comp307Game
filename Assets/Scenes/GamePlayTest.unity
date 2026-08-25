@@ -4085,23 +4085,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfe5641ea8a535c4e92c908e4088fe65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
-  inventorySize: 28
+  inventorySize: 21
   inventoryUI: {fileID: 659575102}
   slots:
-  - item: {fileID: 0}
-    quantity: 0
-  - item: {fileID: 0}
-    quantity: 0
-  - item: {fileID: 0}
-    quantity: 0
-  - item: {fileID: 0}
-    quantity: 0
-  - item: {fileID: 0}
-    quantity: 0
-  - item: {fileID: 0}
-    quantity: 0
-  - item: {fileID: 0}
-    quantity: 0
   - item: {fileID: 0}
     quantity: 0
   - item: {fileID: 0}
