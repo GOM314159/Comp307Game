@@ -1,6 +1,10 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.UI;
 
-public abstract class ItemData : ScriptableObject
+public abstract class ItemData : ScriptableObject , IBeginDragHandler , IDragHandler , IEndDragHandler
 {
    
     public enum ItemType
@@ -24,6 +28,8 @@ public abstract class ItemData : ScriptableObject
 
     // Determines how the item behaves
     public ItemType itemType;
+
+    public Image Image;
 
 
     [Header("Attack Settings")]
@@ -58,5 +64,25 @@ public abstract class ItemData : ScriptableObject
     public virtual float GetAttackDamage()
     {
         return baseDamage;
+    }
+
+
+    // INVENTORY DRAG AND DROP
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        Image.raycastTarget = true;
+        
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+       // transform.position = Input.mousePosition;
+    }
+
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        Image.raycastTarget = false;
+       // parentAfterDrag = transform.parent;
+       // transform.SetParent(Transform.root);
     }
 }
