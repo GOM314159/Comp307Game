@@ -15,6 +15,8 @@ public class PlayerInventory : MonoBehaviour
     [Header("Inventory UI")]
     [SerializeField] private GameObject inventoryUI;
 
+    [SerializeField] private GameObject inventoryCloseButton;
+
     private GameStateManager.GameMode previousGameMode;
     private PlayerStateManager.PlayerState previousPlayerState;
 
@@ -61,6 +63,10 @@ public class PlayerInventory : MonoBehaviour
         if (inventoryUI != null)
         {
             inventoryUI.SetActive(false);
+        }
+        if (inventoryCloseButton != null)
+        {
+            inventoryCloseButton.SetActive(false);
         }
 
         // PlayerControls already contains the Inventory action.
@@ -141,6 +147,8 @@ public class PlayerInventory : MonoBehaviour
             return;
         }
 
+
+
         if (GameStateManager.Instance == null)
         {
             Debug.LogWarning(
@@ -181,6 +189,11 @@ public class PlayerInventory : MonoBehaviour
         {
             inventoryUI.SetActive(true);
         }
+        if (inventoryCloseButton != null)
+        {
+            inventoryCloseButton.SetActive(true);
+        }
+
 
         inventoryOpen = true;
 
@@ -202,6 +215,12 @@ public class PlayerInventory : MonoBehaviour
         if (inventoryUI != null)
         {
             inventoryUI.SetActive(false);
+        }
+
+        // Hide close button.
+        if (inventoryCloseButton != null)
+        {
+            inventoryCloseButton.SetActive(false);
         }
 
         // Restore GAME state.
