@@ -4,11 +4,23 @@ using UnityEngine.EventSystems;
 
 public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler
 {
+    public ItemData item;
+
     [Header("UI")]
-    [SerializeField] private Image image;
+    public Image image;
 
     [HideInInspector] public Transform parentAfterDrag;
 
+
+    private void Start()
+    {
+        InitialiseItem(item);
+    }
+
+    public void InitialiseItem(ItemData item)
+    {
+        image.sprite = item.icon;
+    }
     private void Awake()
     {
         if (image == null)
@@ -36,11 +48,11 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
     {
         if (image == null || image.sprite == null)
             return;
-
-        parentAfterDrag = transform.parent;
-        transform.SetParent(transform.root, true);
-        transform.SetAsLastSibling();
         image.raycastTarget = false;
+        parentAfterDrag = transform.parent;
+        transform.SetParent(transform.root);
+      //  transform.SetAsLastSibling();
+        
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -58,7 +70,7 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
 
         image.raycastTarget = true;
 
-        if (parentAfterDrag != null)
-            transform.SetParent(parentAfterDrag, false);
+       // if (parentAfterDrag != null)
+            transform.SetParent(parentAfterDrag);
     }
 }
