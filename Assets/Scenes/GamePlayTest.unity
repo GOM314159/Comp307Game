@@ -295,7 +295,7 @@ GameObject:
   - component: {fileID: 132767709}
   - component: {fileID: 132767708}
   - component: {fileID: 132767707}
-  - component: {fileID: 132767706}
+  - component: {fileID: 132767711}
   m_Layer: 20
   m_Name: Cube
   m_TagString: Untagged
@@ -303,24 +303,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &132767706
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 132767705}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 97afb25f673463d478b3c1a01f5f4df9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AxeInteractable
-  interactionPrompt: Interact
-  canInteract: 1
-  interactOnlyOnce: 1
-  axeItem: {fileID: 11400000, guid: 88b6d9968193cc5449da41bb51eca3fe, type: 2}
-  playerInventory: {fileID: 1442830820}
-  axeDamage: 10
 --- !u!65 &132767707
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -414,6 +396,24 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &132767711
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 132767705}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97afb25f673463d478b3c1a01f5f4df9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AxeInteractable
+  interactionPrompt: Interact
+  canInteract: 1
+  interactOnlyOnce: 1
+  axeItem: {fileID: 11400000, guid: 88b6d9968193cc5449da41bb51eca3fe, type: 2}
+  playerInventory: {fileID: 1442830820}
+  axeDamage: 10
 --- !u!224 &153566774 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4154976117100370076, guid: 02a8de08fb9d8af44bac3bae03c2a2cc, type: 3}
@@ -4414,6 +4414,7 @@ GameObject:
   - component: {fileID: 1402790710}
   - component: {fileID: 1402790709}
   - component: {fileID: 1402790708}
+  - component: {fileID: 1402790712}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -4507,6 +4508,49 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1402790712
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1402790707}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ebb4c60f7df395f4a898023e4939113a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryUI
+  playerInventory: {fileID: 1442830820}
+  mainInventoryItems:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  toolbarItems:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
 --- !u!1 &1436056631
 GameObject:
   m_ObjectHideFlags: 0
@@ -4721,9 +4765,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfe5641ea8a535c4e92c908e4088fe65, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
-  inventorySize: 21
+  toolbarSize: 7
+  mainInventorySize: 21
   inventoryUI: {fileID: 659575102}
   inventoryCloseButton: {fileID: 1061454213}
+  inventoryUIController: {fileID: 1402790712}
   slots:
   - item: {fileID: 0}
     quantity: 0

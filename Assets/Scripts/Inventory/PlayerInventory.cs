@@ -8,7 +8,11 @@ public class PlayerInventory : MonoBehaviour
     [Header("Inventory Settings")]
 
     // Adjust inventory size here.
-    [SerializeField] private int inventorySize = 5;
+    [SerializeField]
+    private int toolbarSize = 7;
+
+    [SerializeField]
+    private int mainInventorySize = 21;
 
     [Header("Inventory UI")]
 
@@ -16,6 +20,9 @@ public class PlayerInventory : MonoBehaviour
     [SerializeField] private GameObject inventoryUI;
 
     [SerializeField] private GameObject inventoryCloseButton;
+
+    [SerializeField]
+    private InventoryUI inventoryUIController;
 
     private GameStateManager.GameMode previousGameMode;
     private PlayerStateManager.PlayerState previousPlayerState;
@@ -35,7 +42,10 @@ public class PlayerInventory : MonoBehaviour
     [Header("Selected Item")]
 
     // The slot currently being used.
-    [SerializeField] private int selectedSlot = 0;
+    [Header("Selected Toolbar Slot")]
+
+    [SerializeField]
+    private int selectedSlot = 0;
     // BASE ATTACK
 
     [Header("Attack Settings")]
@@ -60,6 +70,9 @@ public class PlayerInventory : MonoBehaviour
         controls.Player.Attack.performed +=
             _ => Attack();
 
+        controls.Player.Inventory.performed +=
+            _ => ToggleInventory(); // Bind I / D-Pad Up to that action in the existing Input Actions asset.
+
         if (inventoryUI != null)
         {
             inventoryUI.SetActive(false);
@@ -69,16 +82,17 @@ public class PlayerInventory : MonoBehaviour
             inventoryCloseButton.SetActive(false);
         }
 
-        // PlayerControls already contains the Inventory action.
-        // Bind I / D-Pad Up to that action in the existing Input Actions asset.
-        controls.Player.Inventory.performed +=
-            _ => ToggleInventory();
-
         // Right click handled in interaction
 
         // CREATE INVENTORY SLOTS
 
-        for (int i = 0; i < inventorySize; i++)
+        slots.Clear();
+
+        int totalSlots =
+            toolbarSize +
+            mainInventorySize;
+
+        for (int i = 0; i < totalSlots; i++)
         {
             slots.Add(
                 new InventorySlot(null, 0));
@@ -102,7 +116,7 @@ public class PlayerInventory : MonoBehaviour
 
         Debug.Log(
             "[Inventory] Created with "
-            + inventorySize
+            + totalSlots
             + " slots.");
     }
 
@@ -110,13 +124,19 @@ public class PlayerInventory : MonoBehaviour
 
     private void OnEnable()
     {
-        controls.Enable();
+        if (controls != null)
+        {
+            controls.Enable();
+        }
     }
 
 
     private void OnDisable()
     {
-        controls.Disable();
+        if (controls != null)
+        {
+            controls.Disable();
+        }
     }
 
 
@@ -193,7 +213,10 @@ public class PlayerInventory : MonoBehaviour
         {
             inventoryCloseButton.SetActive(true);
         }
-
+        if (inventoryUIController != null)
+        {
+            inventoryUIController.RefreshUI();
+        }
 
         inventoryOpen = true;
 
@@ -254,7 +277,26 @@ public class PlayerInventory : MonoBehaviour
     {
         return inventoryOpen;
     }
+    // =========================================================
+    // INVENTORY SIZE
+    // =========================================================
 
+    public int GetToolbarSize()
+    {
+        return toolbarSize;
+    }
+
+
+    public int GetMainInventorySize()
+    {
+        return mainInventorySize;
+    }
+
+
+    public int GetTotalInventorySize()
+    {
+        return slots.Count;
+    }
     // ATTACK
 
     private void Attack()
@@ -465,16 +507,54 @@ public class PlayerInventory : MonoBehaviour
         return slots[selectedSlot];
     }
 
+    public List<InventorySlot> GetSlots()
+    {
+        return slots;
+    }
 
     // =========================================================
-    // SELECT SLOT
+    // GET TOOLBAR SLOTS
+    // =========================================================
+
+    public InventorySlot GetToolbarSlot(
+        int index)
+    {
+        if (index < 0 ||
+            index >= toolbarSize)
+        {
+            return null;
+        }
+
+
+        return slots[index];
+    }
+
+    public InventorySlot GetMainInventorySlot(
+        int index)
+    {
+        if (index < 0 ||
+            index >= mainInventorySize)
+        {
+            return null;
+        }
+
+
+        int actualIndex =
+            toolbarSize + index;
+
+        return slots[actualIndex];
+    }
+
+
+    // =========================================================
+    // SELECT TOOLBAR SLOT
     // =========================================================
 
     public void SelectSlot(
         int index)
     {
         if (index < 0 ||
-            index >= slots.Count)
+            index >= toolbarSize)
         {
             return;
         }
@@ -484,9 +564,23 @@ public class PlayerInventory : MonoBehaviour
 
 
         Debug.Log(
-            "[Inventory] Selected slot: "
-            + selectedSlot);
+            "[Inventory] Selected toolbar slot: "
+            + selectedSlot
+        );
     }
+
+
+    public int GetSelectedSlotIndex()
+    {
+        return selectedSlot;
+    }
+
+
+    // =========================================================
+    // SELECT SLOT
+    // =========================================================
+
+    
 
     // ADD ITEM
 
@@ -560,55 +654,69 @@ public class PlayerInventory : MonoBehaviour
             i < slots.Count;
             i++)
         {
-            if (slots[i].IsEmpty())
+            if (!slots[i].IsEmpty())
             {
-                int amountToAdd;
+                continue;
+            }
 
 
-                if (item.stackable)
-                {
-                    amountToAdd =
-                        Mathf.Min(
-                            amount,
-                            item.maxStackSize);
-                }
-                else
-                {
-                    amountToAdd = 1;
-                }
+            int amountToAdd;
 
 
-                slots[i] =
-                    new InventorySlot(
-                        item,
-                        amountToAdd);
+            if (item.stackable)
+            {
+                amountToAdd =
+                    Mathf.Min(
+                        amount,
+                        item.maxStackSize
+                    );
+            }
+            else
+            {
+                amountToAdd = 1;
+            }
 
 
-                amount -=
-                    amountToAdd;
+            slots[i] =
+                new InventorySlot(
+                    item,
+                    amountToAdd
+                );
 
 
-                Debug.Log(
-                    "[Inventory] Added "
-                    + item.itemName
-                    + " to slot "
-                    + i);
+            amount -=
+                amountToAdd;
 
 
-                if (amount <= 0)
-                {
-                    return true;
-                }
+            Debug.Log(
+                "[Inventory] Added "
+                + item.itemName
+                + " to slot "
+                + i
+            );
+
+
+            if (amount <= 0)
+            {
+                RefreshInventoryUI();
+
+                return true;
             }
         }
 
+
+        // =====================================================
         // INVENTORY FULL
+        // =====================================================
 
         Debug.Log(
-            "[Inventory] Inventory is full.");
+            "[Inventory] Inventory is full."
+        );
+
 
         return false;
     }
+
 
     // REMOVE ITEM
 
@@ -645,7 +753,7 @@ public class PlayerInventory : MonoBehaviour
                     null,
                     0);
         }
-
+        RefreshInventoryUI();
 
         return true;
     }
@@ -694,12 +802,21 @@ public class PlayerInventory : MonoBehaviour
         return total;
     }
 
-    // DEBUG
+    
+    private void RefreshInventoryUI()
+    {
+        if (inventoryUIController != null)
+        {
+            inventoryUIController.RefreshUI();
+        }
+    }
 
+    // DEBUG
     public void PrintInventory()
     {
         Debug.Log(
-            "========== INVENTORY ==========");
+            "========== INVENTORY =========="
+        );
 
 
         for (int i = 0;
@@ -710,27 +827,44 @@ public class PlayerInventory : MonoBehaviour
                 slots[i];
 
 
+            string section;
+
+            if (i < toolbarSize)
+            {
+                section = "TOOLBAR";
+            }
+            else
+            {
+                section = "MAIN";
+            }
+
+
             if (slot.IsEmpty())
             {
                 Debug.Log(
-                    "Slot "
+                    section
+                    + " Slot "
                     + i
-                    + ": EMPTY");
+                    + ": EMPTY"
+                );
             }
             else
             {
                 Debug.Log(
-                    "Slot "
+                    section
+                    + " Slot "
                     + i
                     + ": "
                     + slot.item.itemName
                     + " x"
-                    + slot.quantity);
+                    + slot.quantity
+                );
             }
         }
 
 
         Debug.Log(
-            "================================");
+            "================================"
+        );
     }
 }

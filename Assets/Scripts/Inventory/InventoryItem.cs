@@ -1,6 +1,7 @@
+using UnityEditorInternal.Profiling.Memory.Experimental;
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEndDragHandler
 {
@@ -14,12 +15,42 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
 
     private void Start()
     {
-        InitialiseItem(item);
+        if (item != null)
+        {
+            InitialiseItem(item);
+        }
+        else
+        {
+            ClearItem();
+        }
     }
 
-    public void InitialiseItem(ItemData item)
+    public void InitialiseItem(ItemData newItem)
     {
+        item = newItem;
+
+        if (image == null)
+        {
+            image = GetComponent<Image>();
+        }
+
+        if (image == null)
+        {
+            Debug.LogError(
+                "[InventoryItem] No Image component found."
+            );
+
+            return;
+        }
+
+        if (item == null)
+        {
+            ClearItem();
+            return;
+        }
+
         image.sprite = item.icon;
+        image.enabled = item.icon != null;
     }
     private void Awake()
     {
@@ -27,21 +58,47 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
             image = GetComponent<Image>();
     }
 
-    public void SetItem(ItemData item)
+    public void SetItem(ItemData newItem)
     {
+        item = newItem;
+
         if (image == null)
+        {
             image = GetComponent<Image>();
+        }
 
         if (image == null)
+        {
             return;
+        }
 
-        image.sprite = item != null ? item.icon : null;
-        image.enabled = item != null && item.icon != null;
+        if (item == null)
+        {
+            image.sprite = null;
+            image.enabled = false;
+            return;
+        }
+
+        image.sprite = item.icon;
+        image.enabled = item.icon != null;
     }
 
     public void ClearItem()
     {
-        SetItem(null);
+        item = null;
+
+        if (image == null)
+        {
+            image = GetComponent<Image>();
+        }
+
+        if (image == null)
+        {
+            return;
+        }
+
+        image.sprite = null;
+        image.enabled = false;
     }
 
     public void OnBeginDrag(PointerEventData eventData)

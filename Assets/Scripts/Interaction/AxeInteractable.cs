@@ -10,12 +10,13 @@ public class AxeInteractable : WorldInteractable
 
     [Tooltip("The StormBreaker given to the player.")]
     [SerializeField]
-    private MeleeWeaponItem axeItem;
+    private AxeItem axeItem;
 
 
     [Tooltip("Player inventory that receives the axe.")]
     [SerializeField]
     private PlayerInventory playerInventory;
+
 
 
     // =========================================================
@@ -68,22 +69,6 @@ public class AxeInteractable : WorldInteractable
             return;
         }
 
-
-        // -----------------------------------------------------
-        // MAKE SURE AXE IS A MELEE WEAPON
-        // -----------------------------------------------------
-
-        if (axeItem.weaponType != WeaponItem.WeaponType.Melee)
-        {
-            Debug.LogError(
-                "[Axe] Assigned item is not configured "
-                + "as a melee weapon."
-            );
-
-            return;
-        }
-
-
         axeItem.weaponDamage = axeDamage;
 
 
@@ -96,6 +81,7 @@ public class AxeInteractable : WorldInteractable
                 axeItem,
                 1
             );
+
 
 
         // -----------------------------------------------------
