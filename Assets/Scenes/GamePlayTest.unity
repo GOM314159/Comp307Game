@@ -318,7 +318,7 @@ MonoBehaviour:
   interactionPrompt: Interact
   canInteract: 1
   interactOnlyOnce: 1
-  axeItem: {fileID: 0}
+  axeItem: {fileID: 11400000, guid: 88b6d9968193cc5449da41bb51eca3fe, type: 2}
   playerInventory: {fileID: 1442830820}
   axeDamage: 10
 --- !u!65 &132767707
@@ -3463,7 +3463,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1061454214
 RectTransform:
   m_ObjectHideFlags: 0
