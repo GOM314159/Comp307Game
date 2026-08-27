@@ -103,15 +103,17 @@ public class AxeInteractable : WorldInteractable
         // OBJECTIVE - SIDD PLEASE SEE ME
         // -----------------------------------------------------
 
-        if (CaseManager.Instance != null)
+        if (CaseManager.Instance == null)
         {
-            CaseManager.Instance.FindRequiredObject();
+            Debug.LogError(
+                "[Axe] CaseManager is missing. " +
+                "Cannot update case objective."
+            );
+
+            return;
         }
-        else if (GameStateManager.Instance != null)
-        {
-            // Fallback in case CaseManager is not present.
-            GameStateManager.Instance.FindObject();
-        }
+
+        CaseManager.Instance.FindRequiredObject();
 
 
         // -----------------------------------------------------

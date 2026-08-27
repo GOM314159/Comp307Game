@@ -432,7 +432,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AxeInteractable
   interactionPrompt: Interact
   canInteract: 1
-  interactOnlyOnce: 1
+  interactOnlyOnce: 0
   axeItem: {fileID: 11400000, guid: 88b6d9968193cc5449da41bb51eca3fe, type: 2}
   playerInventory: {fileID: 1442830820}
   axeDamage: 10

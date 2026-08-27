@@ -309,25 +309,22 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
+        // The required object has been found.
         objectFound = true;
 
-        bossUnlocked = true;
-
+        // Tell GameStateManager to advance the official objective.
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.FindObject();
         }
 
-        DebugCase(
-            "Required object found."
-        );
+        // Keep CaseManager synchronized with GameStateManager.
+        bossUnlocked = true;
 
-        DebugCase(
-            "Boss objective unlocked."
-        );
+        DebugCase("Required object found.");
+        DebugCase("Boss objective unlocked.");
 
         OnObjectFound?.Invoke();
-
         OnBossUnlocked?.Invoke();
     }
 
