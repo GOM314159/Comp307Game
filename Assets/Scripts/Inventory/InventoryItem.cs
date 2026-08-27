@@ -63,25 +63,40 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
         item = newItem;
 
         if (image == null)
-        {
             image = GetComponent<Image>();
-        }
+
+        Debug.Log(
+            $"[InventoryItem] SetItem called on {gameObject.name} | " +
+            $"Item: {(newItem != null ? newItem.name : "NULL")} | " +
+            $"Icon: {(newItem != null && newItem.icon != null ? newItem.icon.name : "NULL")}"
+        );
 
         if (image == null)
         {
+            Debug.LogError(
+                $"[InventoryItem] {gameObject.name} has NO Image component!"
+            );
             return;
         }
 
-        if (item == null)
+        if (newItem == null)
         {
             image.sprite = null;
             image.enabled = false;
             return;
         }
 
-        image.sprite = item.icon;
-        image.enabled = item.icon != null;
-    }
+        image.sprite = newItem.icon;
+        image.enabled = newItem.icon != null;
+
+        Debug.Log(
+            $"[InventoryItem] AFTER SET | " +
+            $"UI Object: {gameObject.name} | " +
+            $"Image: {image.name} | " +
+            $"Sprite: {(image.sprite != null ? image.sprite.name : "NULL")} | " +
+            $"Enabled: {image.enabled}"
+        );
+}
 
     public void ClearItem()
     {

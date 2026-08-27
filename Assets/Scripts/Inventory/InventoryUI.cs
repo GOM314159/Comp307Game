@@ -65,10 +65,12 @@ public class InventoryUI : MonoBehaviour
             return;
         }
 
-
+        Debug.Log("[InventoryUI] RefreshUI() started.");
         RefreshToolbar();
 
         RefreshMainInventory();
+        Debug.Log("[InventoryUI] RefreshUI() finished.");
+
     }
 
 
@@ -78,48 +80,52 @@ public class InventoryUI : MonoBehaviour
 
     private void RefreshToolbar()
     {
-        int toolbarSize =
-            playerInventory.GetToolbarSize();
+        Debug.Log(
+            $"[InventoryUI] RefreshToolbar() | " +
+            $"toolbarItems.Count = {toolbarItems.Count} | " +
+            $"inventory toolbar size = {playerInventory.GetToolbarSize()}"
+        );
 
+        int toolbarSize = playerInventory.GetToolbarSize();
 
-        for (int i = 0;
-            i < toolbarItems.Count;
-            i++)
+        for (int i = 0; i < toolbarItems.Count; i++)
         {
-            InventoryItem uiItem =
-                toolbarItems[i];
-
+            InventoryItem uiItem = toolbarItems[i];
 
             if (uiItem == null)
             {
+                Debug.LogWarning(
+                    $"[InventoryUI] toolbarItems[{i}] is NULL!"
+                );
                 continue;
             }
-
-
-            if (i >= toolbarSize)
-            {
-                uiItem.ClearItem();
-                continue;
-            }
-
 
             InventorySlot slot =
                 playerInventory.GetToolbarSlot(i);
 
+            Debug.Log(
+                $"[InventoryUI] Toolbar {i} | " +
+                $"UI Object = {uiItem.gameObject.name} | " +
+                $"Slot Empty = {(slot == null || slot.IsEmpty())}"
+            );
 
-            if (slot == null ||
-                slot.IsEmpty())
+            if (slot == null || slot.IsEmpty())
             {
                 uiItem.ClearItem();
             }
             else
             {
-                uiItem.SetItem(
-                    slot.item
+                Debug.Log(
+                    $"[InventoryUI] Putting {slot.item.itemName} " +
+                    $"into toolbar UI slot {i}"
                 );
+
+                uiItem.SetItem(slot.item);
             }
         }
     }
+
+
 
 
     // =========================================================
@@ -164,8 +170,21 @@ public class InventoryUI : MonoBehaviour
             }
             else
             {
-                uiItem.SetItem(
-                    slot.item
+                Debug.Log(
+        $"[InventoryUI DEBUG] Toolbar slot {i} " +
+        $"contains: {slot.item.name}"
+    );
+
+                Debug.Log(
+                    $"[InventoryUI DEBUG] Sending {slot.item.name} " +
+                    $"to UI object: {uiItem.gameObject.name}"
+                );
+
+                uiItem.SetItem(slot.item);
+
+                Debug.Log(
+                    $"[InventoryUI DEBUG] SetItem() finished for " +
+                    $"{uiItem.gameObject.name}"
                 );
             }
         }

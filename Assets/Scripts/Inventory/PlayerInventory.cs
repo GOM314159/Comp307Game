@@ -160,6 +160,19 @@ public class PlayerInventory : MonoBehaviour
         }
     }
 
+    // =========================================================
+    // REFRESH INVENTORY UI
+    // =========================================================
+
+    private void RefreshInventoryUI()
+    {
+        if (inventoryUIController != null)
+        {
+            inventoryUIController.RefreshUI();
+        }
+
+    }
+
     public void OpenInventory()
     {
         if (inventoryOpen)
@@ -217,7 +230,7 @@ public class PlayerInventory : MonoBehaviour
         {
             inventoryUIController.RefreshUI();
         }
-
+        RefreshInventoryUI();
         inventoryOpen = true;
 
         Debug.Log(
@@ -683,6 +696,12 @@ public class PlayerInventory : MonoBehaviour
                     amountToAdd
                 );
 
+            Debug.Log(
+    $"[INVENTORY CHECK] " +
+    $"slots[{i}] = {(slots[i] == null ? "NULL" : "EXISTS")} | " +
+    $"item = {(slots[i]?.item == null ? "NULL" : slots[i].item.itemName)}"
+);
+
 
             amount -=
                 amountToAdd;
@@ -802,14 +821,6 @@ public class PlayerInventory : MonoBehaviour
         return total;
     }
 
-    
-    private void RefreshInventoryUI()
-    {
-        if (inventoryUIController != null)
-        {
-            inventoryUIController.RefreshUI();
-        }
-    }
 
     // DEBUG
     public void PrintInventory()
