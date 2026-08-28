@@ -111,12 +111,12 @@ public class PlayerInteraction : MonoBehaviour
                 currentInteractable = interactable;
 
 
-                if (debugInteraction)
-                {
-                    Debug.Log(
-                        "[Interaction] Looking at: "
-                        + interactable.GetInteractionPrompt());
-                }
+              //  if (debugInteraction)
+              //  {
+              //      Debug.Log(
+              //          "[Interaction] Looking at: "
+              //          + interactable.GetInteractionPrompt());
+              //  }
             }
         }
     }

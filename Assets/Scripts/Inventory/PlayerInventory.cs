@@ -988,12 +988,23 @@ public class PlayerInventory : MonoBehaviour
         if (firstIndex < 0 ||
             firstIndex >= slots.Count)
         {
+            Debug.Log(
+       $"[Inventory] Swapped slot " +
+       $"{firstIndex} with slot " +
+       $"{secondIndex}"
+   );
             return false;
+
         }
 
         if (secondIndex < 0 ||
             secondIndex >= slots.Count)
         {
+            Debug.Log(
+       $"[Inventory] Swapped slot " +
+       $"{firstIndex} with slot " +
+       $"{secondIndex}"
+   );
             return false;
         }
 

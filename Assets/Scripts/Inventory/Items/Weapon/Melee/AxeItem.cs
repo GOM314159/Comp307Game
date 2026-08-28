@@ -1,3 +1,4 @@
+using UnityEditor.UI;
 using UnityEngine;
 
 [CreateAssetMenu(
@@ -32,6 +33,9 @@ public class AxeItem : MeleeWeaponItem
         // Make sure the item is always a melee weapon.
         weaponType = WeaponType.Melee;
 
+        // Set the item name to "Axe".
+        SetItemName("Axe");
+
         // Axe is never stackable.
         stackable = false;
 
@@ -39,6 +43,9 @@ public class AxeItem : MeleeWeaponItem
 
         // Set the weapon damage.
         weaponDamage = axeDamage;
+
+        
+
     }
 
 

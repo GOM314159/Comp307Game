@@ -55,4 +55,5 @@ public class InventorySlotUI : MonoBehaviour, IDropHandler
             inventoryItem
         );
     }
+
 }

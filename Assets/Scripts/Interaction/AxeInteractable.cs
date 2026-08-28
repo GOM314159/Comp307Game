@@ -79,7 +79,7 @@ public class AxeInteractable : WorldInteractable
         bool added =
             playerInventory.AddItem(
                 axeItem,
-                1
+                2
             );
 
 

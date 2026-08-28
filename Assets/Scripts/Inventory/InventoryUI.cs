@@ -121,9 +121,17 @@ public class InventoryUI : MonoBehaviour
                 );
 
                 uiItem.SetItem(slot.item);
+
+                Debug.Log(
+              $"[InventoryUI] Toolbar {i} | " +
+              $"UI Object = {uiItem.gameObject.name} | " +
+              $"Slot Empty = {(slot == null || slot.IsEmpty())}"
+          );
             }
         }
     }
+
+
 
 
 

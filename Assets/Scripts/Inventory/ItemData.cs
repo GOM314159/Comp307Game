@@ -65,4 +65,9 @@ public abstract class ItemData : ScriptableObject
     {
         return baseDamage;
     }
+
+    public void SetItemName (string newName)
+    {
+        itemName = newName;
+    }
 }

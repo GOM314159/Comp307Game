@@ -131,7 +131,7 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
     {
         if (image == null || image.sprite == null)
             return;
-
+      
         transform.position = eventData.position;
     }
 
@@ -140,9 +140,10 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
 {
     if (parentAfterDrag != null)
     {
-        transform.SetParent(
-            parentAfterDrag
-        );
+            transform.SetParent(
+                parentAfterDrag
+            );
+         
 
         transform.localPosition =
             Vector3.zero;
@@ -152,5 +153,6 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
     {
         image.raycastTarget = true;
     }
+       
 }
 }
