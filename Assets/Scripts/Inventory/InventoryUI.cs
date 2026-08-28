@@ -189,4 +189,73 @@ public class InventoryUI : MonoBehaviour
             }
         }
     }
+
+    public void HandleItemDrop(
+    InventoryItem draggedItem,
+    InventoryItem targetItem)
+    {
+        if (draggedItem == null ||
+            targetItem == null)
+        {
+            return;
+        }
+
+        int sourceIndex =
+            GetInventoryIndex(
+                draggedItem
+            );
+
+        int targetIndex =
+            GetInventoryIndex(
+                targetItem
+            );
+
+        if (sourceIndex < 0 ||
+            targetIndex < 0)
+        {
+            Debug.LogError(
+                "[InventoryUI] Could not find inventory indices."
+            );
+
+            return;
+        }
+
+        if (sourceIndex == targetIndex)
+        {
+            return;
+        }
+
+        Debug.Log(
+            $"[InventoryUI] Moving item " +
+            $"from {sourceIndex} to {targetIndex}"
+        );
+
+        playerInventory.SwapSlots(
+            sourceIndex,
+            targetIndex
+        );
+    }
+
+    private int GetInventoryIndex(
+    InventoryItem uiItem)
+    {
+        int toolbarIndex =
+            toolbarItems.IndexOf(uiItem);
+
+        if (toolbarIndex >= 0)
+        {
+            return toolbarIndex;
+        }
+
+        int mainInventoryIndex =
+            mainInventoryItems.IndexOf(uiItem);
+
+        if (mainInventoryIndex >= 0)
+        {
+            return playerInventory.GetToolbarSize()
+                + mainInventoryIndex;
+        }
+
+        return -1;
+    }
 }

@@ -981,6 +981,50 @@ public class PlayerInventory : MonoBehaviour
         RefreshInventoryUI();
     }
 
+    public bool SwapSlots(
+    int firstIndex,
+    int secondIndex)
+    {
+        if (firstIndex < 0 ||
+            firstIndex >= slots.Count)
+        {
+            return false;
+        }
+
+        if (secondIndex < 0 ||
+            secondIndex >= slots.Count)
+        {
+            return false;
+        }
+
+        if (firstIndex == secondIndex)
+        {
+            return false;
+        }
+
+        InventorySlot firstSlot =
+            slots[firstIndex];
+
+        InventorySlot secondSlot =
+            slots[secondIndex];
+
+        slots[firstIndex] =
+            secondSlot;
+
+        slots[secondIndex] =
+            firstSlot;
+
+        Debug.Log(
+            $"[Inventory] Swapped slot " +
+            $"{firstIndex} with slot " +
+            $"{secondIndex}"
+        );
+
+        RefreshInventoryUI();
+
+        return true;
+    }
+
 
     // DEBUG
     public void PrintInventory()

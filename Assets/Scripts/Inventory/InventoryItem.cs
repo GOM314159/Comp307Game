@@ -120,10 +120,10 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
     {
         if (image == null || image.sprite == null)
             return;
-        image.raycastTarget = false;
         parentAfterDrag = transform.parent;
         transform.SetParent(transform.root);
-      //  transform.SetAsLastSibling();
+        transform.SetAsLastSibling();
+        image.raycastTarget = false;
         
     }
 
@@ -135,14 +135,22 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
         transform.position = eventData.position;
     }
 
-    public void OnEndDrag(PointerEventData eventData)
+    public void OnEndDrag(
+    PointerEventData eventData)
+{
+    if (parentAfterDrag != null)
     {
-        if (image == null)
-            return;
+        transform.SetParent(
+            parentAfterDrag
+        );
 
-        image.raycastTarget = true;
-
-       // if (parentAfterDrag != null)
-            transform.SetParent(parentAfterDrag);
+        transform.localPosition =
+            Vector3.zero;
     }
+
+    if (image != null)
+    {
+        image.raycastTarget = true;
+    }
+}
 }
