@@ -5137,9 +5137,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
   toolbarSize: 7
   mainInventorySize: 21
-  inventoryUI: {fileID: 0}
-  inventoryCloseButton: {fileID: 0}
-  inventoryUIController: {fileID: 0}
+  inventoryUI: {fileID: 659575102}
+  inventoryCloseButton: {fileID: 1061454213}
+  inventoryUIController: {fileID: 1402790712}
   slots:
   - item: {fileID: 0}
     quantity: 0
