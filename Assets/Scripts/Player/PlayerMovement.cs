@@ -9,6 +9,14 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float sprintSpeed = 8f; // Adjust sprint speed
     [SerializeField] private float crouchSpeed = 2.5f; // Adjust croutch speed
 
+    [Header("Permanent Speed Boosts")]
+    [SerializeField] private float permanentSpeedMultiplier = 1f;
+
+    [Header("Permanent Strength")]
+
+    [SerializeField]
+    private float permanentStrength = 0f;
+
     [Header("Jump Settings")]
 
     // Adjust jump height here
@@ -199,7 +207,7 @@ public class PlayerMovement : MonoBehaviour
             crouchSpeed,
             isCrouching);
 
-
+        speed *= permanentSpeedMultiplier;
         // =====================================
         // MOVEMENT DIRECTION
         // =====================================
@@ -374,5 +382,53 @@ public class PlayerMovement : MonoBehaviour
     public bool IsGrounded()
     {
         return isGrounded;
+    }
+
+    public void ApplyPermanentSpeedBoost(float multiplier)
+    {
+        if (multiplier <= 0f)
+        {
+            Debug.LogWarning(
+                "[PlayerMovement] Invalid speed multiplier: " + multiplier
+            );
+
+            return;
+        }
+
+        permanentSpeedMultiplier *= multiplier;
+
+        Debug.Log(
+            "[PlayerMovement] Permanent speed boost applied."
+            + " | Boost: x" + multiplier
+            + " | Current multiplier: x" + permanentSpeedMultiplier
+        );
+    }
+
+    public void ApplyPermanentStrengthBoost(float amount)
+    {
+        if (amount <= 0f)
+        {
+            Debug.LogWarning(
+                "[PlayerMovement] Invalid strength increase: "
+                + amount
+            );
+
+            return;
+        }
+
+        permanentStrength += amount;
+
+        Debug.Log(
+            "[PlayerMovement] Permanent strength boost applied."
+            + " | Increase: +"
+            + amount
+            + " | Current strength: "
+            + permanentStrength
+        );
+    }
+
+    public float GetStrength()
+    {
+        return permanentStrength;
     }
 }

@@ -174,13 +174,22 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""initialStateCheck"": false
                 },
                 {
-                    ""name"": ""ChangeInventory"",
-                    ""type"": ""Button"",
+                    ""name"": ""ChangeInventoryLeft"",
+                    ""type"": ""Value"",
                     ""id"": ""1a8e5559-5154-4e68-ba10-ad8a3b063c3e"",
-                    ""expectedControlType"": """",
+                    ""expectedControlType"": ""Axis"",
                     ""processors"": """",
                     ""interactions"": """",
-                    ""initialStateCheck"": false
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""ChangeInventoryRight"",
+                    ""type"": ""Value"",
+                    ""id"": ""af05756d-6ce3-462d-b09f-7575957708c4"",
+                    ""expectedControlType"": ""Axis"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -429,11 +438,11 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                 {
                     ""name"": """",
                     ""id"": ""48e8c0c5-8cad-4ab4-8745-3bace3550488"",
-                    ""path"": ""<Keyboard>/tab"",
+                    ""path"": ""<Mouse>/scroll/up"",
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""ChangeInventory"",
+                    ""action"": ""ChangeInventoryLeft"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 },
@@ -444,7 +453,29 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""interactions"": """",
                     ""processors"": """",
                     ""groups"": """",
-                    ""action"": ""ChangeInventory"",
+                    ""action"": ""ChangeInventoryLeft"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""043e659c-d7ff-4805-9137-2634cbfee213"",
+                    ""path"": ""<Mouse>/scroll/down"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChangeInventoryRight"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""61acf6ba-a047-4510-b5c6-23615a915c49"",
+                    ""path"": ""<Gamepad>/rightShoulder"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""ChangeInventoryRight"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
                 }
@@ -464,7 +495,8 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_Player_Attack = m_Player.FindAction("Attack", throwIfNotFound: true);
         m_Player_Inventory = m_Player.FindAction("Inventory", throwIfNotFound: true);
         m_Player_Pause = m_Player.FindAction("Pause", throwIfNotFound: true);
-        m_Player_ChangeInventory = m_Player.FindAction("ChangeInventory", throwIfNotFound: true);
+        m_Player_ChangeInventoryLeft = m_Player.FindAction("ChangeInventoryLeft", throwIfNotFound: true);
+        m_Player_ChangeInventoryRight = m_Player.FindAction("ChangeInventoryRight", throwIfNotFound: true);
     }
 
     ~@PlayerControls()
@@ -554,7 +586,8 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Attack;
     private readonly InputAction m_Player_Inventory;
     private readonly InputAction m_Player_Pause;
-    private readonly InputAction m_Player_ChangeInventory;
+    private readonly InputAction m_Player_ChangeInventoryLeft;
+    private readonly InputAction m_Player_ChangeInventoryRight;
     /// <summary>
     /// Provides access to input actions defined in input action map "Player".
     /// </summary>
@@ -603,9 +636,13 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @Pause => m_Wrapper.m_Player_Pause;
         /// <summary>
-        /// Provides access to the underlying input action "Player/ChangeInventory".
+        /// Provides access to the underlying input action "Player/ChangeInventoryLeft".
         /// </summary>
-        public InputAction @ChangeInventory => m_Wrapper.m_Player_ChangeInventory;
+        public InputAction @ChangeInventoryLeft => m_Wrapper.m_Player_ChangeInventoryLeft;
+        /// <summary>
+        /// Provides access to the underlying input action "Player/ChangeInventoryRight".
+        /// </summary>
+        public InputAction @ChangeInventoryRight => m_Wrapper.m_Player_ChangeInventoryRight;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -659,9 +696,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Pause.started += instance.OnPause;
             @Pause.performed += instance.OnPause;
             @Pause.canceled += instance.OnPause;
-            @ChangeInventory.started += instance.OnChangeInventory;
-            @ChangeInventory.performed += instance.OnChangeInventory;
-            @ChangeInventory.canceled += instance.OnChangeInventory;
+            @ChangeInventoryLeft.started += instance.OnChangeInventoryLeft;
+            @ChangeInventoryLeft.performed += instance.OnChangeInventoryLeft;
+            @ChangeInventoryLeft.canceled += instance.OnChangeInventoryLeft;
+            @ChangeInventoryRight.started += instance.OnChangeInventoryRight;
+            @ChangeInventoryRight.performed += instance.OnChangeInventoryRight;
+            @ChangeInventoryRight.canceled += instance.OnChangeInventoryRight;
         }
 
         /// <summary>
@@ -700,9 +740,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Pause.started -= instance.OnPause;
             @Pause.performed -= instance.OnPause;
             @Pause.canceled -= instance.OnPause;
-            @ChangeInventory.started -= instance.OnChangeInventory;
-            @ChangeInventory.performed -= instance.OnChangeInventory;
-            @ChangeInventory.canceled -= instance.OnChangeInventory;
+            @ChangeInventoryLeft.started -= instance.OnChangeInventoryLeft;
+            @ChangeInventoryLeft.performed -= instance.OnChangeInventoryLeft;
+            @ChangeInventoryLeft.canceled -= instance.OnChangeInventoryLeft;
+            @ChangeInventoryRight.started -= instance.OnChangeInventoryRight;
+            @ChangeInventoryRight.performed -= instance.OnChangeInventoryRight;
+            @ChangeInventoryRight.canceled -= instance.OnChangeInventoryRight;
         }
 
         /// <summary>
@@ -807,11 +850,18 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnPause(InputAction.CallbackContext context);
         /// <summary>
-        /// Method invoked when associated input action "ChangeInventory" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// Method invoked when associated input action "ChangeInventoryLeft" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
         /// </summary>
         /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
-        void OnChangeInventory(InputAction.CallbackContext context);
+        void OnChangeInventoryLeft(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "ChangeInventoryRight" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnChangeInventoryRight(InputAction.CallbackContext context);
     }
 }

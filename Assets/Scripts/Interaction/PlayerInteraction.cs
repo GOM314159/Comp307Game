@@ -111,12 +111,12 @@ public class PlayerInteraction : MonoBehaviour
                 currentInteractable = interactable;
 
 
-                if (debugInteraction)
-                {
-                    Debug.Log(
-                        "[Interaction] Looking at: "
-                        + interactable.GetInteractionPrompt());
-                }
+              //  if (debugInteraction)
+              //  {
+              //      Debug.Log(
+              //          "[Interaction] Looking at: "
+              //          + interactable.GetInteractionPrompt());
+              //  }
             }
         }
     }
@@ -125,7 +125,7 @@ public class PlayerInteraction : MonoBehaviour
 
     private void HandleInteract()
     {
-
+        Debug.Log("[Interaction TEST] HandleInteract was triggered.");
         if (stateManager != null &&
             !stateManager.CanInteract())
         {

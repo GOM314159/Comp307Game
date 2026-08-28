@@ -1,6 +1,10 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine.UI;
 
-public abstract class ItemData : ScriptableObject
+public abstract class ItemData : ScriptableObject 
 {
    
     public enum ItemType
@@ -24,6 +28,8 @@ public abstract class ItemData : ScriptableObject
 
     // Determines how the item behaves
     public ItemType itemType;
+
+    public Image Image;
 
 
     [Header("Attack Settings")]
@@ -58,5 +64,10 @@ public abstract class ItemData : ScriptableObject
     public virtual float GetAttackDamage()
     {
         return baseDamage;
+    }
+
+    public void SetItemName (string newName)
+    {
+        itemName = newName;
     }
 }

@@ -134,7 +134,6 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.NoSprint:
             case PlayerState.NoCrouchOrSprint:
             case PlayerState.NoJump:
-            case PlayerState.NoMovement:
 
                 return true;
 
@@ -144,6 +143,7 @@ public class PlayerStateManager : MonoBehaviour
             // ---------------------------------------------
 
             case PlayerState.NoInteract:
+            case PlayerState.NoMovement:
             case PlayerState.ShopMenu:
             case PlayerState.Cutscene:
             case PlayerState.NoMovementNoCamera:
@@ -153,6 +153,30 @@ public class PlayerStateManager : MonoBehaviour
         }
 
         return false;
+    }
+
+    public bool CanAttack()
+    {
+        switch (currentState)
+        {
+            case PlayerState.AllMovement:
+            case PlayerState.NoCrouch:
+            case PlayerState.NoSprint:
+            case PlayerState.NoCrouchOrSprint:
+            case PlayerState.NoJump:
+                return true;
+
+            case PlayerState.NoMovement:
+            case PlayerState.NoMovementNoCamera:
+            case PlayerState.NoInteract:
+            case PlayerState.PauseMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.ShopMenu:
+                return false;
+
+            default:
+                return false;
+        }
     }
     public bool CanLook()
     {

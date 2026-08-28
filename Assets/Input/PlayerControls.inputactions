@@ -88,13 +88,22 @@
                     "initialStateCheck": false
                 },
                 {
-                    "name": "ChangeInventory",
-                    "type": "Button",
+                    "name": "ChangeInventoryLeft",
+                    "type": "Value",
                     "id": "1a8e5559-5154-4e68-ba10-ad8a3b063c3e",
-                    "expectedControlType": "",
+                    "expectedControlType": "Axis",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "ChangeInventoryRight",
+                    "type": "Value",
+                    "id": "af05756d-6ce3-462d-b09f-7575957708c4",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -343,11 +352,11 @@
                 {
                     "name": "",
                     "id": "48e8c0c5-8cad-4ab4-8745-3bace3550488",
-                    "path": "<Keyboard>/tab",
+                    "path": "<Mouse>/scroll/up",
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "ChangeInventory",
+                    "action": "ChangeInventoryLeft",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -358,7 +367,29 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "",
-                    "action": "ChangeInventory",
+                    "action": "ChangeInventoryLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "043e659c-d7ff-4805-9137-2634cbfee213",
+                    "path": "<Mouse>/scroll/down",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ChangeInventoryRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "61acf6ba-a047-4510-b5c6-23615a915c49",
+                    "path": "<Gamepad>/rightShoulder",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "ChangeInventoryRight",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

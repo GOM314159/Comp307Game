@@ -8,9 +8,28 @@ public class PlayerInventory : MonoBehaviour
     [Header("Inventory Settings")]
 
     // Adjust inventory size here.
-    [SerializeField] private int inventorySize = 5;
+    [SerializeField]
+    private int toolbarSize = 7;
 
+    [SerializeField]
+    private int mainInventorySize = 21;
 
+    [Header("Inventory UI")]
+
+    [Header("Inventory UI")]
+    [SerializeField] private GameObject inventoryUI;
+
+    [SerializeField] private GameObject inventoryCloseButton;
+
+    [SerializeField]
+    private InventoryUI inventoryUIController;
+
+    private GameStateManager.GameMode previousGameMode;
+    private PlayerStateManager.PlayerState previousPlayerState;
+
+    private PlayerStateManager playerStateManager;
+
+    private bool inventoryOpen;
 
     [Header("Inventory")]
 
@@ -23,7 +42,17 @@ public class PlayerInventory : MonoBehaviour
     [Header("Selected Item")]
 
     // The slot currently being used.
-    [SerializeField] private int selectedSlot = 0;
+    [Header("Selected Toolbar Slot")]
+
+    [SerializeField]
+    private int selectedSlot = 0;
+
+    [Header("Toolbar Cycling")]
+    [SerializeField] private float gamepadInitialDelay = 0.35f;
+    [SerializeField] private float gamepadRepeatRate = 0.08f;
+
+    private float leftShoulderTimer = 0f;
+    private float rightShoulderTimer = 0f;
     // BASE ATTACK
 
     [Header("Attack Settings")]
@@ -48,20 +77,53 @@ public class PlayerInventory : MonoBehaviour
         controls.Player.Attack.performed +=
             _ => Attack();
 
+        controls.Player.Inventory.performed +=
+            _ => ToggleInventory(); // Bind I / D-Pad Up to that action in the existing Input Actions asset.
+
+        if (inventoryUI != null)
+        {
+            inventoryUI.SetActive(false);
+        }
+        if (inventoryCloseButton != null)
+        {
+            inventoryCloseButton.SetActive(false);
+        }
+
         // Right click handled in interaction
 
         // CREATE INVENTORY SLOTS
 
-        for (int i = 0; i < inventorySize; i++)
+        slots.Clear();
+
+        int totalSlots =
+            toolbarSize +
+            mainInventorySize;
+
+        for (int i = 0; i < totalSlots; i++)
         {
             slots.Add(
                 new InventorySlot(null, 0));
         }
 
+        playerStateManager =
+    GetComponent<PlayerStateManager>();
+
+        if (inventoryUI != null)
+        {
+            inventoryUI.SetActive(false);
+        }
+
+        if (playerStateManager == null)
+        {
+            Debug.LogWarning(
+                "[Inventory] PlayerStateManager not found on Player."
+            );
+        }
+
 
         Debug.Log(
             "[Inventory] Created with "
-            + inventorySize
+            + totalSlots
             + " slots.");
     }
 
@@ -69,19 +131,200 @@ public class PlayerInventory : MonoBehaviour
 
     private void OnEnable()
     {
-        controls.Enable();
+        if (controls != null)
+        {
+            controls.Enable();
+        }
     }
 
 
     private void OnDisable()
     {
-        controls.Disable();
+        if (controls != null)
+        {
+            controls.Disable();
+        }
     }
 
+
+    // =========================================================
+    // INVENTORY OPEN / CLOSE
+    // =========================================================
+
+    private void ToggleInventory()
+    {
+        if (inventoryOpen)
+        {
+            CloseInventory();
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+        else
+        {
+            OpenInventory();
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+    }
+
+    // =========================================================
+    // REFRESH INVENTORY UI
+    // =========================================================
+
+    private void RefreshInventoryUI()
+    {
+        if (inventoryUIController != null)
+        {
+            inventoryUIController.RefreshUI();
+        }
+
+    }
+
+    public void OpenInventory()
+    {
+        if (inventoryOpen)
+        {
+            return;
+        }
+
+
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "[Inventory] GameStateManager instance not found."
+            );
+
+            return;
+        }
+
+        if (playerStateManager == null)
+        {
+            Debug.LogWarning(
+                "[Inventory] PlayerStateManager not found."
+            );
+
+            return;
+        }
+
+        // Save the states before changing them.
+        previousGameMode =
+            GameStateManager.Instance.GetGameMode();
+
+        previousPlayerState =
+            playerStateManager.GetCurrentState();
+
+        // Change GAME state.
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.Paused
+        );
+
+        // Change PLAYER state.
+        playerStateManager.SetState(
+            PlayerStateManager.PlayerState.PauseMenu
+        );
+
+        // Show inventory.
+        if (inventoryUI != null)
+        {
+            inventoryUI.SetActive(true);
+        }
+        if (inventoryCloseButton != null)
+        {
+            inventoryCloseButton.SetActive(true);
+        }
+        if (inventoryUIController != null)
+        {
+            inventoryUIController.RefreshUI();
+        }
+        RefreshInventoryUI();
+        inventoryOpen = true;
+
+        Debug.Log(
+            "[Inventory] Opened."
+            + " Game State: Paused"
+            + " | Player State: PauseMenu"
+        );
+    }
+
+    public void CloseInventory()
+    {
+        if (!inventoryOpen)
+        {
+            return;
+        }
+
+        // Hide inventory.
+        if (inventoryUI != null)
+        {
+            inventoryUI.SetActive(false);
+        }
+
+        // Hide close button.
+        if (inventoryCloseButton != null)
+        {
+            inventoryCloseButton.SetActive(false);
+        }
+
+        // Restore GAME state.
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                previousGameMode
+            );
+        }
+
+        // Restore PLAYER state.
+        if (playerStateManager != null)
+        {
+            playerStateManager.SetState(
+                previousPlayerState
+            );
+        }
+
+        inventoryOpen = false;
+
+        Debug.Log(
+            "[Inventory] Closed."
+            + " Game State restored to: "
+            + previousGameMode
+            + " | Player State restored to: "
+            + previousPlayerState
+        );
+    }
+
+    public bool IsInventoryOpen()
+    {
+        return inventoryOpen;
+    }
+    // =========================================================
+    // INVENTORY SIZE
+    // =========================================================
+
+    public int GetToolbarSize()
+    {
+        return toolbarSize;
+    }
+
+
+    public int GetMainInventorySize()
+    {
+        return mainInventorySize;
+    }
+
+
+    public int GetTotalInventorySize()
+    {
+        return slots.Count;
+    }
     // ATTACK
 
     private void Attack()
     {
+        if (!playerStateManager.CanAttack())
+        {
+            return;
+        }
         InventorySlot slot =
             GetSelectedSlot();
 
@@ -284,28 +527,80 @@ public class PlayerInventory : MonoBehaviour
         return slots[selectedSlot];
     }
 
+    public List<InventorySlot> GetSlots()
+    {
+        return slots;
+    }
+
+    // =========================================================
+    // GET TOOLBAR SLOTS
+    // =========================================================
+
+    public InventorySlot GetToolbarSlot(
+        int index)
+    {
+        if (index < 0 ||
+            index >= toolbarSize)
+        {
+            return null;
+        }
+
+
+        return slots[index];
+    }
+
+    public InventorySlot GetMainInventorySlot(
+        int index)
+    {
+        if (index < 0 ||
+            index >= mainInventorySize)
+        {
+            return null;
+        }
+
+
+        int actualIndex =
+            toolbarSize + index;
+
+        return slots[actualIndex];
+    }
+
+
+    // =========================================================
+    // SELECT TOOLBAR SLOT
+    // =========================================================
+
+    public void SelectSlot(
+    int index)
+    {
+        if (index < 0 ||
+            index >= toolbarSize)
+        {
+            return;
+        }
+
+        selectedSlot = index;
+
+        Debug.Log(
+            "[Inventory] Selected toolbar slot: "
+            + selectedSlot
+        );
+
+        RefreshInventoryUI();
+    }
+
+
+    public int GetSelectedSlotIndex()
+    {
+        return selectedSlot;
+    }
+
 
     // =========================================================
     // SELECT SLOT
     // =========================================================
 
-    public void SelectSlot(
-        int index)
-    {
-        if (index < 0 ||
-            index >= slots.Count)
-        {
-            return;
-        }
-
-
-        selectedSlot = index;
-
-
-        Debug.Log(
-            "[Inventory] Selected slot: "
-            + selectedSlot);
-    }
+    
 
     // ADD ITEM
 
@@ -379,55 +674,75 @@ public class PlayerInventory : MonoBehaviour
             i < slots.Count;
             i++)
         {
-            if (slots[i].IsEmpty())
+            if (!slots[i].IsEmpty())
             {
-                int amountToAdd;
+                continue;
+            }
 
 
-                if (item.stackable)
-                {
-                    amountToAdd =
-                        Mathf.Min(
-                            amount,
-                            item.maxStackSize);
-                }
-                else
-                {
-                    amountToAdd = 1;
-                }
+            int amountToAdd;
 
 
-                slots[i] =
-                    new InventorySlot(
-                        item,
-                        amountToAdd);
+            if (item.stackable)
+            {
+                amountToAdd =
+                    Mathf.Min(
+                        amount,
+                        item.maxStackSize
+                    );
+            }
+            else
+            {
+                amountToAdd = 1;
+            }
 
 
-                amount -=
-                    amountToAdd;
+            slots[i] =
+                new InventorySlot(
+                    item,
+                    amountToAdd
+                );
+
+            Debug.Log(
+    $"[INVENTORY CHECK] " +
+    $"slots[{i}] = {(slots[i] == null ? "NULL" : "EXISTS")} | " +
+    $"item = {(slots[i]?.item == null ? "NULL" : slots[i].item.itemName)}"
+);
 
 
-                Debug.Log(
-                    "[Inventory] Added "
-                    + item.itemName
-                    + " to slot "
-                    + i);
+            amount -=
+                amountToAdd;
 
 
-                if (amount <= 0)
-                {
-                    return true;
-                }
+            Debug.Log(
+                "[Inventory] Added "
+                + item.itemName
+                + " to slot "
+                + i
+            );
+
+
+            if (amount <= 0)
+            {
+                RefreshInventoryUI();
+
+                return true;
             }
         }
 
+
+        // =====================================================
         // INVENTORY FULL
+        // =====================================================
 
         Debug.Log(
-            "[Inventory] Inventory is full.");
+            "[Inventory] Inventory is full."
+        );
+
 
         return false;
     }
+
 
     // REMOVE ITEM
 
@@ -464,7 +779,7 @@ public class PlayerInventory : MonoBehaviour
                     null,
                     0);
         }
-
+        RefreshInventoryUI();
 
         return true;
     }
@@ -513,12 +828,221 @@ public class PlayerInventory : MonoBehaviour
         return total;
     }
 
-    // DEBUG
+    private void Update()
+    {
+        UpdateToolbarSelection();
+    }
 
+    // =========================================================
+    // TOOLBAR SLOT CYCLING
+    // =========================================================
+
+    private void UpdateToolbarSelection()
+    {
+        // -----------------------------------------------------
+        // MOUSE SCROLL
+        // -----------------------------------------------------
+
+        if (Mouse.current != null)
+        {
+            float scroll = Mouse.current.scroll.ReadValue().y;
+
+            if (scroll > 0f)
+            {
+                SelectPreviousToolbarSlot();
+            }
+            else if (scroll < 0f)
+            {
+                SelectNextToolbarSlot();
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // GAMEPAD
+        // -----------------------------------------------------
+
+        if (Gamepad.current != null)
+        {
+            HandleShoulderInput();
+        }
+    }
+
+    private void HandleShoulderInput()
+    {
+        // -----------------------------------------------------
+        // LEFT SHOULDER = PREVIOUS SLOT
+        // -----------------------------------------------------
+
+        if (Gamepad.current.leftShoulder.isPressed)
+        {
+            if (leftShoulderTimer <= 0f)
+            {
+                SelectPreviousToolbarSlot();
+
+                // First press has a longer delay.
+                if (leftShoulderTimer == 0f)
+                {
+                    leftShoulderTimer = gamepadInitialDelay;
+                }
+                else
+                {
+                    leftShoulderTimer = gamepadRepeatRate;
+                }
+            }
+            else
+            {
+                leftShoulderTimer -= Time.deltaTime;
+            }
+        }
+        else
+        {
+            leftShoulderTimer = 0f;
+        }
+
+
+        // -----------------------------------------------------
+        // RIGHT SHOULDER = NEXT SLOT
+        // -----------------------------------------------------
+
+        if (Gamepad.current.rightShoulder.isPressed)
+        {
+            if (rightShoulderTimer <= 0f)
+            {
+                SelectNextToolbarSlot();
+
+                // First press has a longer delay.
+                if (rightShoulderTimer == 0f)
+                {
+                    rightShoulderTimer = gamepadInitialDelay;
+                }
+                else
+                {
+                    rightShoulderTimer = gamepadRepeatRate;
+                }
+            }
+            else
+            {
+                rightShoulderTimer -= Time.deltaTime;
+            }
+        }
+        else
+        {
+            rightShoulderTimer = 0f;
+        }
+    }
+
+
+
+    // =========================================================
+    // PREVIOUS TOOLBAR SLOT
+    // =========================================================
+
+    private void SelectPreviousToolbarSlot()
+    {
+        selectedSlot--;
+
+        if (selectedSlot < 0)
+        {
+            selectedSlot = toolbarSize - 1;
+        }
+
+        Debug.Log(
+            "[Inventory] Active toolbar slot changed LEFT -> "
+            + selectedSlot
+            + " / "
+            + (toolbarSize - 1)
+        );
+
+        RefreshInventoryUI();
+    }
+
+
+    // =========================================================
+    // NEXT TOOLBAR SLOT
+    // =========================================================
+
+    private void SelectNextToolbarSlot()
+    {
+        selectedSlot++;
+
+        if (selectedSlot >= toolbarSize)
+        {
+            selectedSlot = 0;
+        }
+
+        Debug.Log(
+            "[Inventory] Active toolbar slot changed RIGHT -> "
+            + selectedSlot
+            + " / "
+            + (toolbarSize - 1)
+        );
+
+        RefreshInventoryUI();
+    }
+
+    public bool SwapSlots(
+    int firstIndex,
+    int secondIndex)
+    {
+        if (firstIndex < 0 ||
+            firstIndex >= slots.Count)
+        {
+            Debug.Log(
+       $"[Inventory] Swapped slot " +
+       $"{firstIndex} with slot " +
+       $"{secondIndex}"
+   );
+            return false;
+
+        }
+
+        if (secondIndex < 0 ||
+            secondIndex >= slots.Count)
+        {
+            Debug.Log(
+       $"[Inventory] Swapped slot " +
+       $"{firstIndex} with slot " +
+       $"{secondIndex}"
+   );
+            return false;
+        }
+
+        if (firstIndex == secondIndex)
+        {
+            return false;
+        }
+
+        InventorySlot firstSlot =
+            slots[firstIndex];
+
+        InventorySlot secondSlot =
+            slots[secondIndex];
+
+        slots[firstIndex] =
+            secondSlot;
+
+        slots[secondIndex] =
+            firstSlot;
+
+        Debug.Log(
+            $"[Inventory] Swapped slot " +
+            $"{firstIndex} with slot " +
+            $"{secondIndex}"
+        );
+
+        RefreshInventoryUI();
+
+        return true;
+    }
+
+
+    // DEBUG
     public void PrintInventory()
     {
         Debug.Log(
-            "========== INVENTORY ==========");
+            "========== INVENTORY =========="
+        );
 
 
         for (int i = 0;
@@ -529,27 +1053,44 @@ public class PlayerInventory : MonoBehaviour
                 slots[i];
 
 
+            string section;
+
+            if (i < toolbarSize)
+            {
+                section = "TOOLBAR";
+            }
+            else
+            {
+                section = "MAIN";
+            }
+
+
             if (slot.IsEmpty())
             {
                 Debug.Log(
-                    "Slot "
+                    section
+                    + " Slot "
                     + i
-                    + ": EMPTY");
+                    + ": EMPTY"
+                );
             }
             else
             {
                 Debug.Log(
-                    "Slot "
+                    section
+                    + " Slot "
                     + i
                     + ": "
                     + slot.item.itemName
                     + " x"
-                    + slot.quantity);
+                    + slot.quantity
+                );
             }
         }
 
 
         Debug.Log(
-            "================================");
+            "================================"
+        );
     }
 }

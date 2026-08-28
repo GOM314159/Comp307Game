@@ -157,6 +157,50 @@ public class PlayerStamina : MonoBehaviour
             Debug.Log("Sprint Disabled");
     }
 
+    // =========================================================
+    // PERMANENT STAMINA BOOST
+    // =========================================================
+
+    public void ApplyPermanentStaminaBoost(float amount)
+    {
+        if (amount <= 0f)
+        {
+            Debug.LogWarning(
+                "[PlayerStamina] Invalid stamina increase: "
+                + amount
+            );
+
+            return;
+        }
+
+
+        // Increase maximum stamina.
+        maxStamina += amount;
+
+
+        // Give the player the newly gained stamina immediately.
+        currentStamina += amount;
+
+
+        // Make absolutely sure current stamina
+        // cannot exceed the new maximum.
+        currentStamina = Mathf.Min(
+            currentStamina,
+            maxStamina
+        );
+
+
+        Debug.Log(
+            "[PlayerStamina] Permanent stamina boost applied."
+            + " | Increase: +"
+            + amount
+            + " | Max Stamina: "
+            + maxStamina
+            + " | Current Stamina: "
+            + currentStamina
+        );
+    }
+
     public float CurrentStamina => currentStamina;
 
     public float MaxStamina => maxStamina;
