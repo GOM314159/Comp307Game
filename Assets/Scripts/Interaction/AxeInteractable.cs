@@ -109,11 +109,11 @@ public class AxeInteractable : WorldInteractable
                 "[Axe] CaseManager is missing. " +
                 "Cannot update case objective."
             );
-
-            return;
         }
-
-        CaseManager.Instance.FindRequiredObject();
+        else
+        {
+            CaseManager.Instance.FindRequiredObject();
+        }
 
 
         // -----------------------------------------------------

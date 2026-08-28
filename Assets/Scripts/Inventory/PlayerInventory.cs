@@ -46,6 +46,13 @@ public class PlayerInventory : MonoBehaviour
 
     [SerializeField]
     private int selectedSlot = 0;
+
+    [Header("Toolbar Cycling")]
+    [SerializeField] private float gamepadInitialDelay = 0.35f;
+    [SerializeField] private float gamepadRepeatRate = 0.08f;
+
+    private float leftShoulderTimer = 0f;
+    private float rightShoulderTimer = 0f;
     // BASE ATTACK
 
     [Header("Attack Settings")]
@@ -564,7 +571,7 @@ public class PlayerInventory : MonoBehaviour
     // =========================================================
 
     public void SelectSlot(
-        int index)
+    int index)
     {
         if (index < 0 ||
             index >= toolbarSize)
@@ -572,14 +579,14 @@ public class PlayerInventory : MonoBehaviour
             return;
         }
 
-
         selectedSlot = index;
-
 
         Debug.Log(
             "[Inventory] Selected toolbar slot: "
             + selectedSlot
         );
+
+        RefreshInventoryUI();
     }
 
 
@@ -819,6 +826,159 @@ public class PlayerInventory : MonoBehaviour
 
 
         return total;
+    }
+
+    private void Update()
+    {
+        UpdateToolbarSelection();
+    }
+
+    // =========================================================
+    // TOOLBAR SLOT CYCLING
+    // =========================================================
+
+    private void UpdateToolbarSelection()
+    {
+        // -----------------------------------------------------
+        // MOUSE SCROLL
+        // -----------------------------------------------------
+
+        if (Mouse.current != null)
+        {
+            float scroll = Mouse.current.scroll.ReadValue().y;
+
+            if (scroll > 0f)
+            {
+                SelectPreviousToolbarSlot();
+            }
+            else if (scroll < 0f)
+            {
+                SelectNextToolbarSlot();
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // GAMEPAD
+        // -----------------------------------------------------
+
+        if (Gamepad.current != null)
+        {
+            HandleShoulderInput();
+        }
+    }
+
+    private void HandleShoulderInput()
+    {
+        // -----------------------------------------------------
+        // LEFT SHOULDER = PREVIOUS SLOT
+        // -----------------------------------------------------
+
+        if (Gamepad.current.leftShoulder.isPressed)
+        {
+            if (leftShoulderTimer <= 0f)
+            {
+                SelectPreviousToolbarSlot();
+
+                // First press has a longer delay.
+                if (leftShoulderTimer == 0f)
+                {
+                    leftShoulderTimer = gamepadInitialDelay;
+                }
+                else
+                {
+                    leftShoulderTimer = gamepadRepeatRate;
+                }
+            }
+            else
+            {
+                leftShoulderTimer -= Time.deltaTime;
+            }
+        }
+        else
+        {
+            leftShoulderTimer = 0f;
+        }
+
+
+        // -----------------------------------------------------
+        // RIGHT SHOULDER = NEXT SLOT
+        // -----------------------------------------------------
+
+        if (Gamepad.current.rightShoulder.isPressed)
+        {
+            if (rightShoulderTimer <= 0f)
+            {
+                SelectNextToolbarSlot();
+
+                // First press has a longer delay.
+                if (rightShoulderTimer == 0f)
+                {
+                    rightShoulderTimer = gamepadInitialDelay;
+                }
+                else
+                {
+                    rightShoulderTimer = gamepadRepeatRate;
+                }
+            }
+            else
+            {
+                rightShoulderTimer -= Time.deltaTime;
+            }
+        }
+        else
+        {
+            rightShoulderTimer = 0f;
+        }
+    }
+
+
+
+    // =========================================================
+    // PREVIOUS TOOLBAR SLOT
+    // =========================================================
+
+    private void SelectPreviousToolbarSlot()
+    {
+        selectedSlot--;
+
+        if (selectedSlot < 0)
+        {
+            selectedSlot = toolbarSize - 1;
+        }
+
+        Debug.Log(
+            "[Inventory] Active toolbar slot changed LEFT -> "
+            + selectedSlot
+            + " / "
+            + (toolbarSize - 1)
+        );
+
+        RefreshInventoryUI();
+    }
+
+
+    // =========================================================
+    // NEXT TOOLBAR SLOT
+    // =========================================================
+
+    private void SelectNextToolbarSlot()
+    {
+        selectedSlot++;
+
+        if (selectedSlot >= toolbarSize)
+        {
+            selectedSlot = 0;
+        }
+
+        Debug.Log(
+            "[Inventory] Active toolbar slot changed RIGHT -> "
+            + selectedSlot
+            + " / "
+            + (toolbarSize - 1)
+        );
+
+        RefreshInventoryUI();
     }
 
 

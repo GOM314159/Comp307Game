@@ -432,7 +432,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AxeInteractable
   interactionPrompt: Interact
   canInteract: 1
-  interactOnlyOnce: 0
+  interactOnlyOnce: 1
   axeItem: {fileID: 11400000, guid: 88b6d9968193cc5449da41bb51eca3fe, type: 2}
   playerInventory: {fileID: 1442830820}
   axeDamage: 10
@@ -6405,6 +6405,7 @@ MonoBehaviour:
   walkSpeed: 5
   sprintSpeed: 8
   crouchSpeed: 2.5
+  permanentSpeedMultiplier: 1
   jumpHeight: 1.5
   gravity: -20
   fallMultiplier: 2.5
@@ -6520,6 +6521,8 @@ MonoBehaviour:
   - item: {fileID: 0}
     quantity: 0
   selectedSlot: 0
+  gamepadInitialDelay: 0.35
+  gamepadRepeatRate: 0.08
   baseAttackDamage: 1
 --- !u!114 &1442830821
 MonoBehaviour:

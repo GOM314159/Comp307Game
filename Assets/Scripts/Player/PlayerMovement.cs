@@ -12,6 +12,11 @@ public class PlayerMovement : MonoBehaviour
     [Header("Permanent Speed Boosts")]
     [SerializeField] private float permanentSpeedMultiplier = 1f;
 
+    [Header("Permanent Strength")]
+
+    [SerializeField]
+    private float permanentStrength = 0f;
+
     [Header("Jump Settings")]
 
     // Adjust jump height here
@@ -397,5 +402,33 @@ public class PlayerMovement : MonoBehaviour
             + " | Boost: x" + multiplier
             + " | Current multiplier: x" + permanentSpeedMultiplier
         );
+    }
+
+    public void ApplyPermanentStrengthBoost(float amount)
+    {
+        if (amount <= 0f)
+        {
+            Debug.LogWarning(
+                "[PlayerMovement] Invalid strength increase: "
+                + amount
+            );
+
+            return;
+        }
+
+        permanentStrength += amount;
+
+        Debug.Log(
+            "[PlayerMovement] Permanent strength boost applied."
+            + " | Increase: +"
+            + amount
+            + " | Current strength: "
+            + permanentStrength
+        );
+    }
+
+    public float GetStrength()
+    {
+        return permanentStrength;
     }
 }
