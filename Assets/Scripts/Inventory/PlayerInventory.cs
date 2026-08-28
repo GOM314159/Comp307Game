@@ -14,7 +14,10 @@ public class PlayerInventory : MonoBehaviour
     [SerializeField]
     private int mainInventorySize = 21;
 
-    [Header("Inventory UI")]
+    [Header("Equipment")]
+
+    [SerializeField]
+    private PlayerEquipmentManager equipmentManager;
 
     [Header("Inventory UI")]
     [SerializeField] private GameObject inventoryUI;
@@ -72,10 +75,11 @@ public class PlayerInventory : MonoBehaviour
     {
         controls = new PlayerControls();
 
-        // Left click can be moved to seperate thing later
-
-        controls.Player.Attack.performed +=
-            _ => Attack();
+        if (equipmentManager == null)
+        {
+            equipmentManager =
+                GetComponent<PlayerEquipmentManager>();
+        }
 
         controls.Player.Inventory.performed +=
             _ => ToggleInventory(); // Bind I / D-Pad Up to that action in the existing Input Actions asset.
@@ -587,6 +591,12 @@ public class PlayerInventory : MonoBehaviour
         );
 
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
+
+        if (equipmentManager != null)
+        {
+            equipmentManager.EquipSelectedItem();
+        }
     }
 
 
@@ -725,6 +735,7 @@ public class PlayerInventory : MonoBehaviour
             if (amount <= 0)
             {
                 RefreshInventoryUI();
+                RefreshSelectedEquipment();
 
                 return true;
             }
@@ -780,6 +791,7 @@ public class PlayerInventory : MonoBehaviour
                     0);
         }
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
 
         return true;
     }
@@ -955,6 +967,12 @@ public class PlayerInventory : MonoBehaviour
         );
 
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
+
+        if (equipmentManager != null)
+        {
+            equipmentManager.EquipSelectedItem();
+        }
     }
 
 
@@ -979,6 +997,12 @@ public class PlayerInventory : MonoBehaviour
         );
 
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
+
+        if (equipmentManager != null)
+        {
+            equipmentManager.EquipSelectedItem();
+        }
     }
 
     public bool SwapSlots(
@@ -1021,10 +1045,23 @@ public class PlayerInventory : MonoBehaviour
         );
 
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
 
         return true;
     }
+    // =========================================================
+    // EQUIPMENT SYNC
+    // =========================================================
 
+    private void RefreshSelectedEquipment()
+    {
+        if (equipmentManager == null)
+        {
+            return;
+        }
+
+        equipmentManager.EquipSelectedItem();
+    }
 
     // DEBUG
     public void PrintInventory()

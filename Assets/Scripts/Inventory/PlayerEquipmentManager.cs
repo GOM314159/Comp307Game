@@ -48,75 +48,50 @@ public class PlayerEquipmentManager : MonoBehaviour
     {
         if (inventory == null)
         {
-            Debug.LogError(
-                "[Equipment] PlayerInventory not assigned."
+            inventory =
+                GetComponent<PlayerInventory>();
+        }
+
+        if (inventory == null)
+        {
+            Debug.LogWarning(
+                "[Equipment] PlayerInventory not found."
             );
 
             return;
         }
 
-        InventorySlot slot =
+        InventorySlot selectedSlot =
             inventory.GetSelectedSlot();
 
-
-        // -----------------------------------------------------
-        // EMPTY SLOT
-        // -----------------------------------------------------
-
-        if (slot == null || slot.IsEmpty())
-        {
-            UnequipWeapon();
-            return;
-        }
-
-
-        // -----------------------------------------------------
-        // CHECK WEAPON
-        // -----------------------------------------------------
-
-        if (!(slot.item is WeaponItem weapon))
+        if (selectedSlot == null ||
+            selectedSlot.IsEmpty())
         {
             UnequipWeapon();
 
-            DebugEquipment(
-                "Selected item is not a weapon."
+            Debug.Log(
+                "[Equipment] No weapon equipped."
             );
 
             return;
         }
 
-
-        // -----------------------------------------------------
-        // SAME WEAPON
-        // -----------------------------------------------------
-
-        if (currentWeapon == weapon &&
-            currentWeaponObject != null)
+        if (selectedSlot.item is WeaponItem weapon)
         {
+            currentWeapon = weapon;
+
+            Debug.Log(
+                "[Equipment] Equipped weapon: "
+                + weapon.itemName
+            );
+
             return;
         }
-
-
-        // -----------------------------------------------------
-        // REMOVE CURRENT WEAPON
-        // -----------------------------------------------------
 
         UnequipWeapon();
 
-
-        // -----------------------------------------------------
-        // EQUIP NEW WEAPON
-        // -----------------------------------------------------
-
-        if (weapon is AxeItem axe)
-        {
-            EquipAxe(axe);
-            return;
-        }
-
-
-        DebugEquipment(
-            "Weapon does not have an equipped prefab."
+        Debug.Log(
+            "[Equipment] Selected item is not a weapon."
         );
     }
 
