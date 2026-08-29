@@ -21,6 +21,7 @@ public class PlayerAttackController : MonoBehaviour
 
     }
     public event Action OnAttackPerformed;
+    public event Action OnWeaponFired;
     public event Action OnAttackHit;
     public event Action OnTargetKilled;
 
@@ -54,16 +55,8 @@ public class PlayerAttackController : MonoBehaviour
     [SerializeField]
     private float unarmedRange = 1f;
 
-
-    [SerializeField]
-    private float unarmedHitRadius = 0.3f;
-
-
     [SerializeField]
     private float unarmedCooldown = 0.5f;
-
-    [SerializeField]
-    private float meleeHitRadius = 0.3f;
 
 
     // =========================================================
@@ -73,6 +66,10 @@ public class PlayerAttackController : MonoBehaviour
     private float nextUnarmedAttackTime;
 
     private float nextMeleeAttackTime;
+
+    private float nextRangedAttackTime;
+
+    private bool isAttacking;
 
 
     // =========================================================
@@ -172,6 +169,11 @@ public class PlayerAttackController : MonoBehaviour
         // STATE CHECK
         // -----------------------------------------------------
 
+        if (isAttacking)
+        {
+            return;
+        }
+
         if (playerStateManager == null)
         {
             return;
@@ -260,6 +262,7 @@ public class PlayerAttackController : MonoBehaviour
         {
             return;
         }
+        isAttacking = true;
 
 
         nextUnarmedAttackTime =
@@ -272,6 +275,7 @@ public class PlayerAttackController : MonoBehaviour
 
 
         PerformUnarmedHit();
+        isAttacking = false;
     }
 
     // =========================================================
@@ -354,7 +358,7 @@ float range)
 
             case AttackResultType.KilledTarget:
 
-                OnAttackHit?.Invoke(); 
+                OnAttackHit?.Invoke();
                 OnTargetKilled?.Invoke();
                 Debug.Log(
                     "[Attack] Killed target: "
@@ -374,6 +378,7 @@ float range)
         {
             return;
         }
+        isAttacking = true;
 
         nextMeleeAttackTime =
         Time.time + weapon.attackCooldown;
@@ -384,6 +389,7 @@ float range)
         );
 
         PerformMeleeHit(weapon.GetAttackDamage(), weapon.attackRange);
+        isAttacking = false;
     }
 
 
@@ -392,24 +398,111 @@ float range)
     // RANGED
     // =========================================================
 
-    private void TryRangedAttack(
-        RangedWeaponItem weapon)
+    private void TryRangedAttack(RangedWeaponItem weapon)
     {
+        if (Time.time < nextRangedAttackTime)
+        {
+            return;
+        }
+        isAttacking = true;
+
+        nextRangedAttackTime =
+            Time.time + (1f / weapon.fireRate);
+
+        OnAttackPerformed?.Invoke();
+
         Debug.Log(
-            "[Attack] Ranged attack requested: "
+            "[Attack] Ranged attack performed: "
             + weapon.itemName
         );
 
+        PerformRangedAttack(weapon);
+        isAttacking = false;
+    }
 
-        // Actual ranged attack execution
-        // will be added in the ranged step.
+    private void PerformRangedAttack(RangedWeaponItem weapon)
+    {
+        OnWeaponFired?.Invoke();
+        // Play firing animation
+        // Add effects
+        // Play firing sound
+
+        PerformRangedHit(
+            weapon.GetAttackDamage(),
+            weapon.range
+        );
+    }
+
+    private void PerformRangedHit(
+    float damage,
+    float range)
+    {
+        if (attackOrigin == null)
+        {
+            Debug.LogWarning(
+                "[Attack] Attack origin has not been assigned."
+            );
+
+            return;
+        }
+
+        RaycastHit hit;
+
+        if (!Physics.Raycast(
+                attackOrigin.position,
+                attackOrigin.forward,
+                out hit,
+                range,
+                damageableLayers,
+                QueryTriggerInteraction.Ignore))
+        {
+            Debug.Log(
+                "[Attack] Ranged attack missed."
+            );
+
+            return;
+        }
+
+        AttackResult result =
+            TryDamageTarget(
+                hit,
+                damage
+            );
+
+        switch (result.type)
+        {
+            case AttackResultType.HitDamageable:
+
+                OnAttackHit?.Invoke();
+
+                Debug.Log(
+                    "[Attack] Ranged attack hit: "
+                    + hit.collider.name
+                );
+
+                break;
+
+
+            case AttackResultType.KilledTarget:
+
+                OnAttackHit?.Invoke();
+
+                OnTargetKilled?.Invoke();
+
+                Debug.Log(
+                    "[Attack] Ranged attack killed: "
+                    + hit.collider.name
+                );
+
+                break;
+        }
     }
 
     // =========================================================
     // DAMAGE TARGET
     // =========================================================
 
-    private AttackResult TryDamageTarget(RaycastHit hit,float damage)
+    private AttackResult TryDamageTarget(RaycastHit hit, float damage)
     {
         AttackResult result = new AttackResult
         {
