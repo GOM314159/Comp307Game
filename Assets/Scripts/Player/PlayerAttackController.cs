@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using UnityEngine.InputSystem;
 
 public class PlayerAttackController : MonoBehaviour
@@ -6,13 +7,22 @@ public class PlayerAttackController : MonoBehaviour
     // =========================================================
     // REFERENCES
     // =========================================================
-    private enum AttackResult
+    private enum AttackResultType
     {
         Miss,
         HitNonDamageable,
         HitDamageable,
         KilledTarget
     }
+
+    private struct AttackResult
+    {
+        public AttackResultType type;
+
+    }
+    public event Action OnAttackPerformed;
+    public event Action OnAttackHit;
+    public event Action OnTargetKilled;
 
     [Header("References")]
 
@@ -254,7 +264,7 @@ public class PlayerAttackController : MonoBehaviour
 
         nextUnarmedAttackTime =
             Time.time + unarmedCooldown;
-
+        OnAttackPerformed?.Invoke();
 
         Debug.Log(
             "[Attack] Unarmed attack performed."
@@ -276,8 +286,7 @@ public class PlayerAttackController : MonoBehaviour
     {
         PerformCloseRangeAttack(
         unarmedDamage,
-        unarmedRange,
-        meleeHitRadius
+        unarmedRange
         );
     }
 
@@ -286,17 +295,18 @@ public class PlayerAttackController : MonoBehaviour
     // MELEE HIT DETECTION
     // =========================================================
 
-    private void PerformMeleeHit(float damage,float range,float hitRadius)
+    private void PerformMeleeHit(float damage, float range)
     {
         PerformCloseRangeAttack(
         damage,
-        range,
-        hitRadius
+        range
         );
     }
 
 
-    private void PerformCloseRangeAttack(float damage,float range,float hitRadius)
+    private void PerformCloseRangeAttack(
+float damage,
+float range)
     {
         if (attackOrigin == null)
         {
@@ -311,9 +321,8 @@ public class PlayerAttackController : MonoBehaviour
         RaycastHit hit;
 
 
-        if (!Physics.SphereCast(
+        if (!Physics.Raycast(
                 attackOrigin.position,
-                hitRadius,
                 attackOrigin.forward,
                 out hit,
                 range,
@@ -328,17 +337,13 @@ public class PlayerAttackController : MonoBehaviour
         }
 
 
-        AttackResult result =
-            TryDamageTarget(
-                hit.collider,
-                damage
-            );
+        AttackResult result = TryDamageTarget(hit, damage);
 
-
-        switch (result)
+        switch (result.type)
         {
-            case AttackResult.HitDamageable:
+            case AttackResultType.HitDamageable:
 
+                OnAttackHit?.Invoke();
                 Debug.Log(
                     "[Attack] Hit damageable target: "
                     + hit.collider.name
@@ -347,14 +352,17 @@ public class PlayerAttackController : MonoBehaviour
                 break;
 
 
-            case AttackResult.KilledTarget:
+            case AttackResultType.KilledTarget:
 
+                OnAttackHit?.Invoke(); 
+                OnTargetKilled?.Invoke();
                 Debug.Log(
                     "[Attack] Killed target: "
                     + hit.collider.name
                 );
 
                 break;
+
         }
 
     }
@@ -369,17 +377,13 @@ public class PlayerAttackController : MonoBehaviour
 
         nextMeleeAttackTime =
         Time.time + weapon.attackCooldown;
-
+        OnAttackPerformed?.Invoke();
         Debug.Log(
             "[Attack] Melee attack performed: "
             + weapon.itemName
         );
 
-        PerformMeleeHit(
-            weapon.GetAttackDamage(),
-            weapon.attackRange,
-            meleeHitRadius
-        );
+        PerformMeleeHit(weapon.GetAttackDamage(), weapon.attackRange);
     }
 
 
@@ -405,39 +409,78 @@ public class PlayerAttackController : MonoBehaviour
     // DAMAGE TARGET
     // =========================================================
 
-    private AttackResult TryDamageTarget(Collider targetCollider, float damage)
+    private AttackResult TryDamageTarget(RaycastHit hit,float damage)
     {
-        if (targetCollider == null)
+        AttackResult result = new AttackResult
         {
-            return AttackResult.Miss;
+            type = AttackResultType.Miss
+        };
+
+
+        if (hit.collider == null)
+        {
+            return result;
         }
 
+
         IDamageable damageable =
-            targetCollider.GetComponentInParent<IDamageable>();
+            hit.collider.GetComponentInParent<IDamageable>();
+
 
         if (damageable == null)
         {
             Debug.Log(
                 "[Attack] Hit object is not damageable: "
-                + targetCollider.name
+                + hit.collider.name
             );
 
-            return AttackResult.HitNonDamageable;
+            result.type =
+                AttackResultType.HitNonDamageable;
+
+            return result;
         }
+
+
+        if (damageable is MonoBehaviour damageableBehaviour)
+        {
+            if (damageableBehaviour.transform.root ==
+                transform.root)
+            {
+                Debug.Log(
+                    "[Attack] Attack cannot damage the player."
+                );
+
+                result.type =
+                    AttackResultType.HitNonDamageable;
+
+                return result;
+            }
+        }
+
 
         bool killedTarget =
             damageable.TakeDamage(
                 damage
             );
 
+
         if (killedTarget)
         {
-            return AttackResult.KilledTarget;
+            result.type =
+                AttackResultType.KilledTarget;
+        }
+        else
+        {
+            result.type =
+                AttackResultType.HitDamageable;
         }
 
-        return AttackResult.HitDamageable;
+
+        return result;
 
     }
+
+
 
 
 }
