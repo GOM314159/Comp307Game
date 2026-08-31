@@ -85,6 +85,12 @@ public class GameStateManager : MonoBehaviour
     [Range(1, 4)]
     private int currentDay = 1;
 
+    [Header("Day Configuration")]
+
+    [SerializeField]
+    [Min(1)]
+    private int maximumDay = 4;
+
 
     // =========================================================
     // PLAY
@@ -325,7 +331,7 @@ public class GameStateManager : MonoBehaviour
 
     public void SetDay(int day)
     {
-        day = Mathf.Clamp(day, 1, 4);
+        day = Mathf.Clamp(day, 1, maximumDay);
 
         if (currentDay == day)
         {
@@ -342,7 +348,7 @@ public class GameStateManager : MonoBehaviour
 
     public void AdvanceDay()
     {
-        if (currentDay >= 4)
+        if (currentDay >= maximumDay)
         {
             return;
         }
