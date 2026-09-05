@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class PlayerStamina : MonoBehaviour
@@ -7,6 +8,9 @@ public class PlayerStamina : MonoBehaviour
 
     // Adjust maximum stamina here
     [SerializeField] private float maxStamina = 100f;
+
+    // Adjust maximum stamina here
+    [SerializeField] private float minStamina = 0f;
 
     // Adjust stamina drain here
     [SerializeField] private float staminaDrain = 20f;
@@ -20,6 +24,25 @@ public class PlayerStamina : MonoBehaviour
     // Adjust sprint acceleration here
     [SerializeField] private float sprintTransitionSpeed = 8f;
 
+    // =========================================================
+    // EVENT CALLS FOR STAMINA GUI
+    // =========================================================
+
+    public Action<PlayerStamina> OnStaminaFill;
+    public Action<PlayerStamina> OnStaminaDrain;
+    public Action<PlayerStamina> OnStaminaRejected;
+
+    public Action<PlayerStamina> OnStaminaReachMax;
+    public Action<PlayerStamina> OnStaminaReachEmpty;
+
+    public Action<PlayerStamina> OnStaminaLeaveMax;
+    public Action<PlayerStamina> OnStaminaLeaveEmpty;
+
+    public float ratio()
+    {
+     return currentStamina / maxStamina;
+    }
+
 
     // DEBUG
 
@@ -28,8 +51,6 @@ public class PlayerStamina : MonoBehaviour
 
     [SerializeField]
     private bool debugMessages = true;
-
-
 
     private float currentStamina;
 
@@ -61,8 +82,53 @@ public class PlayerStamina : MonoBehaviour
 
         UpdateSprintTransition();
 
-        // INSERT STAMINA UI HERE LATER , CAUSE LAZY
+    }
 
+    public void StamRegenInc()
+    {
+        if (currentStamina > maxStamina)
+        {
+            OnStaminaRejected?.Invoke(this);
+            return;
+        }
+        else
+        {
+            if (currentStamina == maxStamina)
+            {
+                OnStaminaLeaveMax?.Invoke(this);
+            }
+            OnStaminaFill?.Invoke(this);
+        }
+
+        if (currentStamina >= maxStamina)
+        {
+            OnStaminaReachMax?.Invoke(this);
+            return;
+        }
+    }
+
+    public void StaminaDec()
+    {
+        if (currentStamina < minStamina)
+        {
+            OnStaminaRejected?.Invoke(this);
+            return;
+        }
+        else
+        {
+            if (currentStamina == minStamina)
+            {
+                OnStaminaLeaveEmpty?.Invoke(this);
+            }
+           
+            OnStaminaDrain?.Invoke(this);
+        }
+
+        if (currentStamina <= minStamina)
+        {
+            OnStaminaReachEmpty?.Invoke(this);
+            return;
+        }
     }
 
 
@@ -89,7 +155,7 @@ public class PlayerStamina : MonoBehaviour
         isSprinting = sprinting;
     }
 
-    private void UpdateStamina()
+    public void UpdateStamina()
     {
         if (isSprinting && CanSprint())
         {
@@ -98,6 +164,7 @@ public class PlayerStamina : MonoBehaviour
             currentStamina = Mathf.Max(0, currentStamina);
 
             regenTimer = 0;
+            StaminaDec();
         }
         else
         {
@@ -108,6 +175,7 @@ public class PlayerStamina : MonoBehaviour
                 currentStamina += staminaRegen * Time.deltaTime;
 
                 currentStamina = Mathf.Min(maxStamina, currentStamina);
+                StamRegenInc();
             }
         }
     }
@@ -139,6 +207,11 @@ public class PlayerStamina : MonoBehaviour
         blockReason = SprintBlockReason.None;
 
         return true;
+    }
+
+    public float getmaxStamina()
+    {
+       return maxStamina;
     }
 
     public void EnableSprint() //gonna be amazing for cutscenes or really scary parts

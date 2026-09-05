@@ -196,6 +196,17 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
+        // =====================================
+        // SPRINTING 
+        // =====================================
+
+        bool canPlayerSprint = isSprinting &&
+                               IsMoving() &&
+                               !isCrouching &&
+                               stateManager.CanSprint();
+
+        stamina.SetSprinting(canPlayerSprint);
+
 
         // =====================================
         // MOVEMENT SPEED
@@ -207,7 +218,9 @@ public class PlayerMovement : MonoBehaviour
             crouchSpeed,
             isCrouching);
 
+
         speed *= permanentSpeedMultiplier;
+
         // =====================================
         // MOVEMENT DIRECTION
         // =====================================
@@ -219,17 +232,6 @@ public class PlayerMovement : MonoBehaviour
 
         controller.Move(
             direction * speed * Time.deltaTime);
-
-
-        // =====================================
-        // SPRINTING
-        // =====================================
-
-        stamina.SetSprinting(
-            isSprinting &&
-            moveInput != Vector2.zero &&
-            !isCrouching &&
-            stateManager.CanSprint());
     }
 
     private void CheckGround()
