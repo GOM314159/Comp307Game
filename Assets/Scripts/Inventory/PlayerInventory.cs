@@ -73,8 +73,8 @@ public class PlayerInventory : MonoBehaviour
                 GetComponent<PlayerEquipmentManager>();
         }
 
-        controls.Player.Inventory.performed +=
-            _ => ToggleInventory(); // Bind I / D-Pad Up to that action in the existing Input Actions asset.
+        //ontrols.Player.Inventory.performed +=
+          //  _ => ToggleInventory(); // Bind I / D-Pad Up to that action in the existing Input Actions asset.
 
         if (inventoryUI != null)
         {
@@ -149,15 +149,41 @@ public class PlayerInventory : MonoBehaviour
 
     private void ToggleInventory()
     {
+        Debug.Log("[Inventory] I KEY RECEIVED");
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogWarning("[Inventory] GameStateManager instance not found.");
+            return;
+        }
+
+        GameStateManager.GameMode currentMode =
+            GameStateManager.Instance.GetGameMode();
+        Debug.Log("[Inventory] Current Game State: " + currentMode);
+        // =========================================================
+        // PAUSE MENU HAS PRIORITY
+        // =========================================================
+
+        if (currentMode == GameStateManager.GameMode.Paused)
+        {
+            Debug.Log("[Inventory] Ignored I input because Pause Menu is open.");
+            return;
+        }
+
+        // =========================================================
+        // INVENTORY
+        // =========================================================
+
         if (inventoryOpen)
         {
             CloseInventory();
+
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
         else
         {
             OpenInventory();
+
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
@@ -179,70 +205,98 @@ public class PlayerInventory : MonoBehaviour
     public void OpenInventory()
     {
         if (inventoryOpen)
-        {
             return;
-        }
-
-
 
         if (GameStateManager.Instance == null)
         {
-            Debug.LogWarning(
-                "[Inventory] GameStateManager instance not found."
-            );
-
+            Debug.LogWarning("[Inventory] GameStateManager instance not found.");
             return;
         }
 
         if (playerStateManager == null)
         {
-            Debug.LogWarning(
-                "[Inventory] PlayerStateManager not found."
-            );
-
+            Debug.LogWarning("[Inventory] PlayerStateManager not found.");
             return;
         }
 
-        // Save the states before changing them.
+        // =========================================================
+        // SAVE CURRENT STATE
+        // =========================================================
+
         previousGameMode =
             GameStateManager.Instance.GetGameMode();
 
         previousPlayerState =
             playerStateManager.GetCurrentState();
 
-        // Change GAME state.
+        // =========================================================
+        // CHANGE GAME STATE
+        // =========================================================
+
         GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.Paused
+            GameStateManager.GameMode.Inventory
         );
 
-        // Change PLAYER state.
+        // =========================================================
+        // CHANGE PLAYER STATE
+        // =========================================================
+
         playerStateManager.SetState(
             PlayerStateManager.PlayerState.PauseMenu
         );
 
-        // Show inventory.
+        // =========================================================
+        // SHOW INVENTORY UI
+        // =========================================================
+
         if (inventoryUI != null)
         {
             inventoryUI.SetActive(true);
+
+            Debug.Log(
+                "[Inventory] UI activated: "
+                + inventoryUI.name
+                + " | ActiveSelf: "
+                + inventoryUI.activeSelf
+                + " | ActiveInHierarchy: "
+                + inventoryUI.activeInHierarchy
+            );
         }
+        else
+        {
+            Debug.LogError(
+                "[Inventory] inventoryUI IS NULL! Assign the Inventory UI object in the Player Inspector."
+            );
+        }
+
         if (inventoryCloseButton != null)
         {
             inventoryCloseButton.SetActive(true);
         }
+
+        // Refresh the UI after enabling it.
         if (inventoryUIController != null)
         {
             inventoryUIController.RefreshUI();
         }
+
         RefreshInventoryUI();
+
         inventoryOpen = true;
 
         Debug.Log(
             "[Inventory] Opened."
-            + " Game State: Paused"
-            + " | Player State: PauseMenu"
+            + " Game State: "
+            + GameStateManager.Instance.GetGameMode()
+            + " | Player State: "
+            + playerStateManager.GetCurrentState()
         );
     }
 
+    public bool IsInventoryOpen()
+    {
+        return inventoryOpen;
+    }
     public void CloseInventory()
     {
         if (!inventoryOpen)
@@ -289,10 +343,7 @@ public class PlayerInventory : MonoBehaviour
         );
     }
 
-    public bool IsInventoryOpen()
-    {
-        return inventoryOpen;
-    }
+
     // =========================================================
     // INVENTORY SIZE
     // =========================================================
@@ -705,6 +756,12 @@ public class PlayerInventory : MonoBehaviour
 
     private void Update()
     {
+        if (Keyboard.current != null &&
+        Keyboard.current.iKey.wasPressedThisFrame)
+        {
+            ToggleInventory();
+        }
+
         UpdateToolbarSelection();
     }
 
@@ -936,6 +993,8 @@ public class PlayerInventory : MonoBehaviour
 
         equipmentManager.EquipSelectedItem();
     }
+
+    
 
     // DEBUG
     public void PrintInventory()

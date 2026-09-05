@@ -168,7 +168,7 @@ public class PlayerAttackController : MonoBehaviour
         // -----------------------------------------------------
         // STATE CHECK
         // -----------------------------------------------------
-
+        
         if (isAttacking)
         {
             return;
@@ -178,7 +178,12 @@ public class PlayerAttackController : MonoBehaviour
         {
             return;
         }
-
+        if (GameStateManager.Instance != null &&
+        GameStateManager.Instance.GetGameMode() ==
+        GameStateManager.GameMode.Paused)
+        {
+            return;
+        }
 
         if (!playerStateManager.CanAttack())
         {
@@ -278,13 +283,6 @@ public class PlayerAttackController : MonoBehaviour
         isAttacking = false;
     }
 
-    // =========================================================
-    // UNARMED HIT DETECTION
-    // =========================================================
-
-    // =========================================================
-    // UNARMED HIT DETECTION
-    // =========================================================
 
     private void PerformUnarmedHit()
     {
