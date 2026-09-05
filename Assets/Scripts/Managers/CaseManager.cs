@@ -673,6 +673,35 @@ public class CaseManager : MonoBehaviour
         );
     }
 
+    // =========================================================
+    // DEACTIVATE CASE
+    // =========================================================
+
+    public void DeactivateCase()
+    {
+        if (!caseActive)
+        {
+            return;
+        }
+
+        caseActive = false;
+
+        StopTimer();
+
+        DebugCase(
+            "Case deactivated."
+        );
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.ResetCaseProgress();
+
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Lobby
+            );
+        }
+    }
+
 
     // =========================================================
     // DEBUG

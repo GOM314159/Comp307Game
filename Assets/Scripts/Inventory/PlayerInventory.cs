@@ -14,7 +14,10 @@ public class PlayerInventory : MonoBehaviour
     [SerializeField]
     private int mainInventorySize = 21;
 
-    [Header("Inventory UI")]
+    [Header("Equipment")]
+
+    [SerializeField]
+    private PlayerEquipmentManager equipmentManager;
 
     [Header("Inventory UI")]
     [SerializeField] private GameObject inventoryUI;
@@ -53,14 +56,6 @@ public class PlayerInventory : MonoBehaviour
 
     private float leftShoulderTimer = 0f;
     private float rightShoulderTimer = 0f;
-    // BASE ATTACK
-
-    [Header("Attack Settings")]
-
-    // Damage when attacking without a weapon.
-    //
-    // Adjust base attack damage here.
-    [SerializeField] private float baseAttackDamage = 1f;
 
     // INPUT
 
@@ -72,10 +67,11 @@ public class PlayerInventory : MonoBehaviour
     {
         controls = new PlayerControls();
 
-        // Left click can be moved to seperate thing later
-
-        controls.Player.Attack.performed +=
-            _ => Attack();
+        if (equipmentManager == null)
+        {
+            equipmentManager =
+                GetComponent<PlayerEquipmentManager>();
+        }
 
         controls.Player.Inventory.performed +=
             _ => ToggleInventory(); // Bind I / D-Pad Up to that action in the existing Input Actions asset.
@@ -317,135 +313,6 @@ public class PlayerInventory : MonoBehaviour
     {
         return slots.Count;
     }
-    // ATTACK
-
-    private void Attack()
-    {
-        if (!playerStateManager.CanAttack())
-        {
-            return;
-        }
-        InventorySlot slot =
-            GetSelectedSlot();
-
-        // NO ITEM
-
-        if (slot == null || slot.IsEmpty())
-        {
-            Debug.Log(
-                "[Inventory] Attack: Empty hands.");
-
-            DealAttackDamage(
-                baseAttackDamage);
-
-            return;
-        }
-
-        // WEAPON
-
-        if (slot.item is WeaponItem weapon)
-        {
-            float damage =
-                weapon.GetAttackDamage();
-
-
-            Debug.Log(
-                "[Inventory] Attack with: "
-                + weapon.itemName
-                + " | Type: "
-                + weapon.weaponType
-                + " | Damage: "
-                + damage);
-
-            // MELEE
-
-            if (weapon is MeleeWeaponItem)
-            {
-                PerformMeleeAttack(
-                    weapon as MeleeWeaponItem);
-
-                return;
-            }
-
-            // RANGED
-
-            if (weapon is RangedWeaponItem)
-            {
-                PerformRangedAttack(
-                    weapon as RangedWeaponItem);
-
-                return;
-            }
-
-
-            // Fallback
-            DealAttackDamage(damage);
-
-            return;
-        }
-        // NON-WEAPON
-
-        Debug.Log(
-            "[Inventory] "
-            + slot.item.itemName
-            + " is not a weapon.");
-
-        // The player can still perform the base attack.
-        DealAttackDamage(
-            baseAttackDamage);
-    }
-
-
-    // MELEE ATTACK
-
-    private void PerformMeleeAttack(
-        MeleeWeaponItem weapon)
-    {
-        Debug.Log(
-            "[Inventory] MELEE ATTACK"
-            + " | Weapon: "
-            + weapon.itemName
-            + " | Damage: "
-            + weapon.weaponDamage
-            + " | Range: "
-            + weapon.attackRange);
-
-
-        // Actual melee hit detection will be added later. Please Sidd, detect the enemy, deal damage, handle cooldowns
-    }
-
-
-    // RANGED ATTACK
-
-    private void PerformRangedAttack(
-        RangedWeaponItem weapon)
-    {
-        Debug.Log(
-            "[Inventory] RANGED ATTACK"
-            + " | Weapon: "
-            + weapon.itemName
-            + " | Damage: "
-            + weapon.weaponDamage
-            + " | Ammo: "
-            + weapon.GetCurrentAmmo());
-
-
-        // Actual shooting will be added later. Please marmz firerate, damage, detect hit, projectile
-    }
-
-
-    // BASE ATTACK DAMAGE
-
-
-    private void DealAttackDamage(
-        float damage)
-    {
-        Debug.Log(
-            "[Inventory] Attack dealt "
-            + damage
-            + " damage.");
-    }
-
 
     // RIGHT CLICK / USE
 
@@ -587,6 +454,12 @@ public class PlayerInventory : MonoBehaviour
         );
 
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
+
+        if (equipmentManager != null)
+        {
+            equipmentManager.EquipSelectedItem();
+        }
     }
 
 
@@ -725,6 +598,7 @@ public class PlayerInventory : MonoBehaviour
             if (amount <= 0)
             {
                 RefreshInventoryUI();
+                RefreshSelectedEquipment();
 
                 return true;
             }
@@ -780,6 +654,7 @@ public class PlayerInventory : MonoBehaviour
                     0);
         }
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
 
         return true;
     }
@@ -955,6 +830,12 @@ public class PlayerInventory : MonoBehaviour
         );
 
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
+
+        if (equipmentManager != null)
+        {
+            equipmentManager.EquipSelectedItem();
+        }
     }
 
 
@@ -979,6 +860,12 @@ public class PlayerInventory : MonoBehaviour
         );
 
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
+
+        if (equipmentManager != null)
+        {
+            equipmentManager.EquipSelectedItem();
+        }
     }
 
     public bool SwapSlots(
@@ -1032,10 +919,23 @@ public class PlayerInventory : MonoBehaviour
         );
 
         RefreshInventoryUI();
+        RefreshSelectedEquipment();
 
         return true;
     }
+    // =========================================================
+    // EQUIPMENT SYNC
+    // =========================================================
 
+    private void RefreshSelectedEquipment()
+    {
+        if (equipmentManager == null)
+        {
+            return;
+        }
+
+        equipmentManager.EquipSelectedItem();
+    }
 
     // DEBUG
     public void PrintInventory()

@@ -96,7 +96,7 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
             $"Sprite: {(image.sprite != null ? image.sprite.name : "NULL")} | " +
             $"Enabled: {image.enabled}"
         );
-}
+    }
 
     public void ClearItem()
     {
@@ -118,41 +118,108 @@ public class InventoryItem : MonoBehaviour, IDragHandler, IBeginDragHandler, IEn
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        Debug.Log(
+            $"[DRAG] Begin: {gameObject.name}"
+        );
         if (image == null || image.sprite == null)
             return;
         parentAfterDrag = transform.parent;
         transform.SetParent(transform.root);
         transform.SetAsLastSibling();
         image.raycastTarget = false;
-        
+
     }
 
     public void OnDrag(PointerEventData eventData)
     {
+        Debug.Log(
+            $"[DRAG] Dragging: {gameObject.name}"
+        );
         if (image == null || image.sprite == null)
             return;
-      
+
         transform.position = eventData.position;
     }
 
     public void OnEndDrag(
     PointerEventData eventData)
-{
-    if (parentAfterDrag != null)
     {
+        Debug.Log(
+            $"[DRAG] End: {gameObject.name}"
+        );
+
+        GameObject hitObject =
+            eventData.pointerCurrentRaycast.gameObject;
+
+        Debug.Log(
+            "[DRAG] Hit object: " +
+            (
+                hitObject != null
+                    ? hitObject.name
+                    : "NULL"
+            )
+        );
+
+        if (hitObject != null)
+        {
+            InventorySlotUI directSlot =
+                hitObject.GetComponent<InventorySlotUI>();
+
+            InventorySlotUI parentSlot =
+                hitObject.GetComponentInParent<InventorySlotUI>();
+
+            Debug.Log(
+                "[DRAG] Direct InventorySlotUI: " +
+                (
+                    directSlot != null
+                        ? directSlot.gameObject.name
+                        : "NULL"
+                )
+            );
+
+            Debug.Log(
+                "[DRAG] Parent InventorySlotUI: " +
+                (
+                    parentSlot != null
+                        ? parentSlot.gameObject.name
+                        : "NULL"
+                )
+            );
+
+            Debug.Log(
+                "[DRAG] Hit hierarchy path: " +
+                GetHierarchyPath(hitObject.transform)
+            );
+        }
+
+        if (parentAfterDrag != null)
+        {
             transform.SetParent(
                 parentAfterDrag
             );
-         
 
-        transform.localPosition =
-            Vector3.zero;
+            transform.localPosition =
+                Vector3.zero;
+        }
+
+        if (image != null)
+        {
+            image.raycastTarget = true;
+        }
     }
 
-    if (image != null)
+    private string GetHierarchyPath(
+    Transform current)
     {
-        image.raycastTarget = true;
+        string path = current.name;
+
+        while (current.parent != null)
+        {
+            current = current.parent;
+            path =
+                current.name + "/" + path;
+        }
+
+        return path;
     }
-       
-}
 }

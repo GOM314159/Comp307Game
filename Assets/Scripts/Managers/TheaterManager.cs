@@ -6,6 +6,11 @@ public class TheaterManager : MonoBehaviour
 {
     public static TheaterManager Instance { get; private set; }
 
+    [Header("Day Configuration")]
+
+    [SerializeField]
+    [Min(1)]
+    public int maximumDay = 4;
 
     // =========================================================
     // PLAY DATA
@@ -54,8 +59,7 @@ public class TheaterManager : MonoBehaviour
     public class DayTheaterData
     {
         [Header("Day")]
-
-        [Range(1, 4)]
+        [Min(1)]
         public int day = 1;
 
 
@@ -163,7 +167,7 @@ public class TheaterManager : MonoBehaviour
 
     public void SetTheaterDay(int day)
     {
-        if (day < 1 || day > 4)
+        if (day < 1 || day > maximumDay)
         {
             Debug.LogWarning(
                 "[Theater] Invalid theater day: "
@@ -603,7 +607,7 @@ public class TheaterManager : MonoBehaviour
         int nextDay =
             currentTheaterDay + 1;
 
-        if (nextDay > 4)
+        if (nextDay > maximumDay)
         {
             Debug.LogWarning(
                 "[Theater] Cannot advance "
@@ -634,7 +638,7 @@ public class TheaterManager : MonoBehaviour
 
     public bool IsFinalDay()
     {
-        return currentTheaterDay == 4;
+        return currentTheaterDay == maximumDay;
     }
 
 

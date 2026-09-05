@@ -200,23 +200,24 @@ public class InventoryUI : MonoBehaviour
 
     public void HandleItemDrop(
     InventoryItem draggedItem,
-    InventoryItem targetItem)
+    InventorySlotUI targetSlot)
     {
         if (draggedItem == null ||
-            targetItem == null)
+            targetSlot == null)
         {
             return;
         }
 
         int sourceIndex =
-            GetInventoryIndex(
-                draggedItem
-            );
+            GetInventoryIndex(draggedItem);
 
         int targetIndex =
-            GetInventoryIndex(
-                targetItem
-            );
+            GetInventoryIndex(targetSlot);
+
+        Debug.Log(
+            $"[InventoryUI] Source: {sourceIndex} | " +
+            $"Target: {targetIndex}"
+        );
 
         if (sourceIndex < 0 ||
             targetIndex < 0)
@@ -233,15 +234,12 @@ public class InventoryUI : MonoBehaviour
             return;
         }
 
-        Debug.Log(
-            $"[InventoryUI] Moving item " +
-            $"from {sourceIndex} to {targetIndex}"
-        );
-
         playerInventory.SwapSlots(
             sourceIndex,
             targetIndex
         );
+
+        RefreshUI();
     }
 
     private int GetInventoryIndex(
@@ -262,6 +260,48 @@ public class InventoryUI : MonoBehaviour
         {
             return playerInventory.GetToolbarSize()
                 + mainInventoryIndex;
+        }
+
+        return -1;
+    }
+
+
+    private int GetInventoryIndex(
+    InventorySlotUI targetSlot)
+    {
+        for (int i = 0;
+            i < toolbarItems.Count;
+            i++)
+        {
+            if (toolbarItems[i] == null)
+                continue;
+
+            InventorySlotUI slot =
+                toolbarItems[i]
+                    .GetComponentInParent<InventorySlotUI>();
+
+            if (slot == targetSlot)
+            {
+                return i;
+            }
+        }
+
+        for (int i = 0;
+            i < mainInventoryItems.Count;
+            i++)
+        {
+            if (mainInventoryItems[i] == null)
+                continue;
+
+            InventorySlotUI slot =
+                mainInventoryItems[i]
+                    .GetComponentInParent<InventorySlotUI>();
+
+            if (slot == targetSlot)
+            {
+                return playerInventory.GetToolbarSize()
+                    + i;
+            }
         }
 
         return -1;

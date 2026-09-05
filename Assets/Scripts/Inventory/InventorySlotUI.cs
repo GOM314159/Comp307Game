@@ -4,42 +4,41 @@ using UnityEngine.EventSystems;
 public class InventorySlotUI : MonoBehaviour, IDropHandler
 {
     private InventoryUI inventoryUI;
-    private InventoryItem inventoryItem;
 
     private void Awake()
     {
         inventoryUI =
             GetComponentInParent<InventoryUI>();
-
-        inventoryItem =
-            GetComponentInChildren<InventoryItem>();
     }
 
     public void OnDrop(
         PointerEventData eventData)
     {
+        Debug.Log(
+            $"[InventorySlotUI] OnDrop called on: {gameObject.name}"
+        );
 
         if (eventData.pointerDrag == null)
+        {
+            Debug.LogWarning(
+                "[InventorySlotUI] No pointerDrag found."
+            );
+
             return;
+        }
 
         InventoryItem draggedItem =
             eventData.pointerDrag
                 .GetComponent<InventoryItem>();
 
         if (draggedItem == null)
-            return;
-
-        if (inventoryItem == null)
         {
-            inventoryItem =
-                GetComponentInChildren<InventoryItem>();
+            Debug.LogWarning(
+                "[InventorySlotUI] Dragged object has no InventoryItem."
+            );
+
+            return;
         }
-
-        if (inventoryItem == null)
-            return;
-
-        if (draggedItem == inventoryItem)
-            return;
 
         if (inventoryUI == null)
         {
@@ -52,7 +51,7 @@ public class InventorySlotUI : MonoBehaviour, IDropHandler
 
         inventoryUI.HandleItemDrop(
             draggedItem,
-            inventoryItem
+            this
         );
     }
 

@@ -17,7 +17,7 @@ public class RangedWeaponItem : WeaponItem
 
 
     // Magazine capacity.
-    public int magazineSize = 12;
+    // public int magazineSize = 12;
 
 
     // Current ammunition.
@@ -31,49 +31,49 @@ public class RangedWeaponItem : WeaponItem
 
         weaponType = WeaponType.Ranged;
 
-        currentAmmo = magazineSize;
+        // currentAmmo = magazineSize;
     }
 
 
     // =========================================================
-    // AMMO
+    // AMMO - Until we get to a point where we want to consider none infinite ammo
     // =========================================================
 
-    public int GetCurrentAmmo()
-    {
-        return currentAmmo;
-    }
+    //public int GetCurrentAmmo()
+    //{
+    //    return currentAmmo;
+    //}
 
 
-    public int GetMagazineSize()
-    {
-        return magazineSize;
-    }
+    //public int GetMagazineSize()
+    //{
+    //    return magazineSize;
+    //}
 
 
-    public bool HasAmmo()
-    {
-        return currentAmmo > 0;
-    }
+    //public bool HasAmmo()
+    //{
+    //    return currentAmmo > 0;
+    //}
 
 
-    public bool UseAmmo()
-    {
-        if (currentAmmo <= 0)
-        {
-            return false;
-        }
+    //public bool UseAmmo()
+    //{
+    //    if (currentAmmo <= 0)
+    //    {
+    //        return false;
+    //    }
 
-        currentAmmo--;
+    //    currentAmmo--;
 
-        return true;
-    }
+    //    return true;
+    //}
 
 
-    public void Reload()
-    {
-        currentAmmo = magazineSize;
-    }
+    //public void Reload()
+    //{
+    //    currentAmmo = magazineSize;
+    //}
 
 
     // =========================================================
