@@ -29,7 +29,8 @@ public class PlayerStateManager : MonoBehaviour
 
         NoMovementNoCamera,
 
-        PauseMenu
+        PauseMenu,
+        RIP
     }
 
 
@@ -301,6 +302,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.ShopMenu:
             case PlayerState.Cutscene:
             case PlayerState.PauseMenu:
+            case PlayerState.RIP:
                 return false;
 
             default:
@@ -384,6 +386,22 @@ public class PlayerStateManager : MonoBehaviour
             + "Returned to AllMovement.");
     }
 
+    public void SetRIP()
+    {
+        SetState(PlayerState.RIP);
+    }
+
+    public bool IsRIP()
+    {
+        return currentState == PlayerState.RIP;
+    }
+
+    public void ResetToDefault()
+    {
+        activeZones.Clear();
+
+        SetState(PlayerState.AllMovement);
+    }
 
     // =========================================================
     // DEBUG
