@@ -30,7 +30,10 @@ public class PlayerStateManager : MonoBehaviour
         NoMovementNoCamera,
 
         PauseMenu,
-        RIP
+        RIP,
+        Reading,
+        Inventory
+
     }
 
 
@@ -111,6 +114,8 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.NoMovement:
             case PlayerState.NoMovementNoCamera:
             case PlayerState.PauseMenu:
+            case PlayerState.Reading:
+            case PlayerState.Inventory:
 
                 return false;
         }
@@ -149,6 +154,37 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.Cutscene:
             case PlayerState.NoMovementNoCamera:
             case PlayerState.PauseMenu:
+            case PlayerState.Reading:
+            case PlayerState.Inventory:
+
+                return false;
+        }
+
+        return false;
+    }
+
+
+    public bool CanOpenInventory()
+    {
+        switch (currentState)
+        {
+            case PlayerState.AllMovement:
+            case PlayerState.NoCrouch:
+            case PlayerState.NoSprint:
+            case PlayerState.NoCrouchOrSprint:
+            case PlayerState.NoJump:
+            case PlayerState.NoInteract:
+            case PlayerState.Inventory:
+
+                return true;
+
+            case PlayerState.Reading:
+            case PlayerState.ShopMenu:
+            case PlayerState.Cutscene:
+            case PlayerState.NoMovement:
+            case PlayerState.NoMovementNoCamera:
+            case PlayerState.PauseMenu:
+            case PlayerState.RIP:
 
                 return false;
         }
@@ -173,6 +209,8 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.PauseMenu:
             case PlayerState.Cutscene:
             case PlayerState.ShopMenu:
+            case PlayerState.Reading:
+            case PlayerState.Inventory:
                 return false;
 
             default:
@@ -197,6 +235,8 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.Cutscene:
             case PlayerState.NoMovementNoCamera:
             case PlayerState.PauseMenu:
+            case PlayerState.Reading:
+            case PlayerState.Inventory:
 
                 return false;
         }
@@ -227,6 +267,8 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.Cutscene:
             case PlayerState.NoMovementNoCamera:
             case PlayerState.PauseMenu:
+            case PlayerState.Reading:
+            case PlayerState.Inventory:
 
                 return false;
         }
@@ -257,6 +299,8 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.Cutscene:
             case PlayerState.NoMovementNoCamera:
             case PlayerState.PauseMenu:
+            case PlayerState.Reading:
+            case PlayerState.Inventory:
 
                 return false;
         }
@@ -287,6 +331,8 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.NoJump:
             case PlayerState.NoMovementNoCamera:
             case PlayerState.PauseMenu:
+            case PlayerState.Reading:
+            case PlayerState.Inventory:
 
                 return false;
         }
@@ -302,7 +348,9 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.ShopMenu:
             case PlayerState.Cutscene:
             case PlayerState.PauseMenu:
+            case PlayerState.Reading:
             case PlayerState.RIP:
+            case PlayerState.Inventory:
                 return false;
 
             default:

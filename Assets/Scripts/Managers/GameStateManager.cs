@@ -16,7 +16,6 @@ public class GameStateManager : MonoBehaviour
         MainMenu,
         Lobby,
         WatchingPlay,
-        Inventory,
         Case,
         BossFight,
         Cutscene,

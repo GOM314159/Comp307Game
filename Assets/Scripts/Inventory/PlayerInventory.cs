@@ -150,24 +150,36 @@ public class PlayerInventory : MonoBehaviour
     private void ToggleInventory()
     {
         Debug.Log("[Inventory] I KEY RECEIVED");
-        if (GameStateManager.Instance == null)
+
+
+        // =========================================================
+        // DON'T OPEN INVENTORY WHILE PAUSED
+        // =========================================================
+
+        if (playerStateManager != null &&
+            playerStateManager.GetCurrentState() ==
+            PlayerStateManager.PlayerState.PauseMenu)
         {
-            Debug.LogWarning("[Inventory] GameStateManager instance not found.");
+            Debug.Log(
+                "[Inventory] Ignored I input because "
+                + "Pause Menu is open."
+            );
+
             return;
         }
 
-        GameStateManager.GameMode currentMode =
-            GameStateManager.Instance.GetGameMode();
-        Debug.Log("[Inventory] Current Game State: " + currentMode);
-        // =========================================================
-        // PAUSE MENU HAS PRIORITY
-        // =========================================================
-
-        if (currentMode == GameStateManager.GameMode.Paused)
+        if (!playerStateManager.CanOpenInventory())
         {
-            Debug.Log("[Inventory] Ignored I input because Pause Menu is open.");
+            Debug.Log(
+                "[Inventory] Cannot open inventory "
+                + "in current PlayerState: "
+                + playerStateManager.GetCurrentState()
+            );
+
             return;
         }
+
+
 
         // =========================================================
         // INVENTORY
@@ -223,27 +235,17 @@ public class PlayerInventory : MonoBehaviour
         // SAVE CURRENT STATE
         // =========================================================
 
-        previousGameMode =
-            GameStateManager.Instance.GetGameMode();
-
         previousPlayerState =
-            playerStateManager.GetCurrentState();
-
-        // =========================================================
-        // CHANGE GAME STATE
-        // =========================================================
-
-        GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.Inventory
-        );
+        playerStateManager.GetCurrentState();
 
         // =========================================================
         // CHANGE PLAYER STATE
         // =========================================================
 
         playerStateManager.SetState(
-            PlayerStateManager.PlayerState.PauseMenu
+            PlayerStateManager.PlayerState.Inventory
         );
+
 
         // =========================================================
         // SHOW INVENTORY UI
@@ -316,13 +318,6 @@ public class PlayerInventory : MonoBehaviour
             inventoryCloseButton.SetActive(false);
         }
 
-        // Restore GAME state.
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.SetGameMode(
-                previousGameMode
-            );
-        }
 
         // Restore PLAYER state.
         if (playerStateManager != null)
@@ -333,6 +328,8 @@ public class PlayerInventory : MonoBehaviour
         }
 
         inventoryOpen = false;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
 
         Debug.Log(
             "[Inventory] Closed."

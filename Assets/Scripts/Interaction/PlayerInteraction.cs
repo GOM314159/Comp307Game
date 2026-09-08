@@ -42,6 +42,7 @@ public class PlayerInteraction : MonoBehaviour
 
 
     private IInteractable currentInteractable;
+    private IInteractable previousInteractable;
 
 
     private void Awake()
@@ -49,7 +50,14 @@ public class PlayerInteraction : MonoBehaviour
         controls = new PlayerControls();
 
         controls.Player.Interact.performed +=
-            _ => HandleInteract();
+    context =>
+    {
+        GameInputDevice.SetLastUsedDevice(
+            context.control.device
+        );
+
+        HandleInteract();
+    };
     }
 
 
@@ -73,6 +81,8 @@ public class PlayerInteraction : MonoBehaviour
 
     private void DetectInteractable()
     {
+        previousInteractable = currentInteractable;
+
         currentInteractable = null;
 
 
@@ -84,7 +94,8 @@ public class PlayerInteraction : MonoBehaviour
 
         Ray ray = new Ray(
             cameraTransform.position,
-            cameraTransform.forward);
+            cameraTransform.forward
+        );
 
 
         if (Physics.Raycast(
@@ -93,12 +104,11 @@ public class PlayerInteraction : MonoBehaviour
             interactionRange,
             interactionMask))
         {
-            // Try to find an IInteractable on the object that was hit.
             IInteractable interactable =
                 hit.collider.GetComponent<IInteractable>();
 
 
-            // If the collider is a child of the interactable object, check the parent too.
+            // Child collider support
             if (interactable == null)
             {
                 interactable =
@@ -109,14 +119,30 @@ public class PlayerInteraction : MonoBehaviour
             if (interactable != null)
             {
                 currentInteractable = interactable;
+            }
+        }
 
 
-              //  if (debugInteraction)
-              //  {
-              //      Debug.Log(
-              //          "[Interaction] Looking at: "
-              //          + interactable.GetInteractionPrompt());
-              //  }
+        // =========================================================
+        // UPDATE PROMPT
+        // =========================================================
+
+        if (previousInteractable != currentInteractable)
+        {
+            // Hide previous prompt
+            if (previousInteractable is WorldInteractable previousWorld)
+            {
+                previousWorld.HideInteractionPrompt();
+            }
+
+
+            // Show new prompt
+            if (currentInteractable is WorldInteractable currentWorld)
+            {
+                if (currentWorld.CanInteract())
+                {
+                    currentWorld.ShowInteractionPrompt();
+                }
             }
         }
     }
