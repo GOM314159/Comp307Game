@@ -34,6 +34,12 @@ public class GameStateManager : MonoBehaviour
         Hardcore
     }
 
+    public enum PlayerGender
+    {
+        Male,
+        Female
+    }
+
 
     // =========================================================
     // OBJECTIVE STATE
@@ -74,6 +80,9 @@ public class GameStateManager : MonoBehaviour
     private DifficultyMode difficulty =
         DifficultyMode.Normal;
 
+    [SerializeField]
+    private PlayerGender playerGender =
+    PlayerGender.Male;
 
     // =========================================================
     // DAY
@@ -84,6 +93,7 @@ public class GameStateManager : MonoBehaviour
     [SerializeField]
     [Range(1, 4)]
     private int currentDay = 1;
+
 
     [Header("Day Configuration")]
 
@@ -208,6 +218,8 @@ public class GameStateManager : MonoBehaviour
 
     public event Action<DifficultyMode> OnDifficultyChanged;
 
+    public event Action<PlayerGender> OnPlayerGenderChanged;
+
     public event Action<int> OnDayChanged;
 
     public event Action<int> OnPlayChanged;
@@ -256,6 +268,31 @@ public class GameStateManager : MonoBehaviour
         Instance = this;
 
         DontDestroyOnLoad(gameObject);
+    }
+
+    public void SetPlayerGender(PlayerGender newGender)
+    {
+        playerGender = newGender;
+
+        OnPlayerGenderChanged?.Invoke(playerGender);
+    }
+
+
+    public PlayerGender GetPlayerGender()
+    {
+        return playerGender;
+    }
+
+
+    public bool IsMale()
+    {
+        return playerGender == PlayerGender.Male;
+    }
+
+
+    public bool IsFemale()
+    {
+        return playerGender == PlayerGender.Female;
     }
 
 
@@ -365,7 +402,12 @@ public class GameStateManager : MonoBehaviour
 
     public bool IsFinalDay()
     {
-        return currentDay == 4;
+        return currentDay == maximumDay;
+    }
+
+    public int GetMaximumDay()
+    {
+        return maximumDay;
     }
 
 
@@ -927,6 +969,9 @@ public class GameStateManager : MonoBehaviour
         difficulty =
             DifficultyMode.Normal;
 
+        playerGender =
+    PlayerGender.Male;
+
         SetGameMode(
             GameMode.MainMenu
         );
@@ -979,5 +1024,10 @@ public class GameStateManager : MonoBehaviour
     public ObjectiveState GetCurrentObjective()
     {
         return currentObjective;
+    }
+
+    public PlayerGender Gender
+    {
+        get { return playerGender; }
     }
 }
