@@ -223,21 +223,30 @@ public class PauseMenu : MonoBehaviour
 
     public void MainMenuButton()
     {
+        Debug.Log("[PauseMenu] Returning to Main Menu.");
+
+        // Stop pause mode.
         Time.timeScale = 1f;
 
         isPaused = false;
 
+        // Hide pause menu.
         if (container != null)
-            container.SetActive(false);
-
-        if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.SetGameMode(
-                GameStateManager.GameMode.MainMenu
-            );
+            container.SetActive(false);
         }
 
-        SceneManager.LoadScene(mainMenuSceneName);
+        // Return to the Main Menu through GameFlowManager.
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.OpenMainMenu();
+        }
+        else
+        {
+            Debug.LogError(
+                "[PauseMenu] GameFlowManager.Instance is missing!"
+            );
+        }
     }
 
 

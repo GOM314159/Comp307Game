@@ -30,10 +30,14 @@ public class PlayerStateManager : MonoBehaviour
         NoMovementNoCamera,
 
         PauseMenu,
-        RIP,
-        Reading,
-        Inventory
 
+        RIP,
+
+        Reading,
+
+        Inventory,
+
+        MainMenu
     }
 
 
@@ -44,7 +48,7 @@ public class PlayerStateManager : MonoBehaviour
     [Header("Current Player State")]
 
     [SerializeField]
-    private PlayerState currentState = PlayerState.AllMovement;
+    private PlayerState currentState = PlayerState.MainMenu;
 
     private List<PlayerStateZone> activeZones =
     new List<PlayerStateZone>();
@@ -70,6 +74,50 @@ public class PlayerStateManager : MonoBehaviour
         }
 
         Instance = this;
+    }
+
+    private void Start()
+    {
+        // Determine the correct player state when this object starts.
+
+        if (GameStateManager.Instance != null)
+        {
+            switch (GameStateManager.Instance.CurrentGameMode)
+            {
+                case GameStateManager.GameMode.MainMenu:
+
+                    SetState(PlayerState.MainMenu);
+
+                    break;
+
+
+                case GameStateManager.GameMode.Cutscene:
+
+                    SetState(PlayerState.Cutscene);
+
+                    break;
+
+
+                case GameStateManager.GameMode.Paused:
+
+                    SetState(PlayerState.PauseMenu);
+
+                    break;
+
+
+                default:
+
+                    SetState(PlayerState.AllMovement);
+
+                    break;
+            }
+        }
+        else
+        {
+            // If there is no GameStateManager,
+            // default to normal gameplay.
+            SetState(PlayerState.AllMovement);
+        }
     }
 
     // =========================================================
@@ -128,6 +176,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.PauseMenu:
             case PlayerState.Reading:
             case PlayerState.Inventory:
+            case PlayerState.MainMenu:
 
                 return false;
         }
@@ -168,6 +217,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.PauseMenu:
             case PlayerState.Reading:
             case PlayerState.Inventory:
+            case PlayerState.MainMenu:
 
                 return false;
         }
@@ -197,6 +247,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.NoMovementNoCamera:
             case PlayerState.PauseMenu:
             case PlayerState.RIP:
+            case PlayerState.MainMenu:
 
                 return false;
         }
@@ -223,6 +274,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.ShopMenu:
             case PlayerState.Reading:
             case PlayerState.Inventory:
+            case PlayerState.MainMenu:
                 return false;
 
             default:
@@ -249,6 +301,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.PauseMenu:
             case PlayerState.Reading:
             case PlayerState.Inventory:
+            case PlayerState.MainMenu:
 
                 return false;
         }
@@ -281,6 +334,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.PauseMenu:
             case PlayerState.Reading:
             case PlayerState.Inventory:
+            case PlayerState.MainMenu:
 
                 return false;
         }
@@ -313,6 +367,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.PauseMenu:
             case PlayerState.Reading:
             case PlayerState.Inventory:
+            case PlayerState.MainMenu:
 
                 return false;
         }
@@ -345,6 +400,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.PauseMenu:
             case PlayerState.Reading:
             case PlayerState.Inventory:
+            case PlayerState.MainMenu:
 
                 return false;
         }
@@ -363,6 +419,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.Reading:
             case PlayerState.RIP:
             case PlayerState.Inventory:
+            case PlayerState.MainMenu:
                 return false;
 
             default:

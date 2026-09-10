@@ -40,7 +40,19 @@ public class GameFlowManager : MonoBehaviour
         }
 
         Instance = this;
+
         DontDestroyOnLoad(gameObject);
+
+        // ---------------------------------------------------------
+        // GAME ALWAYS STARTS AT THE MAIN MENU
+        // ---------------------------------------------------------
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.MainMenu
+            );
+        }
     }
 
     // =========================================================
@@ -49,10 +61,85 @@ public class GameFlowManager : MonoBehaviour
 
     public void OpenMainMenu()
     {
-        GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.MainMenu);
+        DebugFlow("Opening Main Menu.");
+
+        Time.timeScale = 1f;
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.MainMenu
+            );
+        }
 
         LoadScene(menuScene);
+    }
+
+    public void IntroSceneLoaded()
+    {
+        DebugFlow("Intro scene loaded. Looking for cutscene.");
+
+        // ---------------------------------------------------------
+        // MAKE SURE WE ARE ACTUALLY IN CUTSCENE MODE
+        // ---------------------------------------------------------
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] GameStateManager.Instance is missing."
+            );
+
+            return;
+        }
+
+        if (
+            GameStateManager.Instance.CurrentGameMode
+            != GameStateManager.GameMode.Cutscene
+        )
+        {
+            Debug.LogWarning(
+                "[GameFlow] Intro scene loaded while game is not " +
+                "in Cutscene mode. Returning to Lobby."
+            );
+
+            OpenLobby();
+
+            return;
+        }
+
+
+        // ---------------------------------------------------------
+        // LOOK FOR INTRO CUTSCENE
+        // ---------------------------------------------------------
+
+        IntroCutscene introCutscene =
+            FindAnyObjectByType<IntroCutscene>();
+
+
+        // ---------------------------------------------------------
+        // NO CUTSCENE
+        // ---------------------------------------------------------
+
+        if (introCutscene == null)
+        {
+            Debug.LogWarning(
+                "[GameFlow] No intro cutscene found. " +
+                "Going directly to Lobby."
+            );
+
+            IntroFinished();
+
+            return;
+        }
+
+
+        // ---------------------------------------------------------
+        // CUTSCENE FOUND
+        // ---------------------------------------------------------
+
+        DebugFlow("Intro cutscene found. Playing.");
+
+        introCutscene.PlayIntro();
     }
 
     public void OpenCredits()
@@ -76,24 +163,45 @@ public class GameFlowManager : MonoBehaviour
     // NEW GAME
     // =========================================================
 
-    public void StartNormalGame()
+    public void StartNewGame(
+    GameStateManager.DifficultyMode difficulty,
+    GameStateManager.PlayerGender gender)
     {
-        StartNewGame(
-            GameStateManager.DifficultyMode.Normal);
-    }
+        DebugFlow(
+            "Starting new game. Difficulty: "
+            + difficulty
+            + " | Gender: "
+            + gender
+        );
 
-    public void StartHardcoreGame()
-    {
-        StartNewGame(
-            GameStateManager.DifficultyMode.Hardcore);
-    }
+        // ---------------------------------------------------------
+        // RESET PREVIOUS GAME DATA
+        // ---------------------------------------------------------
 
-    private void StartNewGame(
-        GameStateManager.DifficultyMode difficulty)
-    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] GameStateManager.Instance is missing."
+            );
+
+            return;
+        }
+
         GameStateManager.Instance.ResetEntireGame();
 
+
+        // ---------------------------------------------------------
+        // APPLY MAIN MENU SELECTIONS
+        // ---------------------------------------------------------
+
         GameStateManager.Instance.SetDifficulty(difficulty);
+
+        GameStateManager.Instance.SetPlayerGender(gender);
+
+
+        // ---------------------------------------------------------
+        // START INTRO
+        // ---------------------------------------------------------
 
         StartIntro();
     }
@@ -104,10 +212,63 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartIntro()
     {
+        DebugFlow("Starting first intro cutscene.");
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] GameStateManager.Instance is missing."
+            );
+
+            return;
+        }
+
+        // Enter cutscene mode BEFORE loading the scene.
         GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.Cutscene);
+            GameStateManager.GameMode.Cutscene
+        );
+
+        // If there is no loading scene, skip the cutscene system
+        // and go straight to the Lobby.
+        if (string.IsNullOrEmpty(loadingScene))
+        {
+            Debug.LogWarning(
+                "[GameFlow] No loading scene configured. " +
+                "Going directly to Lobby."
+            );
+
+            IntroFinished();
+
+            return;
+        }
 
         LoadScene(loadingScene);
+    }
+
+    public void CheckForIntroCutscene()
+    {
+        DebugFlow("Checking for intro cutscene.");
+
+        IntroCutscene introCutscene =
+            FindAnyObjectByType<IntroCutscene>();
+
+        if (introCutscene != null)
+        {
+            DebugFlow("Intro cutscene found.");
+
+            return;
+        }
+
+        // ---------------------------------------------------------
+        // NO CUTSCENE FOUND
+        // ---------------------------------------------------------
+
+        Debug.LogWarning(
+            "[GameFlow] No intro cutscene found. " +
+            "Going directly to the Lobby."
+        );
+
+        IntroFinished();
     }
 
     public void IntroFinished()
