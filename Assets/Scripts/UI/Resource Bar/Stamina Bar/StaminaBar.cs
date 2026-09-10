@@ -7,27 +7,18 @@ public class StaminaBar : MonoBehaviour
     [Header("References")]
     public Image preBar;
     public Image realBar;
-    public RectMask2D preMask;
-    public RectMask2D realMask;
 
     [Header("Settings")]
     public Color PreColour = Color.cyan;
-    public float preSpeed = 2f;
+    public float preSpeed = 1f;
     public Color RealColour = Color.blue;
-    public float realSpeed = 4f;
+    public float realSpeed = 2f;
 
     [Header("Player Stamina")]
     public PlayerStamina playerStamina;
 
-    private float maskWidth = 0;
     private float pre = 0;
     private float real = 0;
-
-    void Awake()
-    {
-        if (preMask != null)
-            maskWidth = preMask.rectTransform.rect.width;
-    }
 
     void Start()
     {
@@ -50,24 +41,23 @@ public class StaminaBar : MonoBehaviour
         Refresh();
     }
 
-    public float RatioPre()
-    {
-        if (playerStamina == null || playerStamina.MaxStamina == 0) return 0;
-        return Mathf.Clamp01(pre / playerStamina.MaxStamina);
-    }
-
-    public float RatioReal()
-    {
-        if (playerStamina == null || playerStamina.MaxStamina == 0) return 0;
-        return Mathf.Clamp01(real / playerStamina.MaxStamina);
-    }
-
     void Update()
     {
         if (playerStamina == null) return;
 
-        // Smoothly interpolate UI fill values
-        pre = Mathf.Lerp(pre, playerStamina.CurrentStamina, preSpeed * Time.deltaTime);
+        // Smoothly interpolate the backend values
+
+        if (playerStamina.CurrentStamina > real)
+        {
+            preSpeed = 2f;
+            realSpeed = 1f;
+        }
+        else
+        {
+            preSpeed = 1f;
+            realSpeed = 2f;
+        }
+            pre = Mathf.Lerp(pre, playerStamina.CurrentStamina, preSpeed * Time.deltaTime);
         real = Mathf.Lerp(real, playerStamina.CurrentStamina, realSpeed * Time.deltaTime);
 
         Refresh();
@@ -75,14 +65,12 @@ public class StaminaBar : MonoBehaviour
 
     void Refresh()
     {
-        if (preMask == null || realMask == null) return;
+        float maxStamina = playerStamina.MaxStamina;
 
-        // RectMask2D padding: (Left, Bottom, Right, Top)
-        // Adjust the right padding to crop the bar as stamina drops
-        float paddingPre = (1f - RatioPre()) * maskWidth;
-        preMask.padding = new Vector4(0, 0, paddingPre, 0);
+        if (maxStamina <= 0) return;
 
-        float paddingReal = (1f - RatioReal()) * maskWidth;
-        realMask.padding = new Vector4(0, 0, paddingReal, 0);
+        // This is what actually changes the visual fill!
+        if (preBar != null) preBar.fillAmount = Mathf.Clamp01(pre / maxStamina);
+        if (realBar != null) realBar.fillAmount = Mathf.Clamp01(real / maxStamina);
     }
 }

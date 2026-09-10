@@ -28,22 +28,6 @@ public class PlayerStamina : MonoBehaviour
     // EVENT CALLS FOR STAMINA GUI
     // =========================================================
 
-    public Action<PlayerStamina> OnStaminaFill;
-    public Action<PlayerStamina> OnStaminaDrain;
-    public Action<PlayerStamina> OnStaminaRejected;
-
-    public Action<PlayerStamina> OnStaminaReachMax;
-    public Action<PlayerStamina> OnStaminaReachEmpty;
-
-    public Action<PlayerStamina> OnStaminaLeaveMax;
-    public Action<PlayerStamina> OnStaminaLeaveEmpty;
-
-    public float ratio()
-    {
-     return currentStamina / maxStamina;
-    }
-
-
     // DEBUG
 
 
@@ -84,55 +68,6 @@ public class PlayerStamina : MonoBehaviour
 
     }
 
-    public void StamRegenInc()
-    {
-        if (currentStamina > maxStamina)
-        {
-            OnStaminaRejected?.Invoke(this);
-            return;
-        }
-        else
-        {
-            if (currentStamina == maxStamina)
-            {
-                OnStaminaLeaveMax?.Invoke(this);
-            }
-            OnStaminaFill?.Invoke(this);
-        }
-
-        if (currentStamina >= maxStamina)
-        {
-            OnStaminaReachMax?.Invoke(this);
-            return;
-        }
-    }
-
-    public void StaminaDec()
-    {
-        if (currentStamina < minStamina)
-        {
-            OnStaminaRejected?.Invoke(this);
-            return;
-        }
-        else
-        {
-            if (currentStamina == minStamina)
-            {
-                OnStaminaLeaveEmpty?.Invoke(this);
-            }
-           
-            OnStaminaDrain?.Invoke(this);
-        }
-
-        if (currentStamina <= minStamina)
-        {
-            OnStaminaReachEmpty?.Invoke(this);
-            return;
-        }
-    }
-
-
-
     public float GetMovementSpeed(
         float walkSpeed,
         float sprintSpeed,
@@ -164,18 +99,15 @@ public class PlayerStamina : MonoBehaviour
             currentStamina = Mathf.Max(0, currentStamina);
 
             regenTimer = 0;
-            StaminaDec();
         }
         else
         {
             regenTimer += Time.deltaTime;
 
             if (regenTimer >= regenDelay)
-            {
+            {   
                 currentStamina += staminaRegen * Time.deltaTime;
-
                 currentStamina = Mathf.Min(maxStamina, currentStamina);
-                StamRegenInc();
             }
         }
     }
