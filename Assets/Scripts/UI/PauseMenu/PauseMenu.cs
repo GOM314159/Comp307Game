@@ -74,7 +74,7 @@ public class PauseMenu : MonoBehaviour
         }
 
         // -----------------------------------------------------
-        // CHECK PLAYER STATE
+        // PLAYER STATE CHECK
         // -----------------------------------------------------
 
         if (PlayerStateManager.Instance == null)
@@ -244,18 +244,14 @@ public class PauseMenu : MonoBehaviour
     {
         Debug.Log("[PauseMenu] Returning to Main Menu.");
 
-        // Stop pause mode.
         Time.timeScale = 1f;
-
         isPaused = false;
 
-        // Hide pause menu.
         if (container != null)
         {
             container.SetActive(false);
         }
 
-        // Return to the Main Menu through GameFlowManager.
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance.OpenMainMenu();
@@ -263,7 +259,7 @@ public class PauseMenu : MonoBehaviour
         else
         {
             Debug.LogError(
-                "[PauseMenu] GameFlowManager.Instance is missing!"
+                "[PauseMenu] GameFlowManager.Instance is missing."
             );
         }
     }

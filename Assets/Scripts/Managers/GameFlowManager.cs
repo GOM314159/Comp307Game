@@ -19,6 +19,25 @@ public class GameFlowManager : MonoBehaviour
     [SerializeField] private string caseScene = "Case";
     [SerializeField] private string creditsScene = "Credits";
 
+    [Header("Main Menu / Intro")]
+
+    [SerializeField]
+    private GameObject mainMenuGroup;
+
+    [SerializeField]
+    private GameObject gameModeSelectionScreen;
+
+    [SerializeField]
+    private IntroCutscene introCutscene;
+
+    [Header("UI")]
+    [SerializeField] private GameObject toolbar;
+
+    [Header("First Game Scene")]
+
+    [SerializeField]
+    private string firstGameScene = "";
+
     [Header("Transition")]
 
     [SerializeField] private float transitionDelay = 0.25f;
@@ -40,20 +59,25 @@ public class GameFlowManager : MonoBehaviour
         }
 
         Instance = this;
-
         DontDestroyOnLoad(gameObject);
-
-        // ---------------------------------------------------------
-        // GAME ALWAYS STARTS AT THE MAIN MENU
-        // ---------------------------------------------------------
-
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.SetGameMode(
-                GameStateManager.GameMode.MainMenu
-            );
-        }
     }
+
+    //private void Start()
+    //{
+    //    if (GameStateManager.Instance != null)
+    //    {
+    //        GameStateManager.Instance.SetGameMode(
+    //            GameStateManager.GameMode.MainMenu
+    //        );
+    //    }
+
+    //    if (PlayerStateManager.Instance != null)
+    //    {
+    //        PlayerStateManager.Instance.SetState(
+    //            PlayerStateManager.PlayerState.MainMenu
+    //        );
+    //    }
+    //}
 
     // =========================================================
     // MENU
@@ -61,18 +85,53 @@ public class GameFlowManager : MonoBehaviour
 
     public void OpenMainMenu()
     {
-        DebugFlow("Opening Main Menu.");
+        DebugFlow("Returning to Main Menu. Resetting entire game.");
 
-        Time.timeScale = 1f;
-
+        // Reset all game progress.
         if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.SetGameMode(
-                GameStateManager.GameMode.MainMenu
+            GameStateManager.Instance.ResetEntireGame();
+        }
+
+        // Make sure the game is running.
+        Time.timeScale = 1f;
+
+        // Set player state.
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.MainMenu
             );
         }
 
-        LoadScene(menuScene);
+        // Hide gameplay UI.
+        if (toolbar != null)
+        {
+            toolbar.SetActive(false);
+        }
+
+        // Show Main Menu.
+        if (mainMenuGroup != null)
+        {
+            mainMenuGroup.SetActive(true);
+        }
+
+        if (gameModeSelectionScreen != null)
+        {
+            gameModeSelectionScreen.SetActive(false);
+        }
+
+        // Menu needs mouse.
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    private void SetToolbarVisible(bool visible)
+    {
+        if (toolbar != null)
+        {
+            toolbar.SetActive(visible);
+        }
     }
 
     public void IntroSceneLoaded()
@@ -222,27 +281,64 @@ public class GameFlowManager : MonoBehaviour
 
             return;
         }
+        SetToolbarVisible(false);
 
-        // Enter cutscene mode BEFORE loading the scene.
+        // ---------------------------------------------------------
+        // GAME STATE
+        // ---------------------------------------------------------
+
         GameStateManager.Instance.SetGameMode(
             GameStateManager.GameMode.Cutscene
         );
 
-        // If there is no loading scene, skip the cutscene system
-        // and go straight to the Lobby.
-        if (string.IsNullOrEmpty(loadingScene))
-        {
-            Debug.LogWarning(
-                "[GameFlow] No loading scene configured. " +
-                "Going directly to Lobby."
-            );
+        // ---------------------------------------------------------
+        // PLAYER STATE
+        // ---------------------------------------------------------
 
-            IntroFinished();
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.Cutscene
+            );
+        }
+
+        // ---------------------------------------------------------
+        // HIDE MENU
+        // ---------------------------------------------------------
+
+        if (mainMenuGroup != null)
+        {
+            mainMenuGroup.SetActive(false);
+        }
+
+        if (gameModeSelectionScreen != null)
+        {
+            gameModeSelectionScreen.SetActive(false);
+        }
+
+        // ---------------------------------------------------------
+        // CURSOR
+        // ---------------------------------------------------------
+
+        Cursor.lockState =
+            CursorLockMode.Locked;
+
+        Cursor.visible = false;
+
+        // ---------------------------------------------------------
+        // PLAY VIDEO
+        // ---------------------------------------------------------
+
+        if (introCutscene == null)
+        {
+            Debug.LogError(
+                "[GameFlow] IntroCutscene reference is missing!"
+            );
 
             return;
         }
 
-        LoadScene(loadingScene);
+        introCutscene.PlayIntro();
     }
 
     public void CheckForIntroCutscene()
@@ -273,7 +369,38 @@ public class GameFlowManager : MonoBehaviour
 
     public void IntroFinished()
     {
-        StartDay(1);
+        DebugFlow("Intro cutscene finished.");
+
+        // ---------------------------------------------------------
+        // RESTORE PLAYER CONTROL
+        // ---------------------------------------------------------
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.AllMovement
+            );
+        }
+
+        // ---------------------------------------------------------
+        // FIRST GAME SCENE
+        // ---------------------------------------------------------
+
+        if (string.IsNullOrEmpty(firstGameScene))
+        {
+            Debug.Log(
+                "[GameFlow] Intro finished. " +
+                "No first game scene has been configured yet."
+            );
+            SetToolbarVisible(true);
+            return;
+        }
+
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.Loading
+        );
+
+        LoadScene(firstGameScene);
     }
 
     // =========================================================
@@ -463,11 +590,22 @@ public class GameFlowManager : MonoBehaviour
     {
         GameStateManager.Instance.SetGameMode(
             GameStateManager.GameMode.Cutscene);
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.Cutscene
+            );
+        }
+
+        SetToolbarVisible(false);
     }
 
     public void FinalCutsceneFinished()
     {
         GameStateManager.Instance.CompleteFinalCutscene();
+
+        SetToolbarVisible(false);
 
         OpenCredits();
     }

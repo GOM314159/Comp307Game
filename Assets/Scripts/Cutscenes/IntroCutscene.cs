@@ -3,58 +3,96 @@ using UnityEngine.Video;
 
 public class IntroCutscene : MonoBehaviour
 {
-    [Header("Video Player")]
-    [SerializeField] private VideoPlayer videoPlayer;
+    // =========================================================
+    // VIDEO PLAYER
+    // =========================================================
 
+    [Header("Video Player")]
+
+    [SerializeField]
+    private VideoPlayer videoPlayer;
+
+
+    // =========================================================
+    // STATE
+    // =========================================================
 
     private bool hasFinished = false;
+    private bool isPlaying = false;
 
 
     // =========================================================
-    // START
+    // UNITY
     // =========================================================
 
-    private void Start()
+    private void Awake()
     {
         if (videoPlayer == null)
         {
-            videoPlayer =
-                GetComponent<VideoPlayer>();
+            videoPlayer = GetComponent<VideoPlayer>();
         }
 
         if (videoPlayer == null)
         {
-            Debug.LogWarning(
-                "[IntroCutscene] No VideoPlayer found. " +
-                "Returning to Lobby."
+            Debug.LogError(
+                "[IntroCutscene] No VideoPlayer found."
             );
-
-            FinishCutscene();
 
             return;
         }
 
-        // Listen for the video finishing.
-        videoPlayer.loopPointReached += OnVideoFinished;
+        // -----------------------------------------------------
+        // VIDEO SETTINGS
+        // -----------------------------------------------------
 
+        videoPlayer.playOnAwake = false;
+        videoPlayer.isLooping = false;
 
-        Debug.Log(
-            "[IntroCutscene] Intro cutscene started."
-        );
-    }
+        // -----------------------------------------------------
+        // FORCE VIDEO TO RENDER TO THE CAMERA
+        // -----------------------------------------------------
 
-
-    // =========================================================
-    // CLEANUP
-    // =========================================================
-
-    private void OnDestroy()
-    {
-        if (videoPlayer != null)
+        if (Camera.main != null)
         {
-            videoPlayer.loopPointReached -= OnVideoFinished;
+            videoPlayer.renderMode =
+                VideoRenderMode.CameraNearPlane;
+
+            videoPlayer.targetCamera =
+                Camera.main;
+
+            videoPlayer.targetCameraAlpha = 1f;
         }
+        else
+        {
+            Debug.LogWarning(
+                "[IntroCutscene] Main Camera not found."
+            );
+        }
+
+        // -----------------------------------------------------
+        // EVENTS
+        // -----------------------------------------------------
+
+        videoPlayer.loopPointReached +=
+            OnVideoFinished;
+
+        videoPlayer.errorReceived +=
+            OnVideoError;
+
+        videoPlayer.prepareCompleted +=
+            OnVideoPrepared;
+
+        // -----------------------------------------------------
+        // START STOPPED
+        // -----------------------------------------------------
+
+        videoPlayer.Stop();
     }
+
+
+    // =========================================================
+    // PLAY INTRO
+    // =========================================================
 
     public void PlayIntro()
     {
@@ -70,16 +108,53 @@ public class IntroCutscene : MonoBehaviour
             return;
         }
 
-        if (hasFinished)
+        if (isPlaying)
         {
             return;
         }
 
+        hasFinished = false;
+        isPlaying = true;
+
         Debug.Log(
-            "[IntroCutscene] Playing intro cutscene."
+            "[IntroCutscene] Preparing intro video."
         );
 
-        videoPlayer.Play();
+        // -----------------------------------------------------
+        // MAKE SURE CAMERA OUTPUT IS SET
+        // -----------------------------------------------------
+
+        if (Camera.main != null)
+        {
+            videoPlayer.renderMode =
+                VideoRenderMode.CameraNearPlane;
+
+            videoPlayer.targetCamera =
+                Camera.main;
+
+            videoPlayer.targetCameraAlpha = 1f;
+        }
+
+        // -----------------------------------------------------
+        // PREPARE VIDEO
+        // -----------------------------------------------------
+
+        videoPlayer.Stop();
+        videoPlayer.Prepare();
+    }
+
+
+    // =========================================================
+    // VIDEO PREPARED
+    // =========================================================
+
+    private void OnVideoPrepared(VideoPlayer player)
+    {
+        Debug.Log(
+            "[IntroCutscene] Video prepared. Starting playback."
+        );
+
+        player.Play();
     }
 
 
@@ -89,6 +164,23 @@ public class IntroCutscene : MonoBehaviour
 
     private void OnVideoFinished(VideoPlayer player)
     {
+        FinishCutscene();
+    }
+
+
+    // =========================================================
+    // VIDEO ERROR
+    // =========================================================
+
+    private void OnVideoError(
+        VideoPlayer player,
+        string message)
+    {
+        Debug.LogError(
+            "[IntroCutscene] Video error: "
+            + message
+        );
+
         FinishCutscene();
     }
 
@@ -105,10 +197,31 @@ public class IntroCutscene : MonoBehaviour
         }
 
         hasFinished = true;
+        isPlaying = false;
+
+        if (videoPlayer != null)
+        {
+            videoPlayer.Stop();
+        }
 
         Debug.Log(
             "[IntroCutscene] Intro cutscene finished."
         );
+
+        // -----------------------------------------------------
+        // RETURN PLAYER TO GAMEPLAY STATE
+        // -----------------------------------------------------
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.AllMovement
+            );
+        }
+
+        // -----------------------------------------------------
+        // CONTINUE GAME FLOW
+        // -----------------------------------------------------
 
         if (GameFlowManager.Instance != null)
         {
@@ -120,5 +233,27 @@ public class IntroCutscene : MonoBehaviour
                 "[IntroCutscene] GameFlowManager.Instance is missing."
             );
         }
+    }
+
+
+    // =========================================================
+    // CLEANUP
+    // =========================================================
+
+    private void OnDestroy()
+    {
+        if (videoPlayer == null)
+        {
+            return;
+        }
+
+        videoPlayer.loopPointReached -=
+            OnVideoFinished;
+
+        videoPlayer.errorReceived -=
+            OnVideoError;
+
+        videoPlayer.prepareCompleted -=
+            OnVideoPrepared;
     }
 }

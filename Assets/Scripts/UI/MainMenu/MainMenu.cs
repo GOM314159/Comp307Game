@@ -34,6 +34,12 @@ public class MainMenu : MonoBehaviour
         Debug.Log("[MainMenu] Main Menu started.");
 
         // ---------------------------------------------------------
+        // TIME
+        // ---------------------------------------------------------
+
+        Time.timeScale = 1f;
+
+        // ---------------------------------------------------------
         // GAME STATE
         // ---------------------------------------------------------
 
@@ -43,30 +49,6 @@ public class MainMenu : MonoBehaviour
                 GameStateManager.GameMode.MainMenu
             );
         }
-
-
-        // ---------------------------------------------------------
-        // UI
-        // ---------------------------------------------------------
-
-        if (mainMenuGroup != null)
-        {
-            mainMenuGroup.SetActive(true);
-        }
-
-        if (gameModeSelectionScreen != null)
-        {
-            gameModeSelectionScreen.SetActive(false);
-        }
-
-
-        // ---------------------------------------------------------
-        // CURSOR
-        // ---------------------------------------------------------
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
 
         // ---------------------------------------------------------
         // PLAYER STATE
@@ -79,6 +61,22 @@ public class MainMenu : MonoBehaviour
             );
         }
 
+        // ---------------------------------------------------------
+        // UI
+        // ---------------------------------------------------------
+
+        if (mainMenuGroup != null)
+            mainMenuGroup.SetActive(true);
+
+        if (gameModeSelectionScreen != null)
+            gameModeSelectionScreen.SetActive(false);
+
+        // ---------------------------------------------------------
+        // CURSOR
+        // ---------------------------------------------------------
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
         ClearUISelection();
     }
@@ -172,10 +170,6 @@ public class MainMenu : MonoBehaviour
         {
             gameModeSelectionScreen.SetActive(false);
         }
-
-        // Lock the cursor while leaving the menu.
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
 
         // Start the actual game.
         if (GameFlowManager.Instance == null)

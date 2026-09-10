@@ -56,10 +56,10 @@ public class PlayerLook : MonoBehaviour
     private void Start()
     {
         // Lock cursor to the centre of the screen
-        Cursor.lockState = CursorLockMode.Locked;
-
+        //Cursor.lockState = CursorLockMode.Locked;
+        // Was breaking MainMenu, but altered to work so calma
         // Hide the cursor
-        Cursor.visible = false;
+        //Cursor.visible = false;
     }
 
     private void Update()
