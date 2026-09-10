@@ -32,6 +32,8 @@ public class GameFlowManager : MonoBehaviour
 
     [Header("UI")]
     [SerializeField] private GameObject toolbar;
+    [SerializeField] private GameObject HealthBar;
+    [SerializeField] private GameObject StaminaBar;
 
     [Header("First Game Scene")]
 
@@ -108,6 +110,8 @@ public class GameFlowManager : MonoBehaviour
         if (toolbar != null)
         {
             toolbar.SetActive(false);
+            HealthBar.SetActive(false);
+            StaminaBar.SetActive(false);
         }
 
         // Show Main Menu.
@@ -131,6 +135,22 @@ public class GameFlowManager : MonoBehaviour
         if (toolbar != null)
         {
             toolbar.SetActive(visible);
+        }
+    }
+
+    private void SetHealthBarVisible(bool visible)
+    {
+        if (HealthBar != null)
+        {
+            HealthBar.SetActive(visible);
+        }
+    }
+
+    private void SetStaminaBarVisible(bool visible)
+    {
+        if (StaminaBar != null)
+        {
+            StaminaBar.SetActive(visible);
         }
     }
 
@@ -282,6 +302,8 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
         SetToolbarVisible(false);
+        SetHealthBarVisible(false);
+        SetStaminaBarVisible(false);
 
         // ---------------------------------------------------------
         // GAME STATE
@@ -393,6 +415,8 @@ public class GameFlowManager : MonoBehaviour
                 "No first game scene has been configured yet."
             );
             SetToolbarVisible(true);
+            SetHealthBarVisible(true);
+            SetStaminaBarVisible(true);
             return;
         }
 
@@ -599,6 +623,8 @@ public class GameFlowManager : MonoBehaviour
         }
 
         SetToolbarVisible(false);
+        SetHealthBarVisible(false);
+        SetStaminaBarVisible(false);
     }
 
     public void FinalCutsceneFinished()
@@ -606,6 +632,8 @@ public class GameFlowManager : MonoBehaviour
         GameStateManager.Instance.CompleteFinalCutscene();
 
         SetToolbarVisible(false);
+        SetHealthBarVisible(false);
+        SetStaminaBarVisible(false);
 
         OpenCredits();
     }
