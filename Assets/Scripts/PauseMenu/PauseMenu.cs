@@ -57,18 +57,37 @@ public class PauseMenu : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null &&
-            Keyboard.current.escapeKey.wasPressedThisFrame)
+        if (Keyboard.current == null)
+            return;
+
+        if (!Keyboard.current.escapeKey.wasPressedThisFrame)
+            return;
+
+        // -----------------------------------------------------
+        // IF ALREADY PAUSED
+        // -----------------------------------------------------
+
+        if (isPaused)
         {
-            if (isPaused)
-            {
-                ContinueButton();
-            }
-            else
-            {
-                PauseGame();
-            }
+            ContinueButton();
+            return;
         }
+
+        // -----------------------------------------------------
+        // CHECK PLAYER STATE
+        // -----------------------------------------------------
+
+        if (PlayerStateManager.Instance == null)
+            return;
+
+        if (!PlayerStateManager.Instance.CanPause())
+            return;
+
+        // -----------------------------------------------------
+        // OPEN PAUSE MENU
+        // -----------------------------------------------------
+
+        PauseGame();
     }
 
 
