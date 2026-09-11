@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Behavior;
 
 public class AxeInteractable : WorldInteractable
 {
@@ -16,6 +17,10 @@ public class AxeInteractable : WorldInteractable
     [Tooltip("Player inventory that receives the axe.")]
     [SerializeField]
     private PlayerInventory playerInventory;
+
+    [Tooltip("The AI Behavior Agent.")]
+    [SerializeField] 
+    private BehaviorGraphAgent graphAgent;
 
 
 
@@ -79,7 +84,7 @@ public class AxeInteractable : WorldInteractable
         bool added =
             playerInventory.AddItem(
                 axeItem,
-                2
+                1
             );
 
 
@@ -122,10 +127,10 @@ public class AxeInteractable : WorldInteractable
 
         base.Interact();
 
-
         // --------------------------------------------------------
         // REMOVE AXE FROM WORLD - WISH I COULD ALT + F4 MYSELF FR  
         // --------------------------------------------------------
+
 
         Debug.Log(
             "[Axe] Axe picked up."
@@ -135,7 +140,12 @@ public class AxeInteractable : WorldInteractable
         );
 
 
-        gameObject.SetActive(false);
+        graphAgent.SetVariableValue(
+        "AxeInteracted",
+         true
+        );
+
+        gameObject.SetActive(false);  
     }
 
 
