@@ -7,15 +7,18 @@ using UnityEngine;
 public class Letter : ItemData
 {
     // =========================================================
-    // LETTER CONTENT
+    // LETTER IMAGES
     // =========================================================
 
-    [Header("Letter Content")]
+    [Header("Letter Images")]
 
-    [Tooltip("The text that will appear when the player reads this letter.")]
-    [TextArea(10, 30)]
+    [Tooltip("The full letter shown when the player is male.")]
     [SerializeField]
-    private string letterText;
+    private Sprite nephewLetterImage;
+
+    [Tooltip("The full letter shown when the player is female.")]
+    [SerializeField]
+    private Sprite nieceLetterImage;
 
 
     // =========================================================
@@ -25,11 +28,14 @@ public class Letter : ItemData
     protected virtual void OnEnable()
     {
         itemType = ItemType.Interactable;
+
+        stackable = false;
+        maxStackSize = 1;
     }
 
 
     // =========================================================
-    // RIGHT CLICK / USE
+    // USE LETTER
     // =========================================================
 
     public override void Use()
@@ -43,19 +49,74 @@ public class Letter : ItemData
             return;
         }
 
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[Letter] GameStateManager could not be found."
+            );
+
+            return;
+        }
+
+        GameStateManager.PlayerGender gender =
+            GameStateManager.Instance.GetPlayerGender();
+
+        Sprite selectedLetter = null;
+
+        if (gender ==
+            GameStateManager.PlayerGender.Male)
+        {
+            selectedLetter = nephewLetterImage;
+        }
+        else if (gender ==
+                 GameStateManager.PlayerGender.Female)
+        {
+            selectedLetter = nieceLetterImage;
+        }
+
+        if (selectedLetter == null)
+        {
+            Debug.LogError(
+                "[Letter] No letter image has been assigned "
+                + "for the selected gender."
+            );
+
+            return;
+        }
+
         LetterUIManager.Instance.OpenLetter(
             this,
-            letterText
+            selectedLetter
         );
     }
 
 
     // =========================================================
-    // GET LETTER TEXT
+    // GET CORRECT LETTER IMAGE
     // =========================================================
 
-    public string GetLetterText()
+    public Sprite GetLetterImage()
     {
-        return letterText;
+        if (GameStateManager.Instance == null)
+        {
+            return null;
+        }
+
+        GameStateManager.PlayerGender gender =
+            GameStateManager.Instance.GetPlayerGender();
+
+        if (gender ==
+            GameStateManager.PlayerGender.Male)
+        {
+            return nephewLetterImage;
+        }
+
+        if (gender ==
+            GameStateManager.PlayerGender.Female)
+        {
+            return nieceLetterImage;
+        }
+
+        return null;
     }
 }

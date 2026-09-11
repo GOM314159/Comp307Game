@@ -151,20 +151,76 @@ public class PlayerInteraction : MonoBehaviour
 
     private void HandleInteract()
     {
-        Debug.Log("[Interaction TEST] HandleInteract was triggered.");
+        Debug.Log(
+            "[Interaction TEST] HandleInteract was triggered."
+        );
+
+
+        // =========================================================
+        // LETTER IS OPEN
+        // =========================================================
+
         if (stateManager != null &&
-            !stateManager.CanInteract())
+            stateManager.GetCurrentState() ==
+            PlayerStateManager.PlayerState.Reading)
         {
-            if (debugInteraction)
+            if (LetterUIManager.Instance != null)
             {
-                Debug.Log(
-                    "[Interaction] Interaction disabled.");
+                LetterUIManager.Instance.CloseLetter();
             }
 
             return;
         }
 
 
+        // =========================================================
+        // INVENTORY IS OPEN
+        // =========================================================
+        //
+        // Allow the interaction button to use the selected item.
+        //
+        // This is what allows:
+        //
+        // Right Mouse Button
+        // Circle
+        //
+        // to read the selected letter.
+        // =========================================================
+
+        if (stateManager != null &&
+            stateManager.GetCurrentState() ==
+            PlayerStateManager.PlayerState.Inventory)
+        {
+            if (inventory != null)
+            {
+                inventory.UseSelectedItem();
+            }
+
+            return;
+        }
+
+
+        // =========================================================
+        // NORMAL INTERACTION CHECK
+        // =========================================================
+
+        if (stateManager != null &&
+            !stateManager.CanInteract())
+        {
+            if (debugInteraction)
+            {
+                Debug.Log(
+                    "[Interaction] Interaction disabled."
+                );
+            }
+
+            return;
+        }
+
+
+        // =========================================================
+        // WORLD INTERACTION
+        // =========================================================
 
         if (currentInteractable != null)
         {
@@ -172,9 +228,9 @@ public class PlayerInteraction : MonoBehaviour
             {
                 Debug.Log(
                     "[Interaction] Interacting with: "
-                    + currentInteractable.GetInteractionPrompt());
+                    + currentInteractable.GetInteractionPrompt()
+                );
             }
-
 
             currentInteractable.Interact();
 
@@ -182,6 +238,9 @@ public class PlayerInteraction : MonoBehaviour
         }
 
 
+        // =========================================================
+        // SELECTED INVENTORY ITEM
+        // =========================================================
 
         if (inventory != null)
         {

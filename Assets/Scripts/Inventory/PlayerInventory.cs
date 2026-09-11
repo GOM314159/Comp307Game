@@ -14,6 +14,15 @@ public class PlayerInventory : MonoBehaviour
     [SerializeField]
     private int mainInventorySize = 21;
 
+    [Header("Permanent Items")]
+
+    [Tooltip(
+    "The letter permanently given from Great Uncle Zihaad "
+    + "at the beginning of a new game."
+)]
+    [SerializeField]
+    private Letter startingLetter;
+
     [Header("Equipment")]
 
     [SerializeField]
@@ -136,6 +145,8 @@ public class PlayerInventory : MonoBehaviour
             "[Inventory] Created with "
             + totalSlots
             + " slots.");
+
+        //GiveStartingLetter();
     }
 
     // ENABLE / DISABLE
@@ -703,6 +714,15 @@ public class PlayerInventory : MonoBehaviour
             return false;
         }
 
+        if (slot.item is Letter)
+        {
+            Debug.Log(
+                "[Inventory] Letter cannot be removed."
+            );
+
+            return false;
+        }
+
 
         slot.quantity -=
             amount;
@@ -1183,5 +1203,54 @@ public class PlayerInventory : MonoBehaviour
         Debug.Log(
             "================================"
         );
+    }
+
+    // =========================================================
+    // STARTING LETTER
+    // =========================================================
+
+    public void GiveStartingLetter()
+    {
+        if (startingLetter == null)
+        {
+            Debug.LogError(
+                "[Inventory] Starting Letter has not "
+                + "been assigned in the Inspector."
+            );
+
+            return;
+        }
+
+
+        if (HasItem(startingLetter))
+        {
+            Debug.Log(
+                "[Inventory] Player already has the letter."
+            );
+
+            return;
+        }
+
+
+        bool added =
+            AddItem(
+                startingLetter,
+                1
+            );
+
+
+        if (added)
+        {
+            Debug.Log(
+                "[Inventory] Starting letter added."
+            );
+        }
+        else
+        {
+            Debug.LogError(
+                "[Inventory] Could not add starting letter. "
+                + "Inventory may be full."
+            );
+        }
     }
 }

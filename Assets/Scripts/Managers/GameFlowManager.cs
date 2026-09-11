@@ -301,18 +301,44 @@ public class GameFlowManager : MonoBehaviour
 
         GameStateManager.Instance.SetPlayerGender(gender);
 
+        // ---------------------------------------------------------
+        // GIVE PLAYER THEIR GENDER-SPECIFIC LETTER
+        // ---------------------------------------------------------
+
+        PlayerInventory playerInventory =
+            FindAnyObjectByType<PlayerInventory>();
+
+        if (playerInventory != null)
+        {
+            playerInventory.GiveStartingLetter();
+        }
+        else
+        {
+            Debug.LogError(
+                "[GameFlow] PlayerInventory could not be found. "
+                + "The starting letter could not be added."
+            );
+        }
 
         // ---------------------------------------------------------
         // START INTRO
         // ---------------------------------------------------------
 
         StartIntro();
+
+
     }
 
     // =========================================================
     // INTRO
     // =========================================================
-   
+
+    public void SetGameplayHUDVisible(bool visible)
+    {
+        SetToolbarVisible(visible);
+        SetHealthBarVisible(visible);
+        SetStaminaBarVisible(visible);
+    }
 
     public void StartIntro()
     {
