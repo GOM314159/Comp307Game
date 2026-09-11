@@ -202,40 +202,62 @@ public class DeathScreen : MonoBehaviour
     {
         Debug.Log("[DeathScreen] Respawn pressed.");
 
+        // ---------------------------------------------------------
+        // RESTORE TIME
+        // ---------------------------------------------------------
+
         Time.timeScale = 1f;
 
-        PlayerHealth playerHealth =
-            FindAnyObjectByType<PlayerHealth>();
+        // ---------------------------------------------------------
+        // GAME FLOW HANDLES THE ENTIRE RESPawn
+        // ---------------------------------------------------------
+        //
+        // This will:
+        //
+        // 1. Get the current day
+        // 2. Reset everything that happened during that day
+        // 3. Restart the same day
+        // 4. Open the Lobby
+        // 5. Move the Player to PlayerRespawnPoint
+        // 6. Reset health
+        // 7. Reset movement/state
+        //
+        // ---------------------------------------------------------
 
-        if (playerHealth != null)
+        if (GameFlowManager.Instance != null)
         {
-            playerHealth.ResetHealth();
+            GameFlowManager.Instance.RestartCurrentDayAfterDeath();
+        }
+        else
+        {
+            Debug.LogError(
+                "[DeathScreen] GameFlowManager.Instance is missing!"
+            );
+
+            return;
         }
 
-        PlayerStateManager playerStateManager =
-            FindAnyObjectByType<PlayerStateManager>();
-
-        if (playerStateManager != null)
-        {
-            playerStateManager.ResetToDefault();
-        }
-
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.ResetCurrentDay();
-        }
+        // ---------------------------------------------------------
+        // HIDE DEATH SCREEN
+        // ---------------------------------------------------------
 
         if (deathScreenGroup != null)
         {
             deathScreenGroup.SetActive(false);
         }
 
+        // ---------------------------------------------------------
+        // CURSOR
+        // ---------------------------------------------------------
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
         ClearUISelection();
 
-        Debug.Log("[DeathScreen] Player respawned.");
+        Debug.Log(
+            "[DeathScreen] Normal respawn requested through GameFlowManager."
+        );
     }
 
 

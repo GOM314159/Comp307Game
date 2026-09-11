@@ -135,7 +135,7 @@ public class AxeInteractable : WorldInteractable
         );
 
 
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 
 

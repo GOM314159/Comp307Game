@@ -44,6 +44,21 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
 
     // =========================================================
+    // ORIGINAL WORLD STATE
+    // =========================================================
+
+    private bool originalActiveState;
+
+    private Transform originalParent;
+
+    private Vector3 originalLocalPosition;
+
+    private Quaternion originalLocalRotation;
+
+    private Vector3 originalLocalScale;
+
+
+    // =========================================================
     // EVENTS
     // =========================================================
 
@@ -57,11 +72,32 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
     protected virtual void Awake()
     {
-        if (automaticallyFindText && interactionText == null)
+        if (automaticallyFindText &&
+            interactionText == null)
         {
             interactionText =
                 GetComponentInChildren<TextMeshProUGUI>(true);
         }
+
+        // -----------------------------------------------------
+        // SAVE ORIGINAL WORLD STATE
+        // -----------------------------------------------------
+
+        originalActiveState =
+            gameObject.activeSelf;
+
+        originalParent =
+            transform.parent;
+
+        originalLocalPosition =
+            transform.localPosition;
+
+        originalLocalRotation =
+            transform.localRotation;
+
+        originalLocalScale =
+            transform.localScale;
+
 
         HideInteractionPrompt();
     }
@@ -116,7 +152,8 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             return;
         }
 
-        interactionText.text = BuildInteractionPrompt();
+        interactionText.text =
+            BuildInteractionPrompt();
 
         interactionText.gameObject.SetActive(true);
     }
@@ -150,47 +187,53 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
     private string GetInteractionButtonText()
     {
-        PlayerControls controls = new PlayerControls();
+        PlayerControls controls =
+            new PlayerControls();
 
         InputAction interactAction =
             controls.Player.Interact;
 
-        // -----------------------------------------------------
-        // CONTROLLER
-        // -----------------------------------------------------
 
         if (GameInputDevice.LastUsedDeviceIsGamepad())
         {
-            return GetGamepadBindingName(interactAction);
+            return GetGamepadBindingName(
+                interactAction
+            );
         }
 
 
-        // -----------------------------------------------------
-        // KEYBOARD / MOUSE
-        // -----------------------------------------------------
-
-        return GetKeyboardMouseBindingName(interactAction);
+        return GetKeyboardMouseBindingName(
+            interactAction
+        );
     }
 
 
-    private string GetGamepadBindingName(InputAction action)
+    private string GetGamepadBindingName(
+        InputAction action)
     {
-        for (int i = 0; i < action.bindings.Count; i++)
+        for (
+            int i = 0;
+            i < action.bindings.Count;
+            i++)
         {
-            InputBinding binding = action.bindings[i];
+            InputBinding binding =
+                action.bindings[i];
 
-            if (binding.isComposite ||
+            if (
+                binding.isComposite ||
                 binding.isPartOfComposite)
             {
                 continue;
             }
 
-            if (binding.groups != null &&
+            if (
+                binding.groups != null &&
                 binding.groups.Contains("Gamepad"))
             {
                 return action.GetBindingDisplayString(
                     i,
-                    InputBinding.DisplayStringOptions.DontUseShortDisplayNames
+                    InputBinding.DisplayStringOptions
+                        .DontUseShortDisplayNames
                 );
             }
         }
@@ -199,25 +242,35 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     }
 
 
-    private string GetKeyboardMouseBindingName(InputAction action)
+    private string GetKeyboardMouseBindingName(
+        InputAction action)
     {
-        for (int i = 0; i < action.bindings.Count; i++)
+        for (
+            int i = 0;
+            i < action.bindings.Count;
+            i++)
         {
-            InputBinding binding = action.bindings[i];
+            InputBinding binding =
+                action.bindings[i];
 
-            if (binding.isComposite ||
+            if (
+                binding.isComposite ||
                 binding.isPartOfComposite)
             {
                 continue;
             }
 
-            if (binding.groups != null &&
-                (binding.groups.Contains("Keyboard") ||
-                 binding.groups.Contains("Mouse")))
+            if (
+                binding.groups != null &&
+                (
+                    binding.groups.Contains("Keyboard") ||
+                    binding.groups.Contains("Mouse")
+                ))
             {
                 return action.GetBindingDisplayString(
                     i,
-                    InputBinding.DisplayStringOptions.DontUseShortDisplayNames
+                    InputBinding.DisplayStringOptions
+                        .DontUseShortDisplayNames
                 );
             }
         }
@@ -237,7 +290,8 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             return false;
         }
 
-        if (interactOnlyOnce &&
+        if (
+            interactOnlyOnce &&
             hasBeenInteractedWith)
         {
             return false;
@@ -257,7 +311,8 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     // ENABLE / DISABLE
     // =========================================================
 
-    public void SetInteractionEnabled(bool enabled)
+    public void SetInteractionEnabled(
+        bool enabled)
     {
         canInteract = enabled;
 
@@ -280,9 +335,61 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
     public virtual void ResetInteraction()
     {
+        // -----------------------------------------------------
+        // RESTORE TRANSFORM
+        // -----------------------------------------------------
+
+        if (transform.parent != originalParent)
+        {
+            transform.SetParent(
+                originalParent
+            );
+        }
+
+        transform.localPosition =
+            originalLocalPosition;
+
+        transform.localRotation =
+            originalLocalRotation;
+
+        transform.localScale =
+            originalLocalScale;
+
+
+        // -----------------------------------------------------
+        // RESTORE ACTIVE STATE
+        // -----------------------------------------------------
+
+        gameObject.SetActive(
+            originalActiveState
+        );
+
+
+        // -----------------------------------------------------
+        // RESTORE INTERACTION STATE
+        // -----------------------------------------------------
+
         hasBeenInteractedWith = false;
+
         canInteract = true;
 
         HideInteractionPrompt();
+
+
+        // -----------------------------------------------------
+        // ALLOW CHILD CLASSES TO RESET
+        // THEIR OWN CUSTOM STATE
+        // -----------------------------------------------------
+
+        OnResetState();
+    }
+
+
+    /// <summary>
+    /// Override this in an interactable if it has custom
+    /// state that also needs to be restored.
+    /// </summary>
+    protected virtual void OnResetState()
+    {
     }
 }

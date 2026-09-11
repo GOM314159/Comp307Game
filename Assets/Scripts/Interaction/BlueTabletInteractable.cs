@@ -72,7 +72,7 @@ public class BlueTabletInteractable : WorldInteractable
         // REMOVE TABLET
         // -----------------------------------------------------
 
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 
 

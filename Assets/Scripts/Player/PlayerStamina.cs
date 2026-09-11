@@ -210,5 +210,26 @@ public class PlayerStamina : MonoBehaviour
 
     public float MaxStamina => maxStamina;
 
+    // =========================================================
+    // RESET SUPPORT
+    // =========================================================
+
+    public void SetMaxStamina(
+        float value)
+    {
+        if (value < minStamina)
+        {
+            value = minStamina;
+        }
+
+        maxStamina = value;
+
+        currentStamina =
+            Mathf.Min(
+                currentStamina,
+                maxStamina
+            );
+    }
+
     public SprintBlockReason BlockReason => blockReason;
 }

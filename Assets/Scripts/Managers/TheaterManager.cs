@@ -201,6 +201,23 @@ public class TheaterManager : MonoBehaviour
         return currentDay;
     }
 
+    // =========================================================
+    // RESET FOR ENTIRE GAME
+    // =========================================================
+
+    public void ResetForGame()
+    {
+        Debug.Log(
+            "[Theater] Resetting theater progression."
+        );
+
+        // Reset theater-specific runtime state here.
+        //
+        // The actual PlayData configuration is NOT modified.
+        //
+        // The next time StartPlay() is called, the theater
+        // will start from the configured play for the current day.
+    }
 
     private DayTheaterData GetDay(int day)
     {

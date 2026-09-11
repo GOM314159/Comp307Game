@@ -119,7 +119,7 @@ public class GunInteractable : WorldInteractable
         );
 
 
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 
 

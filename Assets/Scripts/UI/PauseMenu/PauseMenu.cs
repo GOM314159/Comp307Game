@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 
 public class PauseMenu : MonoBehaviour
@@ -23,10 +22,8 @@ public class PauseMenu : MonoBehaviour
 
     private GameStateManager.GameMode previousGameMode;
 
+    private PlayerStateManager.PlayerState previousPlayerState;
 
-    // =========================================================
-    // INITIALIZATION
-    // =========================================================
 
     private void Awake()
     {
@@ -42,30 +39,28 @@ public class PauseMenu : MonoBehaviour
 
     private void Start()
     {
-        // Pause menu starts closed.
-        if (container != null)
-            container.SetActive(false);
-
         Time.timeScale = 1f;
+
         isPaused = false;
+
+        if (container != null)
+        {
+            container.SetActive(false);
+        }
     }
 
-
-    // =========================================================
-    // INPUT
-    // =========================================================
 
     private void Update()
     {
         if (Keyboard.current == null)
+        {
             return;
+        }
 
         if (!Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
             return;
-
-        // -----------------------------------------------------
-        // IF ALREADY PAUSED
-        // -----------------------------------------------------
+        }
 
         if (isPaused)
         {
@@ -73,64 +68,56 @@ public class PauseMenu : MonoBehaviour
             return;
         }
 
-        // -----------------------------------------------------
-        // PLAYER STATE CHECK
-        // -----------------------------------------------------
-
         if (PlayerStateManager.Instance == null)
+        {
             return;
+        }
 
         if (!PlayerStateManager.Instance.CanPause())
+        {
             return;
-
-        // -----------------------------------------------------
-        // OPEN PAUSE MENU
-        // -----------------------------------------------------
+        }
 
         PauseGame();
     }
 
 
-    // =========================================================
-    // PAUSE
-    // =========================================================
-
     public void PauseGame()
     {
         if (isPaused)
-            return;
-
-
-        // -----------------------------------------------------
-        // CLOSE INVENTORY PROPERLY
-        // -----------------------------------------------------
-
-        // IMPORTANT:
-        // Do NOT simply deactivate the inventory GameObject.
-        // PlayerInventory needs to know that it has been closed.
-
-        if (playerInventory != null &&
-            playerInventory.IsInventoryOpen())
         {
-            playerInventory.CloseInventory();
+            return;
+        }
+
+        if (PlayerStateManager.Instance == null)
+        {
+            Debug.LogWarning("[PauseMenu] PlayerStateManager.Instance is missing.");
+            return;
         }
 
 
-        // -----------------------------------------------------
-        // REMEMBER GAME STATE
-        // -----------------------------------------------------
+        // Close inventory if it is open
+        if (playerInventory != null)
+        {
+            if (playerInventory.IsInventoryOpen())
+            {
+                playerInventory.CloseInventory();
+            }
+        }
 
+
+        // Save current GameMode
         if (GameStateManager.Instance != null)
         {
-            previousGameMode =
-                GameStateManager.Instance.GetGameMode();
+            previousGameMode = GameStateManager.Instance.GetGameMode();
         }
 
 
-        // -----------------------------------------------------
-        // REMEMBER TOOLBAR STATE
-        // -----------------------------------------------------
+        // Save current PlayerState
+        previousPlayerState = PlayerStateManager.Instance.GetCurrentState();
 
+
+        // Save toolbar state and hide it
         if (toolbar != null)
         {
             toolbarWasActive = toolbar.activeSelf;
@@ -138,19 +125,11 @@ public class PauseMenu : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
-        // PAUSE
-        // -----------------------------------------------------
-
+        // Mark the game as paused
         isPaused = true;
 
 
-        // Show pause menu.
-        if (container != null)
-            container.SetActive(true);
-
-
-        // Tell GameStateManager we are paused.
+        // Set GameMode to Paused
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
@@ -159,54 +138,65 @@ public class PauseMenu : MonoBehaviour
         }
 
 
-        // Stop gameplay.
+        // Set PlayerState to PauseMenu
+        PlayerStateManager.Instance.SetState(
+            PlayerStateManager.PlayerState.PauseMenu
+        );
+
+
+        // Actually pause Unity's game time
         Time.timeScale = 0f;
 
 
-        // Make sure the cursor can interact with the pause menu.
+        // Show pause menu
+        if (container != null)
+        {
+            container.SetActive(true);
+        }
+
+
+        // Unlock cursor
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
 
         ClearUISelection();
+
+
+        Debug.Log(
+            "[PauseMenu] Game paused. Time.timeScale = "
+            + Time.timeScale
+        );
     }
 
-
-    // =========================================================
-    // CONTINUE
-    // =========================================================
 
     public void ContinueButton()
     {
         if (!isPaused)
+        {
             return;
+        }
 
 
-        // -----------------------------------------------------
-        // HIDE PAUSE MENU
-        // -----------------------------------------------------
-
+        // Hide pause menu
         if (container != null)
+        {
             container.SetActive(false);
+        }
 
 
-        // -----------------------------------------------------
-        // RESTORE TOOLBAR
-        // -----------------------------------------------------
-
+        // Restore toolbar
         if (toolbar != null)
+        {
             toolbar.SetActive(toolbarWasActive);
+        }
 
 
-        // -----------------------------------------------------
-        // RESTORE GAME
-        // -----------------------------------------------------
-
-        isPaused = false;
-
+        // Resume Unity's game time
         Time.timeScale = 1f;
 
 
+        // Restore previous GameMode
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
@@ -215,43 +205,68 @@ public class PauseMenu : MonoBehaviour
         }
 
 
-        // Restore gameplay cursor.
+        // Restore previous PlayerState
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                previousPlayerState
+            );
+        }
+
+
+        // Mark game as unpaused
+        isPaused = false;
+
+
+        // Lock cursor again
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
 
         ClearUISelection();
+
+
+        Debug.Log(
+            "[PauseMenu] Game resumed. Time.timeScale = "
+            + Time.timeScale
+        );
     }
 
-
-    // =========================================================
-    // SETTINGS
-    // =========================================================
 
     public void SettingsButton()
     {
         Debug.Log("[PauseMenu] Settings button pressed.");
-
-        // Settings UI can be added here later.
     }
 
-
-    // =========================================================
-    // MAIN MENU
-    // =========================================================
 
     public void MainMenuButton()
     {
         Debug.Log("[PauseMenu] Returning to Main Menu.");
 
+
+        // Make absolutely sure time is restored
         Time.timeScale = 1f;
+
         isPaused = false;
 
+
+        // Hide pause menu
         if (container != null)
         {
             container.SetActive(false);
         }
 
+
+        // Set player state to MainMenu
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.MainMenu
+            );
+        }
+
+
+        // Open main menu
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance.OpenMainMenu();
@@ -265,27 +280,27 @@ public class PauseMenu : MonoBehaviour
     }
 
 
-    // =========================================================
-    // EXIT
-    // =========================================================
-
     public void ExitButton()
     {
         Time.timeScale = 1f;
 
+        isPaused = false;
+
+
         Debug.Log("[PauseMenu] Exiting game.");
 
+
 #if UNITY_EDITOR
+
         UnityEditor.EditorApplication.isPlaying = false;
+
 #else
+
         Application.Quit();
+
 #endif
     }
 
-
-    // =========================================================
-    // UI
-    // =========================================================
 
     private void ClearUISelection()
     {
@@ -295,10 +310,6 @@ public class PauseMenu : MonoBehaviour
         }
     }
 
-
-    // =========================================================
-    // PUBLIC STATE
-    // =========================================================
 
     public bool IsPaused()
     {

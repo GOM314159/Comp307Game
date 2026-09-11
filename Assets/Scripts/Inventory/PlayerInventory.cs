@@ -34,6 +34,21 @@ public class PlayerInventory : MonoBehaviour
 
     private bool inventoryOpen;
 
+    [System.Serializable]
+    public class InventorySnapshotSlot
+    {
+        public ItemData item;
+        public int quantity;
+
+        public InventorySnapshotSlot(
+            ItemData item,
+            int quantity)
+        {
+            this.item = item;
+            this.quantity = quantity;
+        }
+    }
+
     [Header("Inventory")]
 
     [SerializeField]
@@ -991,7 +1006,127 @@ public class PlayerInventory : MonoBehaviour
         equipmentManager.EquipSelectedItem();
     }
 
-    
+    // =========================================================
+    // RESET SUPPORT
+    // =========================================================
+
+    public void ClearInventory()
+    {
+        for (int i = 0; i < slots.Count; i++)
+        {
+            slots[i] =
+                new InventorySlot(
+                    null,
+                    0
+                );
+        }
+
+        selectedSlot = 0;
+
+        RefreshInventoryUI();
+
+        RefreshSelectedEquipment();
+
+        Debug.Log(
+            "[Inventory] Inventory cleared."
+        );
+    }
+
+
+    // =========================================================
+    // CREATE SNAPSHOT
+    // =========================================================
+
+    public List<InventorySnapshotSlot>
+        CreateSnapshot()
+    {
+        List<InventorySnapshotSlot> snapshot =
+            new List<InventorySnapshotSlot>();
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            InventorySlot slot =
+                slots[i];
+
+            if (slot == null)
+            {
+                snapshot.Add(
+                    new InventorySnapshotSlot(
+                        null,
+                        0
+                    )
+                );
+
+                continue;
+            }
+
+            snapshot.Add(
+                new InventorySnapshotSlot(
+                    slot.item,
+                    slot.quantity
+                )
+            );
+        }
+
+        return snapshot;
+    }
+
+
+    // =========================================================
+    // RESTORE SNAPSHOT
+    // =========================================================
+
+    public void RestoreSnapshot(
+        List<InventorySnapshotSlot> snapshot)
+    {
+        if (snapshot == null)
+        {
+            Debug.LogWarning(
+                "[Inventory] Cannot restore null snapshot."
+            );
+
+            return;
+        }
+
+        slots.Clear();
+
+        for (int i = 0; i < snapshot.Count; i++)
+        {
+            InventorySnapshotSlot snapshotSlot =
+                snapshot[i];
+
+            if (snapshotSlot == null)
+            {
+                slots.Add(
+                    new InventorySlot(
+                        null,
+                        0
+                    )
+                );
+
+                continue;
+            }
+
+            slots.Add(
+                new InventorySlot(
+                    snapshotSlot.item,
+                    snapshotSlot.quantity
+                )
+            );
+        }
+
+        selectedSlot = 0;
+
+        RefreshInventoryUI();
+
+        RefreshSelectedEquipment();
+
+        Debug.Log(
+            "[Inventory] Inventory snapshot restored."
+        );
+    }
+
+
 
     // DEBUG
     public void PrintInventory()

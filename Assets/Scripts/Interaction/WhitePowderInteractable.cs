@@ -39,7 +39,7 @@ public class WhitePowderInteractable : WorldInteractable
         );
 
         // Remove the powder from the level
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 
 

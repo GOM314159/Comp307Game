@@ -184,6 +184,40 @@ public class CaseManager : MonoBehaviour
         UpdateTimer();
     }
 
+    // =========================================================
+    // RESET FOR DAY
+    // =========================================================
+
+    public void ResetForDay()
+    {
+        ResetCaseState();
+
+        currentCaseIndex = -1;
+
+        currentCase = null;
+
+        DebugCase(
+            "Case Manager reset for current day."
+        );
+    }
+
+
+    // =========================================================
+    // RESET FOR ENTIRE GAME
+    // =========================================================
+
+    public void ResetForGame()
+    {
+        ResetCaseState();
+
+        currentCaseIndex = -1;
+
+        currentCase = null;
+
+        DebugCase(
+            "Case Manager reset for entire game."
+        );
+    }
 
     // =========================================================
     // START CASE

@@ -433,4 +433,77 @@ public class PlayerMovement : MonoBehaviour
     {
         return permanentStrength;
     }
+
+    // =========================================================
+    // RESET SUPPORT
+    // =========================================================
+
+    public float GetPermanentSpeedMultiplier()
+    {
+        return permanentSpeedMultiplier;
+    }
+
+
+    public void SetPermanentSpeedMultiplier(
+        float multiplier)
+    {
+        if (multiplier <= 0f)
+        {
+            multiplier = 1f;
+        }
+
+        permanentSpeedMultiplier =
+            multiplier;
+    }
+
+
+    public void SetPermanentStrength(
+        float strength)
+    {
+        if (strength < 0f)
+        {
+            strength = 0f;
+        }
+
+        permanentStrength =
+            strength;
+    }
+
+    public void ResetMovementAfterTeleport()
+    {
+        // Stop all previous movement.
+        velocity = Vector3.zero;
+
+        // Stop sprinting.
+        isSprinting = false;
+
+        // Return to standing.
+        isCrouching = false;
+
+        targetHeight = standingHeight;
+        targetCameraHeight = standingCameraHeight;
+
+        // Reset CharacterController height.
+        if (controller != null)
+        {
+            controller.height = standingHeight;
+        }
+
+        // Reset camera height.
+        if (cameraTransform != null)
+        {
+            Vector3 cameraPosition =
+                cameraTransform.localPosition;
+
+            cameraPosition.y =
+                standingCameraHeight;
+
+            cameraTransform.localPosition =
+                cameraPosition;
+        }
+
+        Debug.Log(
+            "[PlayerMovement] Movement reset after teleport."
+        );
+    }
 }

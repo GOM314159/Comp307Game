@@ -30,19 +30,33 @@ public class GameFlowManager : MonoBehaviour
     [SerializeField]
     private IntroCutscene introCutscene;
 
+    [Header("Death Menu")]
+
+    [SerializeField]
+    private GameObject deathMenu;
+
     [Header("UI")]
     [SerializeField] private GameObject toolbar;
     [SerializeField] private GameObject HealthBar;
     [SerializeField] private GameObject StaminaBar;
 
-    [Header("First Game Scene")]
+    // =========================================================
+    // PLAYER REFERENCES
+    // =========================================================
+
+    [Header("Player References")]
 
     [SerializeField]
-    private string firstGameScene = "";
+    private GameObject player;
+
+    [SerializeField]
+    private PlayerRespawnPoint playerRespawnPoint;
 
     [Header("Transition")]
 
     [SerializeField] private float transitionDelay = 0.25f;
+
+    private bool createDaySnapshotOnLobbyLoad = false;
 
     [Header("Debug")]
 
@@ -90,7 +104,11 @@ public class GameFlowManager : MonoBehaviour
         DebugFlow("Returning to Main Menu. Resetting entire game.");
 
         // Reset all game progress.
-        if (GameStateManager.Instance != null)
+        if (GameResetManager.Instance != null)
+        {
+            GameResetManager.Instance.ResetEntireGame();
+        }
+        else if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ResetEntireGame();
         }
@@ -226,7 +244,6 @@ public class GameFlowManager : MonoBehaviour
         GameStateManager.Instance.SetGameMode(
             GameStateManager.GameMode.Credits);
 
-        LoadScene(creditsScene);
     }
 
     public void QuitGame()
@@ -266,7 +283,14 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-        GameStateManager.Instance.ResetEntireGame();
+        if (GameResetManager.Instance != null)
+        {
+            GameResetManager.Instance.ResetEntireGame();
+        }
+        else
+        {
+            GameStateManager.Instance.ResetEntireGame();
+        }
 
 
         // ---------------------------------------------------------
@@ -288,6 +312,7 @@ public class GameFlowManager : MonoBehaviour
     // =========================================================
     // INTRO
     // =========================================================
+   
 
     public void StartIntro()
     {
@@ -393,38 +418,18 @@ public class GameFlowManager : MonoBehaviour
     {
         DebugFlow("Intro cutscene finished.");
 
-        // ---------------------------------------------------------
-        // RESTORE PLAYER CONTROL
-        // ---------------------------------------------------------
 
-        if (PlayerStateManager.Instance != null)
+        if (GameStateManager.Instance == null)
         {
-            PlayerStateManager.Instance.SetState(
-                PlayerStateManager.PlayerState.AllMovement
+            Debug.LogError(
+                "[GameFlow] GameStateManager.Instance is missing."
             );
-        }
 
-        // ---------------------------------------------------------
-        // FIRST GAME SCENE
-        // ---------------------------------------------------------
-
-        if (string.IsNullOrEmpty(firstGameScene))
-        {
-            Debug.Log(
-                "[GameFlow] Intro finished. " +
-                "No first game scene has been configured yet."
-            );
-            SetToolbarVisible(true);
-            SetHealthBarVisible(true);
-            SetStaminaBarVisible(true);
             return;
         }
 
-        GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.Loading
-        );
-
-        LoadScene(firstGameScene);
+        // Start the first day.
+        StartDay(1);
     }
 
     // =========================================================
@@ -433,14 +438,43 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartDay(int day)
     {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[Game Flow] GameStateManager is missing."
+            );
+
+            return;
+        }
+
+        // ---------------------------------------------------------
+        // SET DAY
+        // ---------------------------------------------------------
+
         GameStateManager.Instance.SetDay(day);
 
-        GameStateManager.Instance.ResetCurrentDay();
+        // ---------------------------------------------------------
+        // THEATER DAY
+        // ---------------------------------------------------------
 
         if (TheaterManager.Instance != null)
         {
             TheaterManager.Instance.SetTheaterDay(day);
         }
+
+        // ---------------------------------------------------------
+        // MARK THAT A NEW DAY SNAPSHOT IS REQUIRED
+        // ---------------------------------------------------------
+
+        createDaySnapshotOnLobbyLoad = true;
+
+        DebugFlow(
+            "Starting Day " + day
+        );
+
+        // ---------------------------------------------------------
+        // GO TO LOBBY
+        // ---------------------------------------------------------
 
         OpenLobby();
     }
@@ -464,19 +498,179 @@ public class GameFlowManager : MonoBehaviour
 
     public void OpenLobby()
     {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] GameStateManager.Instance is missing."
+            );
+
+            return;
+        }
+
+        DebugFlow(
+            "Opening Lobby in the current scene."
+        );
+
+        // =========================================================
+        // GAME STATE
+        // =========================================================
+
         GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.Lobby);
+            GameStateManager.GameMode.Lobby
+        );
+
+        // =========================================================
+        // AUDIO
+        // =========================================================
 
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayMusic(
-                AudioManager.MusicType.Lobby);
+                AudioManager.MusicType.Lobby
+            );
 
             AudioManager.Instance.PlayAmbience(
-                AudioManager.AmbienceType.Lobby);
+                AudioManager.AmbienceType.Lobby
+            );
         }
 
-        LoadScene(lobbyScene);
+        // =========================================================
+        // PLAYER
+        // =========================================================
+
+        StartCoroutine(
+            MovePlayerToRespawnPoint()
+        );
+        SetToolbarVisible(true);
+        SetHealthBarVisible(true);
+        SetStaminaBarVisible(true);
+    }
+
+    private IEnumerator MovePlayerToRespawnPoint()
+    {
+        DebugFlow(
+            "Preparing to move Player to PlayerRespawnPoint."
+        );
+
+        // =========================================================
+        // VALIDATE INSPECTOR REFERENCES
+        // =========================================================
+
+        if (playerRespawnPoint == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Player Respawn Point has not been assigned in the Inspector!"
+            );
+
+            yield break;
+        }
+
+        if (player == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Player has not been assigned in the Inspector!"
+            );
+
+            yield break;
+        }
+
+        DebugFlow(
+            "Player and PlayerRespawnPoint references found."
+        );
+
+        // Give Unity one frame to finish any state changes
+        // before moving the CharacterController.
+        yield return null;
+
+        // =========================================================
+        // TELEPORT PLAYER
+        // =========================================================
+
+        playerRespawnPoint.SpawnPlayer(player);
+
+        // =========================================================
+        // RESET HEALTH
+        // =========================================================
+
+        PlayerHealth health =
+            player.GetComponent<PlayerHealth>();
+
+        if (health != null)
+        {
+            health.ResetHealth();
+        }
+
+        // =========================================================
+        // RESET MOVEMENT
+        // =========================================================
+
+        PlayerMovement movement =
+            player.GetComponent<PlayerMovement>();
+
+        if (movement != null)
+        {
+            movement.ResetMovementAfterTeleport();
+        }
+
+        // =========================================================
+        // RESET PLAYER STATE
+        // =========================================================
+
+        PlayerStateManager state =
+            player.GetComponent<PlayerStateManager>();
+
+        if (state != null)
+        {
+            state.ResetToDefault();
+        }
+
+        DebugFlow(
+            "Player successfully moved to PlayerRespawnPoint."
+        );
+
+        // =========================================================
+        // GAME START SNAPSHOT
+        // =========================================================
+
+        if (GameResetManager.Instance != null)
+        {
+            if (!GameResetManager.Instance.HasGameStartSnapshot())
+            {
+                GameResetManager.Instance.CreateGameStartSnapshot();
+
+                DebugFlow(
+                    "Game-start snapshot created."
+                );
+            }
+        }
+
+        // =========================================================
+        // APPLY DAY SNAPSHOT
+        // =========================================================
+
+        if (GameResetManager.Instance != null)
+        {
+            GameResetManager.Instance
+                .ApplyDaySnapshotToCurrentPlayer();
+        }
+
+        // =========================================================
+        // CREATE BEGINNING-OF-DAY SNAPSHOT
+        // =========================================================
+
+        if (createDaySnapshotOnLobbyLoad)
+        {
+            if (GameResetManager.Instance != null)
+            {
+                GameResetManager.Instance.CreateDaySnapshot();
+                
+                DebugFlow(
+                    "Beginning-of-day snapshot created."
+                );
+            }
+
+            createDaySnapshotOnLobbyLoad = false;
+        }
     }
 
     // =========================================================
@@ -485,7 +679,17 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartPlay(int playID)
     {
-        LoadScene(theaterScene);
+        DebugFlow(
+        "Starting Play " + playID +
+        " in the current scene."
+    );
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.WatchingPlay
+            );
+        }
 
         StartCoroutine(
             InitializePlayAfterLoad(playID));
@@ -522,7 +726,17 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartCase(int caseID)
     {
-        LoadScene(caseScene);
+        DebugFlow(
+        "Starting Case " + caseID +
+        " in the current scene."
+    );
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Case
+            );
+        }
 
         StartCoroutine(
             InitializeCaseAfterLoad(caseID));
@@ -644,14 +858,22 @@ public class GameFlowManager : MonoBehaviour
 
     public void PlayerDied()
     {
-        GameStateManager.Instance.HandlePlayerDeath();
+        DebugFlow("Player died.");
 
-        HandleLoss();
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.HandlePlayerDeath();
+        }
+
+        // PlayerDeathManager handles the death screen
+        // and the actual respawn.
     }
+
 
     public void TimerExpired()
     {
         HandleLoss();
+        //ShowDeathMenu();
     }
 
     private void HandleLoss()
@@ -678,41 +900,67 @@ public class GameFlowManager : MonoBehaviour
         DebugFlow(
             "Restarting Day " + day);
 
-        GameStateManager.Instance.ClearLossState();
+
+        // ---------------------------------------------------------
+        // RESET EVERYTHING THAT HAPPENED DURING THIS DAY
+        // ---------------------------------------------------------
+
+        if (GameResetManager.Instance != null)
+        {
+            GameResetManager.Instance.ResetCurrentDay();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[GameFlow] GameResetManager is missing."
+            );
+        }
+
+
+        // ---------------------------------------------------------
+        // RETURN TO THE SAME DAY'S LOBBY
+        // ---------------------------------------------------------
 
         StartDay(day);
     }
 
     private void RestartEntireGame()
     {
-        GameStateManager.DifficultyMode difficulty =
-            GameStateManager.Instance.GetDifficulty();
+        DebugFlow(
+            "Restarting Entire Game"
+        );
 
-        DebugFlow("Restarting Entire Game");
 
-        GameStateManager.Instance.ResetEntireGame();
+        // ---------------------------------------------------------
+        // RESET EVERYTHING
+        // ---------------------------------------------------------
 
-        GameStateManager.Instance.SetDifficulty(difficulty);
+        if (GameResetManager.Instance != null)
+        {
+            GameResetManager.Instance.ResetEntireGame();
+        }
+        else
+        {
+            GameStateManager.Instance.ResetEntireGame();
+        }
+
+
+        // ---------------------------------------------------------
+        // HARDCORE DEATH
+        // ---------------------------------------------------------
+        //
+        // A full game reset means we go back to the beginning.
+        //
+        // If you want Hardcore death to return to the Main Menu,
+        // use OpenMainMenu() here instead.
+        //
+        // For now this starts a fresh Day 1.
+        // ---------------------------------------------------------
 
         StartDay(1);
     }
 
-    // =========================================================
-    // SCENE LOADING
-    // =========================================================
 
-    public void LoadScene(string sceneName)
-    {
-        StartCoroutine(
-            LoadSceneRoutine(sceneName));
-    }
-
-    private IEnumerator LoadSceneRoutine(string sceneName)
-    {
-        yield return new WaitForSeconds(transitionDelay);
-
-        SceneManager.LoadScene(sceneName);
-    }
 
     // =========================================================
     // DEBUG
@@ -725,5 +973,101 @@ public class GameFlowManager : MonoBehaviour
 
         Debug.Log(
             "[Game Flow] " + message);
+    }
+
+    // =========================================================
+    // PLAYER DEATH - NORMAL
+    // =========================================================
+
+    public void RestartCurrentDayAfterDeath()
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] GameStateManager is missing."
+            );
+
+            return;
+        }
+
+        int day =
+            GameStateManager.Instance.GetCurrentDay();
+
+        DebugFlow(
+            "Normal death. Restarting Day " + day
+        );
+
+        // ---------------------------------------------------------
+        // RESET EVERYTHING THAT HAPPENED THIS DAY
+        // ---------------------------------------------------------
+
+        if (GameResetManager.Instance != null)
+        {
+            GameResetManager.Instance.ResetCurrentDay();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[GameFlow] GameResetManager is missing."
+            );
+        }
+
+        // ---------------------------------------------------------
+        // RESTART SAME DAY
+        // ---------------------------------------------------------
+
+        StartDay(day);
+    }
+
+
+    // =========================================================
+    // PLAYER DEATH - HARDCORE
+    // =========================================================
+
+    public void RestartEntireGameAfterDeath()
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] GameStateManager is missing."
+            );
+
+            return;
+        }
+
+        // Remember that this run was Hardcore.
+        GameStateManager.DifficultyMode difficulty =
+            GameStateManager.Instance.GetDifficulty();
+
+        DebugFlow(
+            "Hardcore death. Resetting entire game."
+        );
+
+        // ---------------------------------------------------------
+        // RESET EVERYTHING
+        // ---------------------------------------------------------
+
+        if (GameResetManager.Instance != null)
+        {
+            GameResetManager.Instance.ResetEntireGame();
+        }
+        else
+        {
+            GameStateManager.Instance.ResetEntireGame();
+        }
+
+        // ---------------------------------------------------------
+        // KEEP HARDCORE MODE
+        // ---------------------------------------------------------
+
+        GameStateManager.Instance.SetDifficulty(
+            difficulty
+        );
+
+        // ---------------------------------------------------------
+        // START FRESH DAY 1
+        // ---------------------------------------------------------
+
+        StartDay(1);
     }
 }

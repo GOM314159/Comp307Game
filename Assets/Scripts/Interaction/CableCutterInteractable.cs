@@ -100,7 +100,7 @@ public class CableCutterInteractable : WorldInteractable
         );
 
 
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 
 

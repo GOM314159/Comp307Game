@@ -110,24 +110,64 @@ public class PlayerDeathManager : MonoBehaviour
     public void Respawn()
     {
         if (GameStateManager.Instance == null)
-            return;
-
-        if (!GameStateManager.Instance.IsNormal())
         {
-            Debug.LogWarning(
-                "[PlayerDeathManager] Respawn requested outside Normal mode."
+            Debug.LogError(
+                "[PlayerDeathManager] GameStateManager is missing."
             );
+
             return;
         }
 
-        Debug.Log("[PlayerDeathManager] Respawning player.");
+        // ---------------------------------------------------------
+        // NORMAL MODE
+        // ---------------------------------------------------------
+
+        if (GameStateManager.Instance.IsNormal())
+        {
+            Debug.Log(
+                "[PlayerDeathManager] Normal death. " +
+                "Restarting current day."
+            );
+
+            HideDeathScreen();
+
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance
+                    .RestartCurrentDayAfterDeath();
+            }
+            else
+            {
+                Debug.LogError(
+                    "[PlayerDeathManager] GameFlowManager is missing."
+                );
+            }
+
+            return;
+        }
+
+        // ---------------------------------------------------------
+        // HARDCORE
+        // ---------------------------------------------------------
+
+        Debug.Log(
+            "[PlayerDeathManager] Hardcore death. " +
+            "Resetting entire game."
+        );
 
         HideDeathScreen();
 
-        GameStateManager.Instance.ResetCurrentDay();
-
-        if (playerHealth != null)
-            playerHealth.ResetHealth();
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance
+                .RestartEntireGameAfterDeath();
+        }
+        else
+        {
+            Debug.LogError(
+                "[PlayerDeathManager] GameFlowManager is missing."
+            );
+        }
     }
 
     public void ReturnToMainMenu()
@@ -163,4 +203,6 @@ public class PlayerDeathManager : MonoBehaviour
         if (hardcorePanel != null)
             hardcorePanel.SetActive(false);
     }
+
+
 }

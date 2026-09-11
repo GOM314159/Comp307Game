@@ -72,7 +72,7 @@ public class WhiteTabletInteractable : WorldInteractable
         // REMOVE TABLET
         // -----------------------------------------------------
 
-        Destroy(gameObject);
+        gameObject.SetActive(false);
     }
 
 
