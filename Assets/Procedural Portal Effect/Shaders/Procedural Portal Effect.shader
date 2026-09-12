@@ -56,68 +56,74 @@ Shader "FX/Procedural Portal Effect"
 
         SubShader
         {
-            Tags { "Queue" = "Transparent" "RenderType" = "Transparent" "IgnoreProjector" = "True" }
+            Tags
+            {
+                "RenderPipeline" = "UniversalPipeline"
+                "Queue" = "Transparent"
+                "RenderType" = "Transparent"
+            }
+
             Cull Off
             ZWrite Off
-            Lighting Off
-            Fog { Mode Off }
 
-            CGINCLUDE
-            #include "UnityCG.cginc"
+            HLSLINCLUDE
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
-            float _MeshExpand;
+            CBUFFER_START(UnityPerMaterial)
+                float _MeshExpand;
 
-            float4 _Size;
-            float _Rotation;
-            float _EdgeSoftness;
-            float _OuterFrameWidth;
-            float _InnerFrameOffset;
-            float _InnerFrameWidth;
-            float _OuterHaloWidth;
+                float4 _Size;
+                float _Rotation;
+                float _EdgeSoftness;
+                float _OuterFrameWidth;
+                float _InnerFrameOffset;
+                float _InnerFrameWidth;
+                float _OuterHaloWidth;
 
-            fixed4 _OuterColor;
-            fixed4 _OuterGlowColor;
-            fixed4 _InnerFrameColor;
-            fixed4 _InnerColorA;
-            fixed4 _InnerColorB;
-            fixed4 _HoleColor;
+                float4 _OuterColor;
+                float4 _OuterGlowColor;
+                float4 _InnerFrameColor;
+                float4 _InnerColorA;
+                float4 _InnerColorB;
+                float4 _HoleColor;
 
-            float _OuterIntensity;
-            float _InnerIntensity;
-            float _InnerFrameIntensity;
-            float _HaloIntensity;
-            float _Opacity;
+                float _OuterIntensity;
+                float _InnerIntensity;
+                float _InnerFrameIntensity;
+                float _HaloIntensity;
+                float _Opacity;
 
-            float _SwirlStrength;
-            float _SwirlSpeed;
-            float _NoiseScale;
-            float _NoiseSpeed;
-            float _BandCount;
-            float _BandSpeed;
-            float _Distortion;
-            float _CenterFade;
+                float _SwirlStrength;
+                float _SwirlSpeed;
+                float _NoiseScale;
+                float _NoiseSpeed;
+                float _BandCount;
+                float _BandSpeed;
+                float _Distortion;
+                float _CenterFade;
 
-            float _EdgeNoiseScale;
-            float _EdgeNoiseSpeed;
-            float _EdgeFlicker;
-            float _EdgeWobble;
+                float _EdgeNoiseScale;
+                float _EdgeNoiseSpeed;
+                float _EdgeFlicker;
+                float _EdgeWobble;
 
-            fixed4 _SparkColor;
-            float _SparkDensity;
-            float _SparkSize;
-            float _SparkSpeed;
-            float _SparkIntensity;
-            float _SparkRingBias;
+                float4 _SparkColor;
+                float _SparkDensity;
+                float _SparkSize;
+                float _SparkSpeed;
+                float _SparkIntensity;
+                float _SparkRingBias;
+            CBUFFER_END
 
-            struct appdata
+            struct Attributes
             {
-                float4 vertex : POSITION;
+                float3 positionOS : POSITION;
                 float2 uv : TEXCOORD0;
             };
 
-            struct v2f
+            struct Varyings
             {
-                float4 pos : SV_POSITION;
+                float4 positionHCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
             };
 
@@ -128,21 +134,20 @@ Shader "FX/Procedural Portal Effect"
                 return float2(c * p.x - s * p.y, s * p.x + c * p.y);
             }
 
-            v2f vert(appdata v)
+            Varyings Vert(Attributes input)
             {
-                v2f o;
+                Varyings o;
 
                 float haloR = 1.0 + _OuterHaloWidth + _EdgeSoftness;
                 float maxSize = max(_Size.x, _Size.y);
                 float autoExpand = max(1.0, haloR * maxSize);
-
                 float expand = max(_MeshExpand, 1.0) * autoExpand;
 
-                float4 pos = v.vertex;
-                pos.xy *= expand;
+                float3 posOS = input.positionOS;
+                posOS.xy *= expand;
 
-                o.pos = UnityObjectToClipPos(pos);
-                o.uv = v.uv;
+                o.positionHCS = TransformObjectToHClip(posOS);
+                o.uv = input.uv;
                 return o;
             }
 
@@ -234,7 +239,7 @@ Shader "FX/Procedural Portal Effect"
 
                 float r = length(p) + wobble;
                 float a = atan2(p.y, p.x);
-                float a01 = (a + UNITY_PI) / (2.0 * UNITY_PI);
+                float a01 = (a + 3.14159265) / 6.2831853;
 
                 float outerR = 1.0;
                 float haloR = 1.0 + _OuterHaloWidth;
@@ -298,71 +303,76 @@ Shader "FX/Procedural Portal Effect"
                 glowA = saturate(clipMask) * _Opacity;
             }
 
-            fixed4 frag_center(v2f i) : SV_Target
+            float ClipMaskPortal(float2 uv)
             {
-                float3 c;
-                float a;
-                float3 g;
-                float ga;
-
-                EvaluatePortal(i.uv, c, a, g, ga);
-
-                float2 p = i.uv * 2.0 - 1.0;
+                float t = _Time.y;
+                float2 p = uv * 2.0 - 1.0;
                 p = float2(p.x / max(_Size.x, 1e-4), p.y / max(_Size.y, 1e-4));
                 p = Rotate2(p, radians(_Rotation));
-                float edgeN = Fbm2(p * _EdgeNoiseScale + _Time.y * _EdgeNoiseSpeed);
+                float edgeN = Fbm2(p * _EdgeNoiseScale + t * _EdgeNoiseSpeed);
                 float wobble = (edgeN - 0.5) * _EdgeWobble;
                 float r = length(p) + wobble;
                 float haloR = 1.0 + _OuterHaloWidth;
-                float clipMask = 1.0 - smoothstep(haloR, haloR + _EdgeSoftness, r);
-                clip(clipMask - 0.001);
-
-                return fixed4(c, a);
+                return 1.0 - smoothstep(haloR, haloR + _EdgeSoftness, r);
             }
 
-            fixed4 frag_glow(v2f i) : SV_Target
+            float4 FragCenter(Varyings i) : SV_Target
             {
-                float3 c;
-                float a;
-                float3 g;
-                float ga;
+                float3 centerCol;
+                float centerA;
+                float3 glowCol;
+                float glowA;
 
-                EvaluatePortal(i.uv, c, a, g, ga);
+                EvaluatePortal(i.uv, centerCol, centerA, glowCol, glowA);
 
-                float2 p = i.uv * 2.0 - 1.0;
-                p = float2(p.x / max(_Size.x, 1e-4), p.y / max(_Size.y, 1e-4));
-                p = Rotate2(p, radians(_Rotation));
-                float edgeN = Fbm2(p * _EdgeNoiseScale + _Time.y * _EdgeNoiseSpeed);
-                float wobble = (edgeN - 0.5) * _EdgeWobble;
-                float r = length(p) + wobble;
-                float haloR = 1.0 + _OuterHaloWidth;
-                float clipMask = 1.0 - smoothstep(haloR, haloR + _EdgeSoftness, r);
+                float clipMask = ClipMaskPortal(i.uv);
                 clip(clipMask - 0.001);
 
-                return fixed4(g * ga, 1.0);
+                return float4(centerCol, centerA);
             }
-            ENDCG
+
+            float4 FragGlow(Varyings i) : SV_Target
+            {
+                float3 centerCol;
+                float centerA;
+                float3 glowCol;
+                float glowA;
+
+                EvaluatePortal(i.uv, centerCol, centerA, glowCol, glowA);
+
+                float clipMask = ClipMaskPortal(i.uv);
+                clip(clipMask - 0.001);
+
+                return float4(glowCol * glowA, 1.0);
+            }
+            ENDHLSL
 
             Pass
             {
-                Tags { "LightMode" = "Always" }
+                Name "Center"
+                Tags { "LightMode" = "UniversalForward" }
                 Blend SrcAlpha OneMinusSrcAlpha
-                CGPROGRAM
+                ZWrite Off
+
+                HLSLPROGRAM
                 #pragma target 3.0
-                #pragma vertex vert
-                #pragma fragment frag_center
-                ENDCG
+                #pragma vertex Vert
+                #pragma fragment FragCenter
+                ENDHLSL
             }
 
             Pass
             {
-                Tags { "LightMode" = "Always" }
+                Name "Glow"
+                Tags { "LightMode" = "SRPDefaultUnlit" }
                 Blend One One
-                CGPROGRAM
+                ZWrite Off
+
+                HLSLPROGRAM
                 #pragma target 3.0
-                #pragma vertex vert
-                #pragma fragment frag_glow
-                ENDCG
+                #pragma vertex Vert
+                #pragma fragment FragGlow
+                ENDHLSL
             }
         }
 

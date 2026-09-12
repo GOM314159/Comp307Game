@@ -57,12 +57,13 @@ Material:
     - _SwirlSpeed: 1
     - _SwirlStrength: 2.5
     m_Colors:
-    - _HoleColor: {r: 0, g: 0, b: 0, a: 1}
-    - _InnerColorA: {r: 0.03, g: 0.11999992, b: 0.21999994, a: 1}
-    - _InnerColorB: {r: 0.07999993, g: 0.5499999, b: 1, a: 1}
-    - _InnerFrameColor: {r: 0.17679779, g: 0.2735849, b: 0.2735849, a: 1}
-    - _OuterColor: {r: 0.27058825, g: 0.8000001, b: 1, a: 1}
-    - _OuterGlowColor: {r: 0.16037738, g: 0.16037738, b: 0.16037738, a: 1}
+    - _HoleColor: {r: 0.011764706, g: 0, b: 0.023529412, a: 1}
+    - _InnerColorA: {r: 0.07058824, g: 0, b: 0.09411765, a: 1}
+    - _InnerColorB: {r: 0.54509807, g: 0.12549016, b: 1, a: 1}
+    - _InnerFrameColor: {r: 0.22745098, g: 0.08627451, b: 0.30980393, a: 1}
+    - _OuterColor: {r: 0.7529412, g: 0.29803923, b: 1, a: 1}
+    - _OuterGlowColor: {r: 0.09411765, g: 0, b: 0.12156863, a: 1}
     - _Size: {r: 0.5, g: 0.85, b: 0, a: 0}
     - _SparkColor: {r: 0.9, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
