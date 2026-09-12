@@ -8,6 +8,7 @@ public class PlayerDamageObject : MonoBehaviour
     [Header("Contact Settings")]
     [SerializeField] private bool damageOncePerContact = true;
 
+    
     private bool playerInContact;
 
     private void OnCollisionEnter(Collision collision)
