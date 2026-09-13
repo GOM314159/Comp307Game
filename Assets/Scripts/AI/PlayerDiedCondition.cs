@@ -25,8 +25,6 @@ public partial class PlayerAliveCondition : Condition
     public override void OnStart()
     {
 
-        AliveFlag.Value = Self.Value.GetComponent<PlayerStateManager>().GetCurrentState() != PlayerStateManager.PlayerState.RIP;
-
     }
 
     public override void OnEnd()

@@ -95,4 +95,14 @@ public class Health : MonoBehaviour, IDamageable
         Destroy( gameObject );
     }
 
+    public float GetCurrentHealth()
+    {
+        return currentHealth;
+    } 
+
+    public bool IsDead()
+    {
+        return isDead;
+    }
+
 }
