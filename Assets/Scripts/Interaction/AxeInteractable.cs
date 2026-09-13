@@ -105,7 +105,7 @@ public class AxeInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
-        // OBJECTIVE - SIDD PLEASE SEE ME
+        // OBJECTIVE - SIDD PLEASE SEE ME - Sorted bru
         // -----------------------------------------------------
 
         if (CaseManager.Instance == null)
@@ -117,7 +117,18 @@ public class AxeInteractable : WorldInteractable
         }
         else
         {
-            CaseManager.Instance.FindRequiredObject();
+            bool objectiveRegistered =
+                CaseManager.Instance.TryRegisterRequiredObject(
+                    this
+                );
+
+            if (!objectiveRegistered)
+            {
+                Debug.LogWarning(
+                    "[Axe] Axe was picked up, but it was not " +
+                    "registered as the current case objective."
+                );
+            }
         }
 
 

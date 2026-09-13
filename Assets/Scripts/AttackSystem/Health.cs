@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 public class Health : MonoBehaviour, IDamageable
@@ -11,11 +12,39 @@ public class Health : MonoBehaviour, IDamageable
     [SerializeField]
     private float maxHealth = 100f;
 
-
     [SerializeField]
     private float currentHealth;
 
+
+    // =========================================================
+    // DEATH SETTINGS
+    // =========================================================
+
+    [Header("Death")]
+
+    [Tooltip(
+        "If true, the GameObject is destroyed when health "
+        + "reaches zero."
+        + "\n\n"
+        + "For bosses, leave this FALSE so the reset system "
+        + "can restore their health."
+    )]
+    [SerializeField]
+    private bool destroyOnDeath = false;
+
+
+    // =========================================================
+    // STATE
+    // =========================================================
+
     private bool isDead;
+
+
+    // =========================================================
+    // EVENTS
+    // =========================================================
+
+    public event Action OnDied;
 
 
     // =========================================================
@@ -25,6 +54,7 @@ public class Health : MonoBehaviour, IDamageable
     private void Awake()
     {
         currentHealth = maxHealth;
+        isDead = false;
     }
 
 
@@ -55,6 +85,7 @@ public class Health : MonoBehaviour, IDamageable
             + currentHealth
         );
 
+
         if (currentHealth <= 0f)
         {
             currentHealth = 0f;
@@ -65,10 +96,7 @@ public class Health : MonoBehaviour, IDamageable
         }
 
         return false;
-
     }
-
-
 
 
     // =========================================================
@@ -82,27 +110,70 @@ public class Health : MonoBehaviour, IDamageable
             return;
         }
 
-
         isDead = true;
+
 
         Debug.Log(
             "[Health] "
             + gameObject.name
             + " died."
         );
-        // Actual death behaviour will be added later.
-        // Play death animation here.
-        Destroy( gameObject );
+
+
+        // -----------------------------------------------------
+        // NOTIFY ALL LISTENERS
+        // -----------------------------------------------------
+
+        OnDied?.Invoke();
+
+
+        // -----------------------------------------------------
+        // OPTIONAL DESTRUCTION
+        // -----------------------------------------------------
+
+        if (destroyOnDeath)
+        {
+            Destroy(gameObject);
+        }
     }
+
+
+    // =========================================================
+    // RESET
+    // =========================================================
+
+    public void ResetHealth()
+    {
+        currentHealth = maxHealth;
+        isDead = false;
+
+        Debug.Log(
+            "[Health] "
+            + gameObject.name
+            + " health reset to "
+            + maxHealth
+        );
+    }
+
+
+    // =========================================================
+    // GETTERS
+    // =========================================================
 
     public float GetCurrentHealth()
     {
         return currentHealth;
-    } 
+    }
+
+
+    public float GetMaxHealth()
+    {
+        return maxHealth;
+    }
+
 
     public bool IsDead()
     {
         return isDead;
     }
-
 }

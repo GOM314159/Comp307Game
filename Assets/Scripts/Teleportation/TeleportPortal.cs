@@ -75,6 +75,26 @@ public class TeleportPortal : MonoBehaviour
 
 
     // =========================================================
+    // RETURN PORTAL HEALTH
+    // =========================================================
+
+    [Header("Return Portal Health")]
+
+    [Tooltip(
+        "If enabled, entering this portal will restore the " +
+        "player to maximum health in Normal Mode. " +
+        "Hardcore Mode will never restore health."
+    )]
+    [SerializeField]
+    private bool restoreHealthOnNormalReturn = true;
+
+
+    [Tooltip("Enable debug messages for return portal health.")]
+    [SerializeField]
+    private bool debugHealthRestore = true;
+
+
+    // =========================================================
     // EFFECTS / ANIMATION
     // =========================================================
 
@@ -112,10 +132,20 @@ public class TeleportPortal : MonoBehaviour
             return;
         }
 
+
+        // -----------------------------------------------------
+        // PLAYER CHECK
+        // -----------------------------------------------------
+
         if (!other.CompareTag(playerTag))
         {
             return;
         }
+
+
+        // -----------------------------------------------------
+        // DESTINATION CHECK
+        // -----------------------------------------------------
 
         if (destination == null)
         {
@@ -127,6 +157,11 @@ public class TeleportPortal : MonoBehaviour
             return;
         }
 
+
+        // -----------------------------------------------------
+        // TELEPORT MANAGER CHECK
+        // -----------------------------------------------------
+
         if (TeleportManager.Instance == null)
         {
             Debug.LogError(
@@ -136,12 +171,132 @@ public class TeleportPortal : MonoBehaviour
             return;
         }
 
+
+        // =====================================================
+        // RETURN PORTAL HEALTH
+        // =====================================================
+
+        HandleReturnPortalHealth(
+            other.gameObject
+        );
+
+
+        // =====================================================
+        // START TELEPORT
+        // =====================================================
+
         teleporting = true;
 
         TeleportManager.Instance.Teleport(
             this,
             other.gameObject
         );
+    }
+
+
+    // =========================================================
+    // RETURN PORTAL HEALTH
+    // =========================================================
+
+    private void HandleReturnPortalHealth(
+        GameObject playerObject
+    )
+    {
+        // -----------------------------------------------------
+        // ONLY RETURN PORTALS HEAL
+        // -----------------------------------------------------
+
+        if (
+            teleportType !=
+            TeleportType.ReturnFromCase
+        )
+        {
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // OPTIONAL SETTING
+        // -----------------------------------------------------
+
+        if (!restoreHealthOnNormalReturn)
+        {
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // GAME STATE MANAGER
+        // -----------------------------------------------------
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "[Teleport] GameStateManager.Instance " +
+                "is missing. Cannot determine difficulty."
+            );
+
+            return;
+        }
+
+
+        // =====================================================
+        // HARDCORE
+        // =====================================================
+        //
+        // Hardcore intentionally does NOTHING.
+        //
+        // The player's current health is preserved.
+        //
+        // =====================================================
+
+        if (GameStateManager.Instance.IsHardcore())
+        {
+            if (debugHealthRestore)
+            {
+                Debug.Log(
+                    "[Teleport] ReturnFromCase entered in " +
+                    "HARDCORE mode. Player health NOT restored."
+                );
+            }
+
+            return;
+        }
+
+
+        // =====================================================
+        // NORMAL
+        // =====================================================
+
+        if (GameStateManager.Instance.IsNormal())
+        {
+            PlayerHealth health =
+                playerObject.GetComponent<PlayerHealth>();
+
+
+            if (health == null)
+            {
+                Debug.LogWarning(
+                    "[Teleport] PlayerHealth component " +
+                    "could not be found on the player."
+                );
+
+                return;
+            }
+
+
+            health.ResetHealth();
+
+
+            if (debugHealthRestore)
+            {
+                Debug.Log(
+                    "[Teleport] ReturnFromCase entered in " +
+                    "NORMAL mode. Player health restored " +
+                    "to maximum."
+                );
+            }
+        }
     }
 
 
@@ -154,35 +309,42 @@ public class TeleportPortal : MonoBehaviour
         return destination;
     }
 
+
     public TeleportType GetTeleportType()
     {
         return teleportType;
     }
+
 
     public int GetCaseID()
     {
         return caseID;
     }
 
+
     public bool ChangesDay()
     {
         return changesDay;
     }
+
 
     public int GetDestinationDay()
     {
         return destinationDay;
     }
 
+
     public float GetTeleportDelay()
     {
         return teleportDelay;
     }
 
+
     public GameObject GetTeleportEffect()
     {
         return teleportEffect;
     }
+
 
     public AudioClip GetTeleportSound()
     {

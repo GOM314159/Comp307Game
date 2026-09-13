@@ -244,6 +244,7 @@ public class GameResetManager : MonoBehaviour
 
         ResetWorldInteractables();
 
+        ResetBosses();
 
         // -----------------------------------------------------
         // RESET CASE
@@ -323,6 +324,8 @@ public class GameResetManager : MonoBehaviour
         // -----------------------------------------------------
 
         ResetWorldInteractables();
+
+        ResetBosses();
 
 
         // -----------------------------------------------------
@@ -529,6 +532,38 @@ public class GameResetManager : MonoBehaviour
         Debug.Log(
             "[Reset] World interactables reset: "
             + interactables.Length
+        );
+    }
+
+    private void ResetBosses()
+    {
+        BossDeath[] bosses =
+            FindObjectsByType<BossDeath>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (BossDeath boss in bosses)
+        {
+            if (boss == null)
+            {
+                continue;
+            }
+
+            Health health =
+                boss.GetComponent<Health>();
+
+            if (health != null)
+            {
+                health.ResetHealth();
+            }
+
+            boss.ResetBossState();
+        }
+
+        Debug.Log(
+            "[Reset] Bosses reset: "
+            + bosses.Length
         );
     }
 }
