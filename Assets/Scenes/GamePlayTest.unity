@@ -1136,6 +1136,8 @@ MonoBehaviour:
   changesDay: 0
   destinationDay: 2
   playerTag: Player
+  restoreHealthOnNormalReturn: 1
+  debugHealthRestore: 1
   teleportDelay: 0
   teleportEffect: {fileID: 0}
   teleportSound: {fileID: 0}
@@ -2732,7 +2734,7 @@ MonoBehaviour:
   interactOnlyOnce: 1
   interactionText: {fileID: 1608388096}
   automaticallyFindText: 1
-  axeItem: {fileID: 11400000, guid: 88b6d9968193cc5449da41bb51eca3fe, type: 2}
+  axeItem: {fileID: 0}
   playerInventory: {fileID: 1442830820}
   graphAgent: {fileID: 0}
   axeDamage: 10
@@ -10973,6 +10975,8 @@ MonoBehaviour:
   changesDay: 0
   destinationDay: 3
   playerTag: Player
+  restoreHealthOnNormalReturn: 1
+  debugHealthRestore: 1
   teleportDelay: 0
   teleportEffect: {fileID: 0}
   teleportSound: {fileID: 0}
@@ -14189,6 +14193,8 @@ MonoBehaviour:
   changesDay: 0
   destinationDay: 1
   playerTag: Player
+  restoreHealthOnNormalReturn: 1
+  debugHealthRestore: 1
   teleportDelay: 0
   teleportEffect: {fileID: 0}
   teleportSound: {fileID: 0}
@@ -16847,6 +16853,8 @@ MonoBehaviour:
   changesDay: 1
   destinationDay: 2
   playerTag: Player
+  restoreHealthOnNormalReturn: 1
+  debugHealthRestore: 1
   teleportDelay: 0
   teleportEffect: {fileID: 0}
   teleportSound: {fileID: 0}
@@ -17330,13 +17338,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 854271337}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0.5, y: 0.5, z: 0.5, w: 0.5}
   m_LocalPosition: {x: 0, y: -0.0271, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 901706813}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 90}
 --- !u!1 &856787101 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -1968688116339609566, guid: 5abffa6f360991b49ad9733ea9216a78, type: 3}
@@ -17976,8 +17984,8 @@ MonoBehaviour:
   interactOnlyOnce: 0
   interactionText: {fileID: 2067574884}
   automaticallyFindText: 1
-  playerSeatPosition: {fileID: 0}
-  playerFacingDirection: {fileID: 0}
+  playerSeatPosition: {fileID: 854271338}
+  playerFacingDirection: {fileID: 1325199542}
   dailyPlays:
   - {fileID: 2023979855}
   - {fileID: 875570267}
@@ -18576,23 +18584,9 @@ CapsuleCollider:
   m_Enabled: 1
   serializedVersion: 2
   m_Radius: 0.2
-  m_Height: 1
+  m_Height: 1.2
   m_Direction: 1
   m_Center: {x: 0, y: 0.5, z: 0}
---- !u!114 &939189178
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 939189167}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3374e7e029d3c9a478b4afa5d8f9ee27, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerDamageObject
-  damage: 25
-  damageOncePerContact: 1
 --- !u!114 &939189180
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18605,8 +18599,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3433af0d1da973b40bdd47df3a9d7d1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
-  maxHealth: 50
-  currentHealth: 50
+  maxHealth: 10
+  currentHealth: 10
+  destroyOnDeath: 1
+--- !u!114 &939189182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 939189167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d98c4854c39aee44c8ec8b66292f77b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAttack
+  damage: 10
+  attackRange: 1
+  attackCooldown: 2
+  playerHealth: {fileID: 1442830827}
+  debugAttack: 1
+--- !u!114 &939189183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 939189167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6eaf5c2490d84a4d9b393153cb9232d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossDeath
+  bossHealth: {fileID: 939189180}
+  returnPortal: {fileID: 836588982}
+  debugBossDeath: 1
 --- !u!64 &940231560
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -25038,6 +25065,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 50
   currentHealth: 50
+  destroyOnDeath: 1
 --- !u!135 &1255261883
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -26436,13 +26464,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1325199541}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: 0.5, y: 0.5, z: 0.5, w: 0.5}
   m_LocalPosition: {x: -0, y: -0.0271, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 901706813}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 90}
 --- !u!1 &1329334640 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1885859853727850635, guid: 5abffa6f360991b49ad9733ea9216a78, type: 3}
@@ -28276,6 +28304,8 @@ MonoBehaviour:
   changesDay: 0
   destinationDay: 1
   playerTag: Player
+  restoreHealthOnNormalReturn: 1
+  debugHealthRestore: 1
   teleportDelay: 0
   teleportEffect: {fileID: 0}
   teleportSound: {fileID: 0}
@@ -30557,10 +30587,13 @@ PrefabInstance:
       addedObject: {fileID: 939189177}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5e089ae1c9732b8418eb03b7b373e87e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 939189178}
+      addedObject: {fileID: 939189180}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5e089ae1c9732b8418eb03b7b373e87e, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 939189180}
+      addedObject: {fileID: 939189183}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5e089ae1c9732b8418eb03b7b373e87e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 939189182}
     - targetCorrespondingSourceObject: {fileID: -5151492872390713093, guid: 5e089ae1c9732b8418eb03b7b373e87e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1421589981}
@@ -40289,9 +40322,11 @@ MonoBehaviour:
     description: Axe and Puppet
     hasTimer: 1
     timeLimit: 1000
+    requiredObject: {fileID: 34557650}
     objectName: Axe
     bossName: Puppet
     hasSideQuest: 1
+    sideQuestItem: {fileID: 0}
     sideQuestName: White Powder
     requiredForDayCompletion: 1
   - caseID: 2
@@ -40299,9 +40334,11 @@ MonoBehaviour:
     description: Wire Cutters and Puppet
     hasTimer: 1
     timeLimit: 1000
+    requiredObject: {fileID: 0}
     objectName: Wire Cutters
     bossName: Puppet
     hasSideQuest: 1
+    sideQuestItem: {fileID: 0}
     sideQuestName: White Tablet
     requiredForDayCompletion: 1
   - caseID: 3
@@ -40309,9 +40346,11 @@ MonoBehaviour:
     description: Gun and Puppets and Henchman
     hasTimer: 0
     timeLimit: 0
+    requiredObject: {fileID: 0}
     objectName: Gun
     bossName: Puppet and Minions
     hasSideQuest: 1
+    sideQuestItem: {fileID: 0}
     sideQuestName: Blue Tablet
     requiredForDayCompletion: 1
   currentCase:
@@ -40320,9 +40359,11 @@ MonoBehaviour:
     description: 
     hasTimer: 0
     timeLimit: 300
+    requiredObject: {fileID: 0}
     objectName: Required Object
     bossName: Case Boss
     hasSideQuest: 1
+    sideQuestItem: {fileID: 0}
     sideQuestName: 
     requiredForDayCompletion: 1
   currentCaseIndex: -1
@@ -40564,7 +40605,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TeleportManager
   debugTeleport: 1
-  case1StartDestination: {fileID: 0}
+  case1StartDestination: {fileID: 521517602}
   case2StartDestination: {fileID: 0}
   case3StartDestination: {fileID: 0}
   theaterCase1ReturnDestination: {fileID: 1273866107}

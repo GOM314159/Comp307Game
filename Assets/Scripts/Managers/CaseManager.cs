@@ -35,6 +35,10 @@ public class CaseManager : MonoBehaviour
         public string description;
 
 
+        // =========================================================
+        // TIMER
+        // =========================================================
+
         [Header("Timer")]
 
         public bool hasTimer = false;
@@ -43,19 +47,59 @@ public class CaseManager : MonoBehaviour
         public float timeLimit = 300f;
 
 
-        [Header("Objectives")]
+        // =========================================================
+        // MAIN OBJECTIVE
+        // =========================================================
 
+        [Header("Main Objective")]
+
+        [Tooltip(
+            "The world interactable that completes the " +
+            "main objective for this case.\n\n" +
+            "Example:\n" +
+            "Day 1 = Axe\n" +
+            "Day 2 = Cable Cutter\n" +
+            "Day 3 = Gun"
+        )]
+        public WorldInteractable requiredObject;
+
+        [Tooltip("Display name for the required object.")]
         public string objectName = "Required Object";
+
+
+        // =========================================================
+        // BOSS
+        // =========================================================
+
+        [Header("Boss")]
 
         public string bossName = "Case Boss";
 
+
+        // =========================================================
+        // SIDE QUEST
+        // =========================================================
 
         [Header("Side Quest")]
 
         public bool hasSideQuest = true;
 
+        [Tooltip(
+            "The world interactable that completes the side quest " +
+            "for this case.\n\n" +
+            "Example:\n" +
+            "Day 1 = White Powder\n" +
+            "Day 2 = Blue Tablet\n" +
+            "Day 3 = White Tablet"
+        )]
+        public WorldInteractable sideQuestItem;
+
         public string sideQuestName;
 
+
+        // =========================================================
+        // COMPLETION
+        // =========================================================
 
         [Header("Completion")]
 
@@ -335,7 +379,171 @@ public class CaseManager : MonoBehaviour
         return true;
     }
 
+    public bool TryRegisterRequiredObject(
+    WorldInteractable pickedUpObject)
+    {
+        if (!caseActive)
+        {
+            DebugCase(
+                "Required object pickup ignored. " +
+                "No case is active."
+            );
 
+            return false;
+        }
+
+        if (pickedUpObject == null)
+        {
+            Debug.LogWarning(
+                "[Case Manager] Required object was null."
+            );
+
+            return false;
+        }
+
+        if (currentCase == null)
+        {
+            Debug.LogWarning(
+                "[Case Manager] No current case."
+            );
+
+            return false;
+        }
+
+        // ---------------------------------------------------------
+        // MAKE SURE THIS IS THE CORRECT CASE ITEM
+        // ---------------------------------------------------------
+
+        if (currentCase.requiredObject != pickedUpObject)
+        {
+            Debug.LogWarning(
+                "[Case Manager] "
+                + pickedUpObject.gameObject.name
+                + " was picked up, but it is NOT the required "
+                + "object for Case "
+                + currentCase.caseID
+                + "."
+            );
+
+            return false;
+        }
+
+        // ---------------------------------------------------------
+        // ALREADY FOUND
+        // ---------------------------------------------------------
+
+        if (objectFound)
+        {
+            return false;
+        }
+
+        // ---------------------------------------------------------
+        // REGISTER
+        // ---------------------------------------------------------
+
+        objectFound = true;
+        bossUnlocked = true;
+
+        // ---------------------------------------------------------
+        // GAME STATE
+        // ---------------------------------------------------------
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.FindObject();
+        }
+
+        // ---------------------------------------------------------
+        // EVENTS
+        // ---------------------------------------------------------
+
+        OnObjectFound?.Invoke();
+        OnBossUnlocked?.Invoke();
+
+        DebugCase(
+            "Required object registered: "
+            + pickedUpObject.gameObject.name
+            + ". Boss objective unlocked."
+        );
+
+        return true;
+    }
+
+    public bool TryRegisterSideQuestItem(
+    WorldInteractable pickedUpItem)
+    {
+        if (!caseActive)
+        {
+            DebugCase(
+                "Side quest pickup ignored. "
+                + "No case is active."
+            );
+
+            return false;
+        }
+
+        if (pickedUpItem == null)
+        {
+            return false;
+        }
+
+        if (currentCase == null)
+        {
+            return false;
+        }
+
+        if (!currentCase.hasSideQuest)
+        {
+            return false;
+        }
+
+        // ---------------------------------------------------------
+        // MAKE SURE THIS IS THE CORRECT SIDE QUEST ITEM
+        // ---------------------------------------------------------
+
+        if (currentCase.sideQuestItem != pickedUpItem)
+        {
+            Debug.LogWarning(
+                "[Case Manager] "
+                + pickedUpItem.gameObject.name
+                + " was picked up, but it is NOT the side quest "
+                + "item for Case "
+                + currentCase.caseID
+                + "."
+            );
+
+            return false;
+        }
+
+        // ---------------------------------------------------------
+        // ALREADY COMPLETE
+        // ---------------------------------------------------------
+
+        if (sideQuestComplete)
+        {
+            return false;
+        }
+
+        // ---------------------------------------------------------
+        // COMPLETE SIDE QUEST
+        // ---------------------------------------------------------
+
+        sideQuestComplete = true;
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.CompleteSideQuest();
+        }
+
+        DebugCase(
+            "Side quest item registered: "
+            + pickedUpItem.gameObject.name
+        );
+
+        OnSideQuestCompleted?.Invoke();
+
+        return true;
+    }
     public void FindRequiredObject()
     {
         if (!CanFindObject())
