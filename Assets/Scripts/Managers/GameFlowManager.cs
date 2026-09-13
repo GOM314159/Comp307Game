@@ -30,6 +30,11 @@ public class GameFlowManager : MonoBehaviour
     [SerializeField]
     private IntroCutscene introCutscene;
 
+    [Header("First Game Cutscene")]
+
+    [SerializeField]
+    private FirstGameCutscene firstGameCutscene;
+
     [Header("Death Menu")]
 
     [SerializeField]
@@ -324,9 +329,92 @@ public class GameFlowManager : MonoBehaviour
         // START INTRO
         // ---------------------------------------------------------
 
-        StartIntro();
+        StartFirstGameSequence();
 
 
+    }
+
+    public void StartFirstGameSequence()
+    {
+        DebugFlow(
+            "Starting first-game cinematic sequence."
+        );
+
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] GameStateManager is missing."
+            );
+
+            return;
+        }
+
+
+        // ---------------------------------------------------------
+        // CUTSCENE STATE
+        // ---------------------------------------------------------
+
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.Cutscene
+        );
+
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.Cutscene
+            );
+        }
+
+
+        // ---------------------------------------------------------
+        // HIDE HUD
+        // ---------------------------------------------------------
+
+        SetGameplayHUDVisible(false);
+
+
+        // ---------------------------------------------------------
+        // HIDE MENU
+        // ---------------------------------------------------------
+
+        if (mainMenuGroup != null)
+        {
+            mainMenuGroup.SetActive(false);
+        }
+
+        if (gameModeSelectionScreen != null)
+        {
+            gameModeSelectionScreen.SetActive(false);
+        }
+
+
+        // ---------------------------------------------------------
+        // CURSOR
+        // ---------------------------------------------------------
+
+        Cursor.lockState =
+            CursorLockMode.Locked;
+
+        Cursor.visible = false;
+
+
+        // ---------------------------------------------------------
+        // PLAY SEQUENCE
+        // ---------------------------------------------------------
+
+        if (firstGameCutscene == null)
+        {
+            Debug.LogError(
+                "[GameFlow] FirstGameCutscene reference missing."
+            );
+
+            return;
+        }
+
+
+        firstGameCutscene.PlayFirstGameSequence();
     }
 
     // =========================================================

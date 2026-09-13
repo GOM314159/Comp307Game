@@ -20,7 +20,7 @@ public class PlayerInteraction : MonoBehaviour
     [Header("Interaction Settings")]
 
     // Adjust interaction range here.
-    [SerializeField] private float interactionRange = 3f;
+    [SerializeField] private float interactionRange = 1.25f;
 
     // Which layers can contain interactable objects.
     [SerializeField] private LayerMask interactionMask;
@@ -127,22 +127,26 @@ public class PlayerInteraction : MonoBehaviour
         // UPDATE PROMPT
         // =========================================================
 
+        // Hide the previous interactable's prompt
         if (previousInteractable != currentInteractable)
         {
-            // Hide previous prompt
             if (previousInteractable is WorldInteractable previousWorld)
             {
                 previousWorld.HideInteractionPrompt();
             }
+        }
 
-
-            // Show new prompt
-            if (currentInteractable is WorldInteractable currentWorld)
+        // Keep the current prompt in sync with whether
+        // the object is currently interactable.
+        if (currentInteractable is WorldInteractable currentWorld)
+        {
+            if (currentWorld.CanInteract())
             {
-                if (currentWorld.CanInteract())
-                {
-                    currentWorld.ShowInteractionPrompt();
-                }
+                currentWorld.ShowInteractionPrompt();
+            }
+            else
+            {
+                currentWorld.HideInteractionPrompt();
             }
         }
     }

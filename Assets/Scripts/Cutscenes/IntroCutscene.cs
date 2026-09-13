@@ -20,6 +20,8 @@ public class IntroCutscene : MonoBehaviour
     private bool hasFinished = false;
     private bool isPlaying = false;
 
+    private System.Action finishCallback;
+
 
     // =========================================================
     // UNITY
@@ -138,7 +140,7 @@ public class IntroCutscene : MonoBehaviour
         // -----------------------------------------------------
         // PREPARE VIDEO
         // -----------------------------------------------------
-
+        SetupCamera();
         videoPlayer.Stop();
         videoPlayer.Prepare();
     }
@@ -208,9 +210,27 @@ public class IntroCutscene : MonoBehaviour
             "[IntroCutscene] Intro cutscene finished."
         );
 
-        // -----------------------------------------------------
-        // RETURN PLAYER TO GAMEPLAY STATE
-        // -----------------------------------------------------
+
+        // =========================================================
+        // CUSTOM CALLBACK
+        // =========================================================
+
+        if (finishCallback != null)
+        {
+            System.Action callback =
+                finishCallback;
+
+            finishCallback = null;
+
+            callback.Invoke();
+
+            return;
+        }
+
+
+        // =========================================================
+        // NORMAL GAME FLOW
+        // =========================================================
 
         if (PlayerStateManager.Instance != null)
         {
@@ -219,20 +239,55 @@ public class IntroCutscene : MonoBehaviour
             );
         }
 
-        // -----------------------------------------------------
-        // CONTINUE GAME FLOW
-        // -----------------------------------------------------
-
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance.IntroFinished();
         }
-        else
+    }
+
+    private void SetupCamera()
+    {
+        if (Camera.main == null)
+        {
+            Debug.LogWarning(
+                "[IntroCutscene] Main Camera not found."
+            );
+
+            return;
+        }
+
+        videoPlayer.renderMode =
+            VideoRenderMode.CameraNearPlane;
+
+        videoPlayer.targetCamera =
+            Camera.main;
+
+        videoPlayer.targetCameraAlpha = 1f;
+    }
+
+    public void PlayIntroWithoutFlowCallback(
+    System.Action onFinished)
+    {
+        if (videoPlayer == null)
         {
             Debug.LogError(
-                "[IntroCutscene] GameFlowManager.Instance is missing."
+                "[IntroCutscene] VideoPlayer is missing."
             );
+
+            onFinished?.Invoke();
+
+            return;
         }
+
+        hasFinished = false;
+        isPlaying = true;
+
+        finishCallback = onFinished;
+
+        SetupCamera();
+
+        videoPlayer.Stop();
+        videoPlayer.Prepare();
     }
 
 

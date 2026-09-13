@@ -1,619 +1,958 @@
 using UnityEngine;
-using UnityEngine.Playables;
+using UnityEngine.Video;
 using System.Collections.Generic;
-
 /// <summary>
 /// Chair interactable used to watch the theater play.
 ///
-/// Each day can have its own PlayableDirector / Timeline.
-/// The player is locked into a specific position and rotation
-/// while the play is running.
+/// The chair is reusable for every day:
 ///
-/// A play can only be watched once per day.
-/// Dying and respawning resets the play availability for that day.
-/// Completely restarting the game also resets all play availability.
+/// Day 1 -> Play 1
+/// Day 2 -> Play 2
+/// Day 3 -> Play 3
+/// Day 4 -> Play 4
+///
+/// A play can only be watched once during the current run/day.
+///
+/// IMPORTANT:
+/// If the player dies during the case, the watched-play tracking
+/// is reset, allowing the player to watch that day's play again
+/// after respawning.
+///
+/// The theater plays are VideoPlayers rather than PlayableDirectors.
+///
+/// Each play can fade in and fade out using the assigned
+/// CanvasGroup.
 /// </summary>
 public class Chair : WorldInteractable
 {
     // =========================================================
     // CHAIR SETTINGS
     // =========================================================
-
     [Header("Chair")]
-
-    [Tooltip("The position where the player will be placed when sitting.")]
+    [Tooltip(
+     "The position where the player will be placed when sitting."
+     )]
     [SerializeField]
     private Transform playerSeatPosition;
-
-    [Tooltip("Optional. If assigned, this transform determines the player's facing direction.")]
+    [Tooltip(
+     "Optional. Determines which direction the player faces."
+     )]
     [SerializeField]
     private Transform playerFacingDirection;
-
-
-    // =========================================================
-    // DAILY CUTSCENES
-    // =========================================================
-
-    [Header("Daily Theater Plays")]
-
+// =========================================================
+// DAILY THEATER PLAYS
+// =========================================================
+[Header("Daily Theater Plays")]
     [Tooltip(
-        "One Timeline / PlayableDirector per day. " +
-        "Element 0 = Day 1, Element 1 = Day 2, etc."
-    )]
+ "One VideoPlayer per day.\n" +
+ "Element 0 = Day 1\n" +
+ "Element 1 = Day 2\n" +
+ "Element 2 = Day 3\n" +
+ "Element 3 = Day 4"
+ )]
     [SerializeField]
-    private List<PlayableDirector> dailyPlays =
-        new List<PlayableDirector>();
-
-
+    private List<VideoPlayer> dailyPlays =
+new List<VideoPlayer>();
     // =========================================================
-    // SETTINGS
+    // FADE
     // =========================================================
-
+    [Header("Play Fade")]
+    [Tooltip(
+     "CanvasGroup used as a full-screen black fade overlay."
+     )]
+    [SerializeField]
+    private CanvasGroup fadeCanvasGroup;
+    [Tooltip(
+     "How long the screen takes to fade to black before "
+     + "the video starts."
+     )]
+    [SerializeField]
+    private float fadeOutDuration = 0.75f;
+    [Tooltip(
+     "How long the screen takes to fade from black after "
+     + "the video begins."
+     )]
+    [SerializeField]
+    private float fadeInDuration = 0.75f;
+    [Tooltip(
+     "If true, the video begins while the screen is black "
+     + "and then fades into the video."
+    
+     )]
+    [SerializeField]
+    private bool fadeIntoVideo = true;
+    // =========================================================
+    // PLAYBACK SETTINGS
+    // =========================================================
     [Header("Playback Settings")]
-
-    [Tooltip("GameStateManager mode while the theater play is running.")]
+    [Tooltip(
+     "Game mode used while the player watches the play."
+     )]
     [SerializeField]
     private GameStateManager.GameMode watchingGameMode =
-        GameStateManager.GameMode.WatchingPlay;
-
-    [Tooltip("Player state used while watching the play.")]
+    GameStateManager.GameMode.WatchingPlay;
+    [Tooltip(
+     "Player state used while watching."
+     )]
     [SerializeField]
     private PlayerStateManager.PlayerState watchingPlayerState =
-        PlayerStateManager.PlayerState.Cutscene;
-
-
+    PlayerStateManager.PlayerState.Cutscene;
     // =========================================================
-    // DEBUG
+    // VIDEO SETTINGS
     // =========================================================
-
-    [Header("Debug")]
-
+    [Header("Video Settings")]
+    [Tooltip(
+     "If enabled, videos automatically render to the Main Camera."
+     )]
+    [SerializeField]
+    private bool renderVideosToMainCamera = true;
+    [Tooltip(
+     "If enabled, video audio is played through the VideoPlayer."
+     )]
+    [SerializeField]
+    private bool useVideoAudio = true;
+// =========================================================
+// DEBUG
+// =========================================================
+[Header("Debug")]
     [SerializeField]
     private bool debugChair = true;
-
-
     // =========================================================
     // INTERNAL STATE
     // =========================================================
-
-    // Tracks whether each day's play has already been watched.
-    //
-    // Example:
+    // ---------------------------------------------------------
+    // PLAY TRACKING
+    // ---------------------------------------------------------
     // Index 0 = Day 1
     // Index 1 = Day 2
     // Index 2 = Day 3
     // Index 3 = Day 4
     //
-    // This is intentionally runtime-only.
-    // It therefore resets when the game completely restarts.
+    // Runtime-only.
+    // Resets when the game is completely restarted.
     private bool[] playsWatched;
-
-
+    // ---------------------------------------------------------
+    // CURRENT PLAY
+    // ---------------------------------------------------------
     private bool isWatchingPlay = false;
-
     private int currentPlayDay = -1;
+    private VideoPlayer currentVideoPlayer;
 
-    private GameStateManager.GameMode previousGameMode;
-
-    private PlayerStateManager.PlayerState previousPlayerState;
-
-    private Vector3 lockedPlayerPosition;
-
-    private Quaternion lockedPlayerRotation;
-
+    private int lastCheckedDay = -1;
+    // ---------------------------------------------------------
+    // PLAYER
+    // ---------------------------------------------------------
     private GameObject player;
-
-
+    private Vector3 lockedPlayerPosition;
+    private Quaternion lockedPlayerRotation;
+// ---------------------------------------------------------
+// PREVIOUS STATES
+// ---------------------------------------------------------
+private GameStateManager.GameMode previousGameMode;
+    private PlayerStateManager.PlayerState previousPlayerState;
+    // ---------------------------------------------------------
+    // COROUTINE
+    // ---------------------------------------------------------
+    private Coroutine playSequenceCoroutine;
     // =========================================================
     // UNITY
     // =========================================================
-
     protected override void Awake()
     {
         base.Awake();
-
         InitializePlayTracking();
+        SetupFade();
+        SetupVideoPlayers();
     }
-
-
     private void OnEnable()
     {
         if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.OnLoss += HandleGameLoss;
+            GameStateManager.Instance.OnLoss +=
+            HandleGameLoss;
         }
     }
-
-
     private void OnDisable()
     {
         if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.OnLoss -= HandleGameLoss;
+            GameStateManager.Instance.OnLoss -=
+            HandleGameLoss;
         }
-
         StopCurrentPlayIfNecessary();
     }
-
-
     private void Update()
     {
-        if (!isWatchingPlay)
+        // Keep the player locked while watching.
+        if (isWatchingPlay)
+        {
+            LockPlayerTransform();
+            return;
+        }
+
+        if (GameStateManager.Instance == null)
         {
             return;
         }
 
-        LockPlayerTransform();
+        int currentDay = GameStateManager.Instance.GetCurrentDay();
+        int dayIndex = currentDay - 1;
+
+        if (dayIndex < 0)
+        {
+            return;
+        }
+
+        EnsureDayTrackingExists(dayIndex);
+
+        // Detect when the game moves to a new day.
+        if (currentDay != lastCheckedDay)
+        {
+            lastCheckedDay = currentDay;
+
+            // The chair is available again if this day's play
+            // has not been watched yet.
+            SetInteractionEnabled(!playsWatched[dayIndex]);
+
+            if (!playsWatched[dayIndex])
+            {
+                ShowInteractionPrompt();
+            }
+            else
+            {
+                HideInteractionPrompt();
+            }
+        }
     }
-
-
     // =========================================================
     // INITIALIZATION
     // =========================================================
-
     private void InitializePlayTracking()
     {
-        int numberOfDays = 0;
-
-        if (GameStateManager.Instance != null)
-        {
-            numberOfDays =
-                Mathf.Max(
-                    1,
-                    GameStateManager.Instance.CurrentDay
-                );
-        }
-
-        // The list itself determines how many possible plays exist.
-        //
-        // This is resized automatically so the system can support
-        // additional days without changing this script.
         int numberOfPlays =
-            Mathf.Max(
-                numberOfDays,
-                dailyPlays.Count
-            );
-
+        Mathf.Max(
+        1,
+        dailyPlays.Count
+        );
         playsWatched =
-            new bool[numberOfPlays];
+        new bool[numberOfPlays];
+    }
+    private void SetupFade()
+    {
+        if (fadeCanvasGroup == null)
+        {
+            return;
+        }
+        fadeCanvasGroup.alpha = 0f;
+        fadeCanvasGroup.blocksRaycasts = false;
+        fadeCanvasGroup.interactable = false;
     }
 
-
+private void SetupVideoPlayers()
+    {
+        for (
+        int i = 0;
+        i < dailyPlays.Count;
+        i++
+        )
+        {
+            VideoPlayer video =
+            dailyPlays[i];
+            if (video == null)
+            {
+                continue;
+            }
+            video.playOnAwake = false;
+            video.isLooping = false;
+            if (useVideoAudio)
+            {
+                video.audioOutputMode =
+                VideoAudioOutputMode.Direct;
+                video.EnableAudioTrack(
+                0,
+                true
+                );
+            }
+            if (renderVideosToMainCamera)
+            {
+                SetupVideoCamera(video);
+            }
+        }
+    }
+    private void SetupVideoCamera(
+    VideoPlayer video
+    )
+    {
+        if (Camera.main == null)
+        {
+            DebugChair(
+            "Main Camera not found while setting up video."
+            );
+            
+        return;
+        }
+        video.renderMode =
+        VideoRenderMode.CameraNearPlane;
+        video.targetCamera =
+        Camera.main;
+        video.targetCameraAlpha = 1f;
+    }
     // =========================================================
     // INTERACTION
     // =========================================================
-
     public override void Interact()
     {
         // -----------------------------------------------------
-        // BASIC INTERACTION CHECK
+        // BASIC CHECK
         // -----------------------------------------------------
-
         if (!CanInteract())
         {
             return;
         }
-
         if (isWatchingPlay)
         {
             return;
         }
-
-
         // -----------------------------------------------------
-        // GAME STATE CHECK
+        // GAME STATE
         // -----------------------------------------------------
-
         if (GameStateManager.Instance == null)
         {
             Debug.LogError(
-                "[Chair] GameStateManager is missing."
+            "[Chair] GameStateManager is missing."
             );
-
             return;
         }
-
-
-        // -----------------------------------------------------
-        // PLAYER STATE CHECK
-        // -----------------------------------------------------
-
-        if (PlayerStateManager.Instance == null)
+        
+    // -----------------------------------------------------
+    // PLAYER STATE
+    // -----------------------------------------------------
+if (PlayerStateManager.Instance == null)
         {
             Debug.LogError(
-                "[Chair] PlayerStateManager is missing."
+            "[Chair] PlayerStateManager is missing."
             );
-
             return;
         }
-
-
         // -----------------------------------------------------
         // CURRENT DAY
         // -----------------------------------------------------
-
         int currentDay =
-            GameStateManager.Instance.GetCurrentDay();
-
+        GameStateManager.Instance.GetCurrentDay();
         int dayIndex =
-            currentDay - 1;
-
-
-        // -----------------------------------------------------
-        // MAKE SURE TRACKING ARRAY IS LARGE ENOUGH
-        // -----------------------------------------------------
-
-        EnsureDayTrackingExists(dayIndex);
-
-
-        // -----------------------------------------------------
-        // HAS THIS PLAY ALREADY BEEN WATCHED?
-        // -----------------------------------------------------
-
-        if (playsWatched[dayIndex])
+        currentDay - 1;
+        if (dayIndex < 0)
         {
-            DebugChair(
-                "Day " + currentDay +
-                " play has already been watched."
+            Debug.LogError(
+            "[Chair] Invalid day: "
+            + currentDay
             );
-
             return;
         }
-
-
         // -----------------------------------------------------
-        // GET THAT DAY'S PLAY
+        // ENSURE TRACKING
         // -----------------------------------------------------
-
-        PlayableDirector play =
-            GetPlayForDay(dayIndex);
-
+        EnsureDayTrackingExists(dayIndex);
+        // -----------------------------------------------------
+        // ALREADY WATCHED?
+        // -----------------------------------------------------
+        
+    if (playsWatched[dayIndex])
+        {
+            DebugChair(
+            "Day "
+            + currentDay
+            + " play has already been watched."
+            );
+            return;
+        }
+        // -----------------------------------------------------
+        // GET VIDEO
+        // -----------------------------------------------------
+        VideoPlayer play =
+        GetPlayForDay(dayIndex);
         if (play == null)
         {
             Debug.LogWarning(
-                "[Chair] No theater play has been assigned for Day "
-                + currentDay
-                + "."
+            "[Chair] No theater video assigned for Day "
+            + currentDay
+            + "."
             );
-
             return;
         }
-
-
         // -----------------------------------------------------
-        // START PLAY
+        // START
         // -----------------------------------------------------
-
         StartPlay(
-            currentDay,
-            play
+        currentDay,
+        play
         );
     }
-
-
     // =========================================================
-    // GET PLAY FOR DAY
+    // GET PLAY
     // =========================================================
-
-    private PlayableDirector GetPlayForDay(int dayIndex)
+    private VideoPlayer GetPlayForDay(int dayIndex)
     {
         if (dayIndex < 0)
         {
             return null;
         }
-
         if (dayIndex >= dailyPlays.Count)
         {
             return null;
         }
-
         return dailyPlays[dayIndex];
     }
-
-
     // =========================================================
     // START PLAY
     // =========================================================
-
     private void StartPlay(
-        int day,
-        PlayableDirector play
+    int day,
+    VideoPlayer play
     )
     {
+        // -----------------------------------------------------
+        // FIND PLAYER
+        // -----------------------------------------------------
         player =
-            FindAnyObjectByType<PlayerStateManager>()?
-            .gameObject;
-
+        FindAnyObjectByType<PlayerStateManager>()?
+        .gameObject;
         if (player == null)
         {
             Debug.LogError(
-                "[Chair] Could not find player."
+            "[Chair] Could not find player."
             );
-
             return;
         }
-
-
         PlayerStateManager playerState =
-            PlayerStateManager.Instance;
-
-        if (playerState == null)
+        PlayerStateManager.Instance;
+        
+    if (playerState == null)
         {
             Debug.LogError(
-                "[Chair] PlayerStateManager.Instance is missing."
+            "[Chair] PlayerStateManager.Instance is missing."
             );
-
             return;
         }
-
-
         // -----------------------------------------------------
-        // SAVE PREVIOUS STATES
+        // SAVE STATES
         // -----------------------------------------------------
-
         previousGameMode =
-            GameStateManager.Instance.GetGameMode();
-
+        GameStateManager.Instance.GetGameMode();
         previousPlayerState =
-            playerState.GetCurrentState();
-
-
+        playerState.GetCurrentState();
         // -----------------------------------------------------
         // POSITION PLAYER
         // -----------------------------------------------------
-
         MovePlayerIntoSeat();
-
-
-        // -----------------------------------------------------
-        // LOCK PLAYER
-        // -----------------------------------------------------
-
         LockPlayerTransform();
-
-
         // -----------------------------------------------------
-        // MARK PLAY AS WATCHED
+        // INTERNAL STATE
         // -----------------------------------------------------
-
-        playsWatched[day - 1] = true;
-
-        currentPlayDay = day;
-
-
-        // -----------------------------------------------------
-        // SET GAME STATE
-        // -----------------------------------------------------
-
-        GameStateManager.Instance.SetGameMode(
-            watchingGameMode
-        );
-
-
-        // -----------------------------------------------------
-        // SET PLAYER STATE
-        //
-        // PlayerStateManager.Cutscene already prevents:
-        //
-        // - Movement
-        // - Looking
-        // - Interaction
-        // - Inventory
-        // - Attacking
-        // - Pause
-        // -----------------------------------------------------
-
-        playerState.SetState(
-            watchingPlayerState
-        );
-
-
-        // -----------------------------------------------------
-        // PLAY TIMELINE
-        // -----------------------------------------------------
-
         isWatchingPlay = true;
-
-        play.stopped += OnPlayFinished;
-
-        play.Play();
-
-
+        currentPlayDay = day;
+        currentVideoPlayer = play;
+        // -----------------------------------------------------
+        // GAME STATE
+        // -----------------------------------------------------
+        GameStateManager.Instance.SetCurrentPlay(day);
+        
+    GameStateManager.Instance.SetGameMode(
+    watchingGameMode
+    );
+        // -----------------------------------------------------
+        // PLAYER STATE
+        // -----------------------------------------------------
+        playerState.SetState(
+        watchingPlayerState
+        );
+        // -----------------------------------------------------
+        // HIDE HUD
+        // -----------------------------------------------------
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SetGameplayHUDVisible(
+            false
+            );
+        }
+        // -----------------------------------------------------
+        // CURSOR
+        // -----------------------------------------------------
+        Cursor.lockState =
+        CursorLockMode.Locked;
+        Cursor.visible = false;
+        // -----------------------------------------------------
+        // START COROUTINE
+        // -----------------------------------------------------
+        if (playSequenceCoroutine != null)
+        {
+            StopCoroutine(
+            playSequenceCoroutine
+            );
+        }
+        playSequenceCoroutine =
+       
+    StartCoroutine(
+    PlayVideoSequence(
+    day,
+    play
+    )
+    );
         DebugChair(
-            "Started Day "
-            + day
-            + " theater play."
+        "Starting Day "
+        + day
+        + " theater play."
         );
     }
-
-
+    // =========================================================
+    // VIDEO SEQUENCE
+    // =========================================================
+    private System.Collections.IEnumerator PlayVideoSequence(
+    int day,
+    VideoPlayer play
+    )
+    {
+        // -----------------------------------------------------
+        // PREPARE
+        // -----------------------------------------------------
+        if (play == null)
+        {
+            FinishPlayWithoutVideo();
+            yield break;
+        }
+        // -----------------------------------------------------
+        // CAMERA
+        // -----------------------------------------------------
+        if (renderVideosToMainCamera)
+        {
+            SetupVideoCamera(play);
+        }
+        // -----------------------------------------------------
+        
+    // STOP OLD PLAY
+    // -----------------------------------------------------
+play.Stop();
+        // -----------------------------------------------------
+        // FADE TO BLACK
+        // -----------------------------------------------------
+        if (fadeCanvasGroup != null)
+        {
+            yield return FadeCanvas(
+            0f,
+            1f,
+            fadeOutDuration
+            );
+        }
+        // -----------------------------------------------------
+        // PREPARE VIDEO
+        // -----------------------------------------------------
+        bool prepared = false;
+        bool preparationFailed = false;
+        void HandlePrepared(
+        VideoPlayer source
+        )
+        {
+            prepared = true;
+        }
+        void HandleError(
+        VideoPlayer source,
+        string message
+        )
+        {
+            preparationFailed = true;
+            Debug.LogError(
+            "[Chair] Video preparation error: "
+            + message
+            );
+        }
+        
+    play.prepareCompleted +=
+    HandlePrepared;
+        play.errorReceived +=
+        HandleError;
+        play.Prepare();
+        // -----------------------------------------------------
+        // WAIT FOR PREPARATION
+        // -----------------------------------------------------
+        while (
+        !prepared &&
+        !preparationFailed
+        )
+        {
+            yield return null;
+        }
+        play.prepareCompleted -=
+        HandlePrepared;
+        play.errorReceived -=
+        HandleError;
+        // -----------------------------------------------------
+        // PREPARATION FAILED
+        // -----------------------------------------------------
+        if (preparationFailed)
+        {
+            Debug.LogError(
+            "[Chair] Could not prepare Day "
+            + day
+            + " theater video."
+            );
+            FinishPlayWithoutVideo();
+            yield break;
+        }
+        
+    // -----------------------------------------------------
+    // PLAY VIDEO
+    // -----------------------------------------------------
+bool videoFinished = false;
+        bool videoErrored = false;
+        void HandleFinished(
+        VideoPlayer source
+        )
+        {
+            videoFinished = true;
+        }
+        void HandleVideoError(
+        VideoPlayer source,
+        string message
+        )
+        {
+            videoErrored = true;
+            Debug.LogError(
+            "[Chair] Theater video error: "
+            + message
+            );
+        }
+        play.loopPointReached +=
+        HandleFinished;
+        play.errorReceived +=
+        HandleVideoError;
+        play.Play();
+        // -----------------------------------------------------
+        // MARK AS WATCHED
+        //
+        // Only mark it watched once playback actually begins.
+        // -----------------------------------------------------
+        
+    int index =
+    day - 1;
+        EnsureDayTrackingExists(index);
+        playsWatched[index] = true;
+        SetInteractionEnabled(false);
+        HideInteractionPrompt();
+        DebugChair(
+        "Day "
+        + day
+        + " theater video started."
+        );
+        // -----------------------------------------------------
+        // FADE INTO VIDEO
+        // -----------------------------------------------------
+        if (
+        fadeCanvasGroup != null &&
+        fadeIntoVideo
+        )
+        {
+            yield return FadeCanvas(
+            1f,
+            0f,
+            fadeInDuration
+            );
+        }
+        // -----------------------------------------------------
+        // WAIT FOR VIDEO
+        // -----------------------------------------------------
+        while (
+        !videoFinished &&
+        !videoErrored &&
+        isWatchingPlay
+        )
+        {
+            LockPlayerTransform();
+            yield return null;
+        }
+    // -----------------------------------------------------
+    // CLEAN EVENTS
+    // -----------------------------------------------------
+play.loopPointReached -=
+HandleFinished;
+        play.errorReceived -=
+        HandleVideoError;
+        // -----------------------------------------------------
+        // VIDEO ERROR
+        // -----------------------------------------------------
+        if (videoErrored)
+        {
+            FinishPlayWithoutVideo();
+            yield break;
+        }
+        // -----------------------------------------------------
+        // VIDEO FINISHED
+        // -----------------------------------------------------
+        if (isWatchingPlay)
+        {
+            yield return FinishPlaySequence();
+        }
+    }
+    // =========================================================
+    // FADE
+    // =========================================================
+    private System.Collections.IEnumerator FadeCanvas(
+    float from,
+    float to,
+    float duration
+    )
+    {
+        if (fadeCanvasGroup == null)
+        {
+            yield break;
+        }
+    if (duration <= 0f)
+        {
+            fadeCanvasGroup.alpha = to;
+            yield break;
+        }
+        fadeCanvasGroup.blocksRaycasts = true;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress =
+            Mathf.Clamp01(
+            elapsed / duration
+            );
+            fadeCanvasGroup.alpha =
+            Mathf.Lerp(
+            from,
+            to,
+            progress
+            );
+            yield return null;
+        }
+        fadeCanvasGroup.alpha = to;
+        if (Mathf.Approximately(to, 0f))
+        {
+            fadeCanvasGroup.blocksRaycasts = false;
+        }
+    }
+// =========================================================
+// FINISH PLAY
+// =========================================================
+private System.Collections.IEnumerator FinishPlaySequence()
+    {
+        DebugChair(
+        "Day "
+        + currentPlayDay
+        + " theater play finished."
+        );
+        // -----------------------------------------------------
+        // FADE TO BLACK
+        // -----------------------------------------------------
+        if (fadeCanvasGroup != null)
+        {
+            yield return FadeCanvas(
+            fadeCanvasGroup.alpha,
+            1f,
+            fadeOutDuration
+            );
+        }
+        // -----------------------------------------------------
+        // STOP VIDEO
+        // -----------------------------------------------------
+        if (currentVideoPlayer != null)
+        {
+            currentVideoPlayer.Stop();
+        }
+        // -----------------------------------------------------
+        // RESTORE STATES
+        // -----------------------------------------------------
+        RestoreAfterPlay();
+        // -----------------------------------------------------
+        // FADE BACK TO GAME
+        // -----------------------------------------------------
+        
+if (fadeCanvasGroup != null)
+        {
+            yield return FadeCanvas(
+            1f,
+            0f,
+            fadeInDuration
+            );
+        }
+        playSequenceCoroutine = null;
+    }
+    // =========================================================
+    // FINISH WITHOUT VIDEO
+    // =========================================================
+    private void FinishPlayWithoutVideo()
+    {
+        DebugChair(
+        "Theater play ended without successful playback."
+        );
+        if (currentVideoPlayer != null)
+        {
+            currentVideoPlayer.Stop();
+        }
+        // -----------------------------------------------------
+        // IMPORTANT:
+        // Do NOT mark a failed video as watched.
+        // -----------------------------------------------------
+        if (currentPlayDay > 0)
+        {
+            int index =
+            currentPlayDay - 1;
+            EnsureDayTrackingExists(index);
+            playsWatched[index] = false;
+        }
+        RestoreAfterPlay();
+        
+    if (fadeCanvasGroup != null)
+        {
+            fadeCanvasGroup.alpha = 0f;
+            fadeCanvasGroup.blocksRaycasts = false;
+        }
+        playSequenceCoroutine = null;
+    }
+    // =========================================================
+    // RESTORE AFTER PLAY
+    // =========================================================
+    private void RestoreAfterPlay()
+    {
+        isWatchingPlay = false;
+        // -----------------------------------------------------
+        // PLAYER STATE
+        // -----------------------------------------------------
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+            previousPlayerState
+            );
+        }
+        // -----------------------------------------------------
+        // GAME MODE
+        // -----------------------------------------------------
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+            previousGameMode
+            );
+        }
+        // -----------------------------------------------------
+        // HUD
+        
+    // -----------------------------------------------------
+if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SetGameplayHUDVisible(
+            true
+            );
+        }
+        // -----------------------------------------------------
+        // RESET REFERENCES
+        // -----------------------------------------------------
+        currentVideoPlayer = null;
+        currentPlayDay = -1;
+        player = null;
+    }
     // =========================================================
     // POSITION PLAYER
     // =========================================================
-
     private void MovePlayerIntoSeat()
     {
         if (player == null)
         {
             return;
         }
-
         if (playerSeatPosition != null)
         {
             player.transform.position =
-                playerSeatPosition.position;
+            playerSeatPosition.position;
         }
-
         if (playerFacingDirection != null)
         {
             player.transform.rotation =
-                playerFacingDirection.rotation;
+            playerFacingDirection.rotation;
         }
-
-        // Store the final position and rotation.
-        lockedPlayerPosition =
-            player.transform.position;
-
+    lockedPlayerPosition =
+    player.transform.position;
         lockedPlayerRotation =
-            player.transform.rotation;
+        player.transform.rotation;
     }
-
-
     // =========================================================
     // LOCK PLAYER
     // =========================================================
-
     private void LockPlayerTransform()
     {
         if (player == null)
         {
             return;
         }
-
         player.transform.position =
-            lockedPlayerPosition;
-
+        lockedPlayerPosition;
         player.transform.rotation =
-            lockedPlayerRotation;
+        lockedPlayerRotation;
     }
-
-
-    // =========================================================
-    // PLAY FINISHED
-    // =========================================================
-
-    private void OnPlayFinished(
-        PlayableDirector finishedDirector
-    )
-    {
-        finishedDirector.stopped -= OnPlayFinished;
-
-        if (!isWatchingPlay)
-        {
-            return;
-        }
-
-        isWatchingPlay = false;
-
-
-        DebugChair(
-            "Day "
-            + currentPlayDay
-            + " theater play finished."
-        );
-
-
-        // -----------------------------------------------------
-        // RESTORE PLAYER STATE
-        // -----------------------------------------------------
-
-        if (PlayerStateManager.Instance != null)
-        {
-            PlayerStateManager.Instance.SetState(
-                previousPlayerState
-            );
-        }
-
-
-        // -----------------------------------------------------
-        // RESTORE GAME MODE
-        // -----------------------------------------------------
-
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.SetGameMode(
-                previousGameMode
-            );
-        }
-
-
-        currentPlayDay = -1;
-
-        player = null;
-    }
-
-
     // =========================================================
     // DEATH / LOSS
     // =========================================================
-
     private void HandleGameLoss(
-        GameStateManager.LossReason reason
+    GameStateManager.LossReason reason
     )
     {
-        if (reason != GameStateManager.LossReason.PlayerDeath)
+        if (
+        reason !=
+        GameStateManager.LossReason.PlayerDeath
+        )
         {
             return;
         }
-
-
-        // -----------------------------------------------------
-        // STOP PLAY
-        // -----------------------------------------------------
-
-        StopCurrentPlayIfNecessary();
-
-
-        // -----------------------------------------------------
-        // RESET ALL DAILY PLAY AVAILABILITY
-        //
-        // This is intentional.
-        //
-        // Normal mode:
-        // PlayerDeathManager.ResetCurrentDay()
-        // resets the current day.
-        //
-        // Hardcore:
-        // PlayerDeathManager.ResetEntireGame()
-        // starts the game over.
-        //
-        // In both cases, the theater play should be available
-        // again when the new run begins.
-        // -----------------------------------------------------
-
-        ResetPlayTracking();
-
-
         DebugChair(
-            "Player died. Theater plays have been reset."
+        "Player died. Resetting theater play availability."
         );
+    // -----------------------------------------------------
+    // STOP CURRENT VIDEO
+    // -----------------------------------------------------
+StopCurrentPlayIfNecessary();
+        // -----------------------------------------------------
+        // RESET ALL PLAY AVAILABILITY
+        //
+        // This means:
+        //
+        // Player watches Day 1 play
+        // Player dies during the case
+        // Player respawns/restarts the day
+        // Day 1 play can be watched again.
+        // -----------------------------------------------------
+        ResetPlayTracking();
     }
-
-
     // =========================================================
-    // STOP PLAY
+    // STOP CURRENT PLAY
     // =========================================================
-
     private void StopCurrentPlayIfNecessary()
     {
-        if (!isWatchingPlay)
+        if (playSequenceCoroutine != null)
         {
-            return;
+            StopCoroutine(
+            playSequenceCoroutine
+            );
+            playSequenceCoroutine = null;
         }
-
-        PlayableDirector play =
-            GetPlayForDay(currentPlayDay - 1);
-
-        if (play != null)
+        if (currentVideoPlayer != null)
         {
-            play.stopped -= OnPlayFinished;
-
-            if (play.state == PlayState.Playing)
-            {
-                play.Stop();
-            }
+            currentVideoPlayer.Stop();
         }
-
         isWatchingPlay = false;
-
+    currentVideoPlayer = null;
         currentPlayDay = -1;
+        // Make sure the fade doesn't leave the player
+        // permanently behind a black screen.
+        if (fadeCanvasGroup != null)
+        {
+            fadeCanvasGroup.alpha = 0f;
+            fadeCanvasGroup.blocksRaycasts = false;
+        }
     }
-
-
     // =========================================================
     // RESET PLAY TRACKING
     // =========================================================
-
     private void ResetPlayTracking()
     {
         if (playsWatched == null)
@@ -621,75 +960,68 @@ public class Chair : WorldInteractable
             InitializePlayTracking();
             return;
         }
-
-        for (int i = 0; i < playsWatched.Length; i++)
+        for (
+        int i = 0;
+        i < playsWatched.Length;
+        i++
+        )
         {
             playsWatched[i] = false;
         }
-
         currentPlayDay = -1;
         isWatchingPlay = false;
+        currentVideoPlayer = null;
     }
-
-
-    // =========================================================
-    // ENSURE DAY EXISTS
-    // =========================================================
-
-    private void EnsureDayTrackingExists(
-        int dayIndex
-    )
+// =========================================================
+// ENSURE DAY EXISTS
+// =========================================================
+private void EnsureDayTrackingExists(
+int dayIndex
+)
     {
         if (dayIndex < 0)
         {
             return;
         }
-
         if (playsWatched == null)
         {
             playsWatched =
-                new bool[dayIndex + 1];
-
+            new bool[dayIndex + 1];
             return;
         }
-
         if (dayIndex < playsWatched.Length)
         {
             return;
         }
-
         bool[] newTracking =
-            new bool[dayIndex + 1];
-
+        new bool[dayIndex + 1];
         for (
-            int i = 0;
-            i < playsWatched.Length;
-            i++
+        int i = 0;
+        i < playsWatched.Length;
+        i++
         )
         {
             newTracking[i] =
-                playsWatched[i];
+            playsWatched[i];
         }
-
         playsWatched =
-            newTracking;
+        newTracking;
     }
 
-
-    // =========================================================
-    // DEBUG
-    // =========================================================
-
-    private void DebugChair(string message)
+// =========================================================
+// DEBUG
+// =========================================================
+private void DebugChair(
+string message
+)
     {
         if (!debugChair)
         {
             return;
         }
-
         Debug.Log(
-            "[Chair] "
-            + message
+        "[Chair] "
+        + message
         );
     }
 }
