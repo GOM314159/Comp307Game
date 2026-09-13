@@ -1,5 +1,6 @@
 using UnityEngine;
 using System;
+using Unity.Behavior;
 
 public class GameStateManager : MonoBehaviour
 {
@@ -209,48 +210,52 @@ public class GameStateManager : MonoBehaviour
     [SerializeField]
     private LossReason lastLossReason;
 
+    [Header("Behaviour Tree")]
+    [SerializeField]
+    private BehaviorGraphAgent behaviourAgent;
+
 
     // =========================================================
     // EVENTS
     // =========================================================
 
-    public event Action<GameMode> OnGameModeChanged;
+    public event System.Action<GameMode> OnGameModeChanged;
 
-    public event Action<DifficultyMode> OnDifficultyChanged;
+    public event System.Action<DifficultyMode> OnDifficultyChanged;
 
-    public event Action<PlayerGender> OnPlayerGenderChanged;
+    public event System.Action<PlayerGender> OnPlayerGenderChanged;
 
-    public event Action<int> OnDayChanged;
+    public event System.Action<int> OnDayChanged;
 
-    public event Action<int> OnPlayChanged;
+    public event System.Action<int> OnPlayChanged;
 
-    public event Action<int> OnCaseChanged;
+    public event System.Action<int> OnCaseChanged;
 
-    public event Action<ObjectiveState> OnObjectiveChanged;
+    public event System.Action<ObjectiveState> OnObjectiveChanged;
 
-    public event Action OnObjectFound;
+    public event System.Action OnObjectFound;
 
-    public event Action OnBossUnlocked;
+    public event System.Action OnBossUnlocked;
 
-    public event Action OnBossDefeated;
+    public event System.Action OnBossDefeated;
 
-    public event Action OnSideQuestCompleted;
+    public event System.Action OnSideQuestCompleted;
 
-    public event Action OnCaseStarted;
+    public event System.Action OnCaseStarted;
 
-    public event Action OnCaseCompleted;
+    public event System.Action OnCaseCompleted;
 
-    public event Action OnFinalPlayCompleted;
+    public event System.Action OnFinalPlayCompleted;
 
-    public event Action OnFinalBossDefeated;
+    public event System.Action OnFinalBossDefeated;
 
-    public event Action OnFinalCutsceneCompleted;
+    public event System.Action OnFinalCutsceneCompleted;
 
-    public event Action<float> OnCaseTimerStarted;
+    public event System.Action<float> OnCaseTimerStarted;
 
-    public event Action OnCaseTimerStopped;
+    public event System.Action OnCaseTimerStopped;
 
-    public event Action<LossReason> OnLoss;
+    public event System.Action<LossReason> OnLoss;
 
 
     // =========================================================
@@ -922,6 +927,8 @@ public class GameStateManager : MonoBehaviour
 
         ResetCaseProgress();
 
+        ResetBehaviourTree();
+
         finalPlayComplete = false;
 
         finalBossDefeated = false;
@@ -1024,6 +1031,15 @@ public class GameStateManager : MonoBehaviour
     public ObjectiveState GetCurrentObjective()
     {
         return currentObjective;
+    }
+
+    internal void ResetBehaviourTree()
+    {
+        behaviourAgent.SetVariableValue("Self", true);
+        behaviourAgent.SetVariableValue("PlayerAlive", true);
+        behaviourAgent.SetVariableValue("AxeInteracted",false);
+        Debug.Log("[GameStateManager] Resetting Behaviour Tree variables.");
+
     }
 
     public PlayerGender Gender

@@ -265,6 +265,15 @@ public class GameResetManager : MonoBehaviour
             GameStateManager.Instance.ClearLossState();
         }
 
+        //
+        // BEHAVIOUR TREE RESET
+        //
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.ResetBehaviourTree();
+        }
+
 
         Debug.Log(
             "[Reset] Current day reset complete."

@@ -7,6 +7,7 @@ public class PlayerDamageObject : MonoBehaviour
 
     [Header("Contact Settings")]
     [SerializeField] private bool damageOncePerContact = true;
+    private Vector3 playerdist;
 
     
     private bool playerInContact;
@@ -14,6 +15,12 @@ public class PlayerDamageObject : MonoBehaviour
     private void OnCollisionEnter(Collision collision)
     {
         TryDamagePlayer(collision.gameObject);
+
+        if (IsPlayer(collision.gameObject))
+        {
+            playerdist = collision.transform.position - transform.position;
+            Debug.Log("Player distance: " + playerdist.magnitude);
+        }
     }
 
     private void OnTriggerEnter(Collider other)
