@@ -65,6 +65,8 @@ public class FirstGameCutscene : MonoBehaviour
 
     private bool backstoryPlaying = false;
 
+    private VideoPlayer currentBackstoryVideo;
+
 
     // =========================================================
     // UNITY
@@ -219,12 +221,16 @@ public class FirstGameCutscene : MonoBehaviour
         selectedVideo.errorReceived +=
             OnBackstoryError;
 
-        selectedVideo.Stop();
-
-        selectedVideo.Prepare();
-
         selectedVideo.prepareCompleted +=
             OnBackstoryPrepared;
+
+        selectedVideo.frameReady +=
+            OnBackstoryFirstFrameReady;
+
+        currentBackstoryVideo = selectedVideo;
+
+        selectedVideo.Stop();
+        selectedVideo.Prepare();
     }
 
 
@@ -246,6 +252,35 @@ public class FirstGameCutscene : MonoBehaviour
 
 
     // =========================================================
+    // BACKSTORY FIRST FRAME
+    // =========================================================
+
+    private void OnBackstoryFirstFrameReady(
+        VideoPlayer player,
+        long frameIndex)
+    {
+        player.frameReady -=
+            OnBackstoryFirstFrameReady;
+
+        if (currentBackstoryVideo != player)
+        {
+            return;
+        }
+
+        DebugCutscene(
+            "Backstory first frame is ready. Switching away from intro."
+        );
+
+        // The new video has a real frame ready. Only now remove the
+        // finished intro video so the 3D world can never appear between them.
+        if (introCutscene != null)
+        {
+            introCutscene.StopForTransition();
+        }
+    }
+
+
+    // =========================================================
     // BACKSTORY FINISHED
     // =========================================================
 
@@ -256,6 +291,13 @@ public class FirstGameCutscene : MonoBehaviour
 
         player.errorReceived -=
             OnBackstoryError;
+        player.frameReady -=
+            OnBackstoryFirstFrameReady;
+
+        if (currentBackstoryVideo == player)
+        {
+            currentBackstoryVideo = null;
+        }
 
         backstoryPlaying = false;
 
@@ -280,6 +322,13 @@ public class FirstGameCutscene : MonoBehaviour
 
         player.errorReceived -=
             OnBackstoryError;
+        player.frameReady -=
+            OnBackstoryFirstFrameReady;
+
+        if (currentBackstoryVideo == player)
+        {
+            currentBackstoryVideo = null;
+        }
 
         Debug.LogError(
             "[FirstGameCutscene] Backstory video error: "
@@ -358,6 +407,9 @@ public class FirstGameCutscene : MonoBehaviour
 
         video.playOnAwake = false;
         video.isLooping = false;
+        video.waitForFirstFrame = true;
+        video.skipOnDrop = false;
+        video.sendFrameReadyEvents = true;
 
         video.Stop();
 
@@ -395,6 +447,28 @@ public class FirstGameCutscene : MonoBehaviour
 
         video.prepareCompleted -=
             OnBackstoryPrepared;
+        video.frameReady -=
+            OnBackstoryFirstFrameReady;
+    }
+
+
+    // =========================================================
+    // STOP SEQUENCE
+    // =========================================================
+
+    public void StopSequence()
+    {
+        sequenceRunning = false;
+        backstoryPlaying = false;
+        currentBackstoryVideo = null;
+
+        StopVideo(maleBackstoryVideo);
+        StopVideo(femaleBackstoryVideo);
+
+        if (introCutscene != null)
+        {
+            introCutscene.StopCutscene();
+        }
     }
 
 

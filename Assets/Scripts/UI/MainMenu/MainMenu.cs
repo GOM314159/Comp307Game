@@ -160,16 +160,16 @@ public class MainMenu : MonoBehaviour
             " | Gender: " + selectedGender
         );
 
-        // Hide the menu immediately.
-        if (mainMenuGroup != null)
-        {
-            mainMenuGroup.SetActive(false);
-        }
+        //// Hide the menu immediately.
+        //if (mainMenuGroup != null)
+        //{
+        //    mainMenuGroup.SetActive(false);
+        //}
 
-        if (gameModeSelectionScreen != null)
-        {
-            gameModeSelectionScreen.SetActive(false);
-        }
+        //if (gameModeSelectionScreen != null)
+        //{
+        //    gameModeSelectionScreen.SetActive(false);
+        //}
 
         // Start the actual game.
         if (GameFlowManager.Instance == null)

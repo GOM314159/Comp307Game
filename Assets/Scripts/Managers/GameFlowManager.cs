@@ -63,6 +63,8 @@ public class GameFlowManager : MonoBehaviour
 
     private bool createDaySnapshotOnLobbyLoad = false;
 
+    private Coroutine newGamePreparationCoroutine;
+
     [Header("Debug")]
 
     [SerializeField] private bool debugFlow = true;
@@ -104,10 +106,149 @@ public class GameFlowManager : MonoBehaviour
     // MENU
     // =========================================================
 
+    private IEnumerator PreparePlayerForNewGame()
+    {
+        DebugFlow(
+            "Preparing player for a completely new game."
+        );
+
+        if (player == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Player reference is missing."
+            );
+
+            yield break;
+        }
+
+        // =========================================================
+        // STOP PLAYER MOVEMENT
+        // =========================================================
+
+        PlayerMovement movement =
+            player.GetComponent<PlayerMovement>();
+
+        if (movement != null)
+        {
+            movement.ResetMovementAfterTeleport();
+        }
+
+
+        // =========================================================
+        // RESET LOOK
+        // =========================================================
+
+        PlayerLook look =
+            player.GetComponent<PlayerLook>();
+
+        if (look != null)
+        {
+            look.ResetLook();
+        }
+
+
+        // =========================================================
+        // MOVE PLAYER AWAY FROM PREVIOUS OBJECT
+        // =========================================================
+
+        if (playerRespawnPoint != null)
+        {
+            CharacterController controller =
+                player.GetComponent<CharacterController>();
+
+            if (controller != null)
+            {
+                controller.enabled = false;
+            }
+
+            player.transform.SetPositionAndRotation(
+                playerRespawnPoint.transform.position,
+                playerRespawnPoint.transform.rotation
+            );
+
+            if (controller != null)
+            {
+                controller.enabled = true;
+            }
+        }
+
+
+        // =========================================================
+        // RESET PLAYER STATE
+        // =========================================================
+
+        PlayerStateManager state =
+            player.GetComponent<PlayerStateManager>();
+
+        if (state != null)
+        {
+            state.ResetToDefault();
+
+            state.SetState(
+                PlayerStateManager.PlayerState.Cutscene
+            );
+        }
+
+
+        // =========================================================
+        // GIVE UNITY ONE FRAME
+        // =========================================================
+
+        // This is important.
+        //
+        // It gives the CharacterController, camera and
+        // physics system a frame to acknowledge the new
+        // player position before the intro video starts.
+
+        yield return null;
+
+
+        DebugFlow(
+            "Player is safely positioned for the new-game intro."
+        );
+    }
+
+    private IEnumerator StartNewGameAfterPlayerReset()
+    {
+        // ---------------------------------------------------------
+        // RESET PLAYER POSITION/CAMERA
+        // ---------------------------------------------------------
+
+        yield return StartCoroutine(
+            PreparePlayerForNewGame()
+        );
+
+
+        // ---------------------------------------------------------
+        // NOW START INTRO
+        // ---------------------------------------------------------
+
+        newGamePreparationCoroutine = null;
+        StartFirstGameSequence();
+    }
+
     public void OpenMainMenu()
     {
         DebugFlow("Returning to Main Menu. Resetting entire game.");
-        ResetPlayerToRespawnPoint();
+
+        // Cancel any new-game preparation that may still be running.
+        if (newGamePreparationCoroutine != null)
+        {
+            StopCoroutine(newGamePreparationCoroutine);
+            newGamePreparationCoroutine = null;
+        }
+
+        // Stop any cinematic that may still be rendering/preparing.
+        if (firstGameCutscene != null)
+        {
+            firstGameCutscene.StopSequence();
+        }
+
+        if (introCutscene != null)
+        {
+            introCutscene.StopCutscene();
+        }
+
         // Reset all game progress.
         if (GameResetManager.Instance != null)
         {
@@ -118,10 +259,15 @@ public class GameFlowManager : MonoBehaviour
             GameStateManager.Instance.ResetEntireGame();
         }
 
-        // Make sure the game is running.
         Time.timeScale = 1f;
 
-        // Set player state.
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.MainMenu
+            );
+        }
+
         if (PlayerStateManager.Instance != null)
         {
             PlayerStateManager.Instance.SetState(
@@ -129,15 +275,8 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
-        // Hide gameplay UI.
-        if (toolbar != null)
-        {
-            toolbar.SetActive(false);
-            HealthBar.SetActive(false);
-            StaminaBar.SetActive(false);
-        }
+        SetGameplayHUDVisible(false);
 
-        // Show Main Menu.
         if (mainMenuGroup != null)
         {
             mainMenuGroup.SetActive(true);
@@ -148,7 +287,6 @@ public class GameFlowManager : MonoBehaviour
             gameModeSelectionScreen.SetActive(false);
         }
 
-        // Menu needs mouse.
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
@@ -329,7 +467,13 @@ public class GameFlowManager : MonoBehaviour
         // START INTRO
         // ---------------------------------------------------------
 
-        StartFirstGameSequence();
+        if (newGamePreparationCoroutine != null)
+        {
+            StopCoroutine(newGamePreparationCoroutine);
+        }
+
+        newGamePreparationCoroutine =
+            StartCoroutine(StartNewGameAfterPlayerReset());
 
 
     }
@@ -379,15 +523,15 @@ public class GameFlowManager : MonoBehaviour
         // HIDE MENU
         // ---------------------------------------------------------
 
-        if (mainMenuGroup != null)
-        {
-            mainMenuGroup.SetActive(false);
-        }
+        //if (mainMenuGroup != null)
+        //{
+        //    mainMenuGroup.SetActive(false);
+        //}
 
-        if (gameModeSelectionScreen != null)
-        {
-            gameModeSelectionScreen.SetActive(false);
-        }
+        //if (gameModeSelectionScreen != null)
+        //{
+        //    gameModeSelectionScreen.SetActive(false);
+        //}
 
 
         // ---------------------------------------------------------
@@ -406,6 +550,12 @@ public class GameFlowManager : MonoBehaviour
 
         if (firstGameCutscene == null)
         {
+            firstGameCutscene =
+                FindAnyObjectByType<FirstGameCutscene>();
+        }
+
+        if (firstGameCutscene == null)
+        {
             Debug.LogError(
                 "[GameFlow] FirstGameCutscene reference missing."
             );
@@ -413,8 +563,41 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-
         firstGameCutscene.PlayFirstGameSequence();
+    }
+
+    public void IntroVideoFirstFrameReady()
+    {
+        DebugFlow(
+            "Intro video first frame is ready. " +
+            "Hiding menu."
+        );
+
+        StartCoroutine(
+            HideMenuAfterVideoFrame()
+        );
+    }
+
+    private IEnumerator HideMenuAfterVideoFrame()
+    {
+        // Give Unity time to finish the current rendering cycle.
+        yield return new WaitForEndOfFrame();
+
+        // Now the video frame is actually ready to be displayed.
+
+        if (mainMenuGroup != null)
+        {
+            mainMenuGroup.SetActive(false);
+        }
+
+        if (gameModeSelectionScreen != null)
+        {
+            gameModeSelectionScreen.SetActive(false);
+        }
+
+        DebugFlow(
+            "Main Menu hidden after intro video became visible."
+        );
     }
 
     // =========================================================
@@ -777,7 +960,7 @@ public class GameFlowManager : MonoBehaviour
             if (GameResetManager.Instance != null)
             {
                 GameResetManager.Instance.CreateDaySnapshot();
-                
+
                 DebugFlow(
                     "Beginning-of-day snapshot created."
                 );
@@ -1190,47 +1373,37 @@ public class GameFlowManager : MonoBehaviour
         if (player == null)
         {
             Debug.LogWarning(
-                "[GameFlow] Cannot reset player position. "
-                + "Player reference is missing."
+                "[GameFlow] Cannot reset player position. " +
+                "Player reference is missing."
             );
 
             return;
         }
-
 
         if (playerRespawnPoint == null)
         {
             Debug.LogWarning(
-                "[GameFlow] Cannot reset player position. "
-                + "PlayerRespawnPoint reference is missing."
+                "[GameFlow] Cannot reset player position. " +
+                "PlayerRespawnPoint reference is missing."
             );
 
             return;
         }
 
 
-        CharacterController controller =
-            player.GetComponent<CharacterController>();
-
-
-        if (controller != null)
-        {
-            controller.enabled = false;
-        }
-
+        // ---------------------------------------------------------
+        // TELEPORT
+        // ---------------------------------------------------------
 
         playerRespawnPoint.SpawnPlayer(player);
 
 
-        if (controller != null)
-        {
-            controller.enabled = true;
-        }
-
+        // ---------------------------------------------------------
+        // RESET MOVEMENT
+        // ---------------------------------------------------------
 
         PlayerMovement movement =
             player.GetComponent<PlayerMovement>();
-
 
         if (movement != null)
         {
@@ -1238,16 +1411,26 @@ public class GameFlowManager : MonoBehaviour
         }
 
 
-        PlayerStateManager state =
-            player.GetComponent<PlayerStateManager>();
+        // ---------------------------------------------------------
+        // RESET LOOK
+        // ---------------------------------------------------------
 
         PlayerLook look =
-    player.GetComponent<PlayerLook>();
+            player.GetComponent<PlayerLook>();
 
         if (look != null)
         {
             look.ResetLook();
         }
+
+
+        // ---------------------------------------------------------
+        // RESET STATE
+        // ---------------------------------------------------------
+
+        PlayerStateManager state =
+            player.GetComponent<PlayerStateManager>();
+
         if (state != null)
         {
             state.ResetToDefault();

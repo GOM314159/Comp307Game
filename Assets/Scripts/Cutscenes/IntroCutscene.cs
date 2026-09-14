@@ -20,6 +20,8 @@ public class IntroCutscene : MonoBehaviour
     private bool hasFinished = false;
     private bool isPlaying = false;
 
+    private bool firstFrameShown = false;
+
     private System.Action finishCallback;
 
 
@@ -49,6 +51,14 @@ public class IntroCutscene : MonoBehaviour
 
         videoPlayer.playOnAwake = false;
         videoPlayer.isLooping = false;
+        // Prevent Unity from displaying an incomplete/old frame.
+        videoPlayer.waitForFirstFrame = true;
+
+        // Don't drop frames during the intro.
+        videoPlayer.skipOnDrop = false;
+        // IMPORTANT:
+        // This is required for frameReady to fire.
+        videoPlayer.sendFrameReadyEvents = true;
 
         // -----------------------------------------------------
         // FORCE VIDEO TO RENDER TO THE CAMERA
@@ -84,6 +94,9 @@ public class IntroCutscene : MonoBehaviour
         videoPlayer.prepareCompleted +=
             OnVideoPrepared;
 
+        videoPlayer.frameReady +=
+    OnFirstVideoFrameReady;
+
         // -----------------------------------------------------
         // START STOPPED
         // -----------------------------------------------------
@@ -117,6 +130,7 @@ public class IntroCutscene : MonoBehaviour
 
         hasFinished = false;
         isPlaying = true;
+        firstFrameShown = false;
 
         Debug.Log(
             "[IntroCutscene] Preparing intro video."
@@ -201,7 +215,10 @@ public class IntroCutscene : MonoBehaviour
         hasFinished = true;
         isPlaying = false;
 
-        if (videoPlayer != null)
+        // When another cinematic is waiting for this video's end, keep the
+        // last rendered frame on screen while the next video prepares.
+        // Stopping here would expose the 3D world for a frame.
+        if (finishCallback == null && videoPlayer != null)
         {
             videoPlayer.Stop();
         }
@@ -281,6 +298,7 @@ public class IntroCutscene : MonoBehaviour
 
         hasFinished = false;
         isPlaying = true;
+        firstFrameShown = false;
 
         finishCallback = onFinished;
 
@@ -288,6 +306,56 @@ public class IntroCutscene : MonoBehaviour
 
         videoPlayer.Stop();
         videoPlayer.Prepare();
+    }
+
+    public void StopForTransition()
+    {
+        hasFinished = true;
+        isPlaying = false;
+        finishCallback = null;
+        firstFrameShown = false;
+
+        if (videoPlayer != null)
+        {
+            videoPlayer.targetCamera = null;
+            videoPlayer.Stop();
+        }
+    }
+
+
+    public void StopCutscene()
+    {
+        hasFinished = true;
+        isPlaying = false;
+        finishCallback = null;
+        firstFrameShown = false;
+
+        if (videoPlayer != null)
+        {
+            videoPlayer.Stop();
+        }
+    }
+
+
+    private void OnFirstVideoFrameReady(
+    VideoPlayer player,
+    long frameIndex)
+    {
+        if (firstFrameShown)
+        {
+            return;
+        }
+
+        firstFrameShown = true;
+
+        Debug.Log(
+            "[IntroCutscene] First video frame is ready."
+        );
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.IntroVideoFirstFrameReady();
+        }
     }
 
 
@@ -310,5 +378,8 @@ public class IntroCutscene : MonoBehaviour
 
         videoPlayer.prepareCompleted -=
             OnVideoPrepared;
+
+        videoPlayer.frameReady -=
+    OnFirstVideoFrameReady;
     }
 }
