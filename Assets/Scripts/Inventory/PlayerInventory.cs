@@ -794,6 +794,20 @@ public class PlayerInventory : MonoBehaviour
             ToggleInventory();
         }
 
+        if (Gamepad.current != null)
+        {
+            // buttonNorth = Y on Xbox
+            // buttonNorth = Triangle on PlayStation
+            if (Gamepad.current.buttonNorth.wasPressedThisFrame)
+            {
+                GameInputDevice.SetLastUsedDevice(
+                    Gamepad.current
+                );
+
+                ToggleInventory();
+            }
+        }
+
         UpdateToolbarSelection();
     }
 

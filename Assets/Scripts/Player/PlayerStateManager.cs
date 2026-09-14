@@ -37,7 +37,8 @@ public class PlayerStateManager : MonoBehaviour
 
         Inventory,
 
-        MainMenu
+        MainMenu,
+        NoAttack
     }
 
 
@@ -163,6 +164,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.AllMovement:
             case PlayerState.NoCrouch:
             case PlayerState.NoSprint:
+            case PlayerState.NoAttack:
             case PlayerState.NoCrouchOrSprint:
             case PlayerState.NoJump:
 
@@ -200,6 +202,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.NoCrouch:
             case PlayerState.NoSprint:
             case PlayerState.NoCrouchOrSprint:
+            case PlayerState.NoAttack:
             case PlayerState.NoJump:
 
                 return true;
@@ -236,6 +239,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.NoCrouchOrSprint:
             case PlayerState.NoJump:
             case PlayerState.NoInteract:
+            case PlayerState.NoAttack:
             case PlayerState.Inventory:
 
                 return true;
@@ -267,6 +271,7 @@ public class PlayerStateManager : MonoBehaviour
                 return true;
 
             case PlayerState.NoMovement:
+            case PlayerState.NoAttack:
             case PlayerState.NoMovementNoCamera:
             case PlayerState.NoInteract:
             case PlayerState.PauseMenu:
@@ -288,6 +293,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.AllMovement:
             case PlayerState.NoCrouch:
             case PlayerState.NoSprint:
+            case PlayerState.NoAttack:
             case PlayerState.NoCrouchOrSprint:
             case PlayerState.NoJump:
             case PlayerState.NoMovement:
@@ -320,6 +326,7 @@ public class PlayerStateManager : MonoBehaviour
         {
             case PlayerState.AllMovement:
             case PlayerState.NoCrouch:
+            case PlayerState.NoAttack:
             case PlayerState.NoJump:
             case PlayerState.NoMovement:
 
@@ -353,6 +360,7 @@ public class PlayerStateManager : MonoBehaviour
         {
             case PlayerState.AllMovement:
             case PlayerState.NoSprint:
+            case PlayerState.NoAttack:
             case PlayerState.NoJump:
             case PlayerState.NoMovement:
 
@@ -387,6 +395,7 @@ public class PlayerStateManager : MonoBehaviour
             case PlayerState.AllMovement:
             case PlayerState.NoCrouch:
             case PlayerState.NoSprint:
+            case PlayerState.NoAttack:
             case PlayerState.NoCrouchOrSprint:
 
                 return true;

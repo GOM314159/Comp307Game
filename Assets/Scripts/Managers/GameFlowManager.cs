@@ -107,7 +107,7 @@ public class GameFlowManager : MonoBehaviour
     public void OpenMainMenu()
     {
         DebugFlow("Returning to Main Menu. Resetting entire game.");
-
+        ResetPlayerToRespawnPoint();
         // Reset all game progress.
         if (GameResetManager.Instance != null)
         {
@@ -1183,5 +1183,79 @@ public class GameFlowManager : MonoBehaviour
         // ---------------------------------------------------------
 
         StartDay(1);
+    }
+
+    private void ResetPlayerToRespawnPoint()
+    {
+        if (player == null)
+        {
+            Debug.LogWarning(
+                "[GameFlow] Cannot reset player position. "
+                + "Player reference is missing."
+            );
+
+            return;
+        }
+
+
+        if (playerRespawnPoint == null)
+        {
+            Debug.LogWarning(
+                "[GameFlow] Cannot reset player position. "
+                + "PlayerRespawnPoint reference is missing."
+            );
+
+            return;
+        }
+
+
+        CharacterController controller =
+            player.GetComponent<CharacterController>();
+
+
+        if (controller != null)
+        {
+            controller.enabled = false;
+        }
+
+
+        playerRespawnPoint.SpawnPlayer(player);
+
+
+        if (controller != null)
+        {
+            controller.enabled = true;
+        }
+
+
+        PlayerMovement movement =
+            player.GetComponent<PlayerMovement>();
+
+
+        if (movement != null)
+        {
+            movement.ResetMovementAfterTeleport();
+        }
+
+
+        PlayerStateManager state =
+            player.GetComponent<PlayerStateManager>();
+
+        PlayerLook look =
+    player.GetComponent<PlayerLook>();
+
+        if (look != null)
+        {
+            look.ResetLook();
+        }
+        if (state != null)
+        {
+            state.ResetToDefault();
+        }
+
+
+        DebugFlow(
+            "Player returned to the PlayerRespawnPoint."
+        );
     }
 }

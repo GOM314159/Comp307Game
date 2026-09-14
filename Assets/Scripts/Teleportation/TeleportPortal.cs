@@ -180,6 +180,18 @@ public class TeleportPortal : MonoBehaviour
             other.gameObject
         );
 
+        if (
+    teleportType ==
+    TeleportType.ReturnFromCase
+)
+        {
+            if (ControllerLightManager.Instance != null)
+            {
+                ControllerLightManager.Instance
+                    .OnReturnPortalEntered();
+            }
+        }
+
 
         // =====================================================
         // START TELEPORT

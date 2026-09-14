@@ -339,10 +339,7 @@ public class Chair : WorldInteractable
             {
                 SetInteractionEnabled(true);
 
-                // PlayerInteraction will also control this,
-                // but showing it here makes the chair respond
-                // immediately to a day change.
-                ShowInteractionPrompt();
+                
             }
             else
             {

@@ -330,6 +330,15 @@ public class TeleportManager : MonoBehaviour
                 CaseManager.Instance.DeactivateCase();
             }
 
+            if (GameResetManager.Instance != null)
+            {
+                GameResetManager.Instance
+                    .CommitCurrentProgressAsDayCheckpoint();
+
+                DebugTeleport(
+                    "Case return checkpoint saved."
+                );
+            }
 
             if (GameStateManager.Instance != null)
             {

@@ -68,6 +68,8 @@ public class InventoryUI : MonoBehaviour
         Debug.Log("[InventoryUI] RefreshUI() started.");
         RefreshToolbar();
 
+        RefreshSelectedSlot();
+
         RefreshMainInventory();
         Debug.Log("[InventoryUI] RefreshUI() finished.");
 
@@ -132,7 +134,41 @@ public class InventoryUI : MonoBehaviour
     }
 
 
+    private void RefreshSelectedSlot()
+    {
+        int selectedSlot =
+            playerInventory.GetSelectedSlotIndex();
 
+
+        for (int i = 0;
+            i < toolbarItems.Count;
+            i++)
+        {
+            InventoryItem item =
+                toolbarItems[i];
+
+
+            if (item == null)
+            {
+                continue;
+            }
+
+
+            InventorySlotUI slot =
+                item.GetComponentInParent<InventorySlotUI>();
+
+
+            if (slot == null)
+            {
+                continue;
+            }
+
+
+            slot.SetActive(
+                i == selectedSlot
+            );
+        }
+    }
 
 
 

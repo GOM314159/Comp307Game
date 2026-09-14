@@ -1,15 +1,56 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class InventorySlotUI : MonoBehaviour, IDropHandler
 {
     private InventoryUI inventoryUI;
 
+
+    [Header("Slot Background")]
+    [SerializeField]
+    private Image slotBackground;
+
+
+    [Header("Slot Colours")]
+    [SerializeField]
+    private Color normalColour = Color.white;
+
+    [SerializeField]
+    private Color activeColour = Color.yellow;
+
+
     private void Awake()
     {
         inventoryUI =
             GetComponentInParent<InventoryUI>();
+
+
+        if (slotBackground == null)
+        {
+            slotBackground =
+                GetComponent<Image>();
+        }
+
+
+        SetActive(false);
     }
+
+
+    public void SetActive(bool active)
+    {
+        if (slotBackground == null)
+        {
+            return;
+        }
+
+
+        slotBackground.color =
+            active
+                ? activeColour
+                : normalColour;
+    }
+
 
     public void OnDrop(
         PointerEventData eventData)
@@ -18,41 +59,33 @@ public class InventorySlotUI : MonoBehaviour, IDropHandler
             $"[InventorySlotUI] OnDrop called on: {gameObject.name}"
         );
 
+
         if (eventData.pointerDrag == null)
         {
-            Debug.LogWarning(
-                "[InventorySlotUI] No pointerDrag found."
-            );
-
             return;
         }
+
 
         InventoryItem draggedItem =
             eventData.pointerDrag
                 .GetComponent<InventoryItem>();
 
+
         if (draggedItem == null)
         {
-            Debug.LogWarning(
-                "[InventorySlotUI] Dragged object has no InventoryItem."
-            );
-
             return;
         }
+
 
         if (inventoryUI == null)
         {
-            Debug.LogError(
-                "[InventorySlotUI] Could not find InventoryUI."
-            );
-
             return;
         }
+
 
         inventoryUI.HandleItemDrop(
             draggedItem,
             this
         );
     }
-
 }

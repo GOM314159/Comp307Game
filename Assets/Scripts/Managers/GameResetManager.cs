@@ -566,4 +566,13 @@ public class GameResetManager : MonoBehaviour
             + bosses.Length
         );
     }
+
+    public void CommitCurrentProgressAsDayCheckpoint()
+    {
+        Debug.Log(
+            "[Reset] Committing current progress as the new day checkpoint."
+        );
+
+        CreateDaySnapshot();
+    }
 }

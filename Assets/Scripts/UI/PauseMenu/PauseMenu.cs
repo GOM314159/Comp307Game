@@ -52,15 +52,50 @@ public class PauseMenu : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current == null)
+        bool pausePressed = false;
+
+
+        // =====================================================
+        // KEYBOARD
+        // =====================================================
+
+        if (Keyboard.current != null)
+        {
+            if (Keyboard.current.escapeKey.wasPressedThisFrame ||
+                Keyboard.current.pauseKey.wasPressedThisFrame)
+            {
+                pausePressed = true;
+            }
+        }
+
+
+        // =====================================================
+        // GAMEPAD
+        // =====================================================
+
+        if (Gamepad.current != null)
+        {
+            // Start / Options button
+            if (Gamepad.current.startButton.wasPressedThisFrame)
+            {
+                GameInputDevice.SetLastUsedDevice(
+                    Gamepad.current
+                );
+
+                pausePressed = true;
+            }
+        }
+
+
+        if (!pausePressed)
         {
             return;
         }
 
-        if (!Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            return;
-        }
+
+        // =====================================================
+        // PAUSE / RESUME
+        // =====================================================
 
         if (isPaused)
         {
@@ -68,15 +103,18 @@ public class PauseMenu : MonoBehaviour
             return;
         }
 
+
         if (PlayerStateManager.Instance == null)
         {
             return;
         }
 
+
         if (!PlayerStateManager.Instance.CanPause())
         {
             return;
         }
+
 
         PauseGame();
     }

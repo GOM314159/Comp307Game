@@ -122,4 +122,16 @@ public class PlayerLook : MonoBehaviour
         transform.Rotate(
             Vector3.up * mouseX);
     }
+
+    public void ResetLook()
+    {
+        xRotation = 0f;
+        lookInput = Vector2.zero;
+
+        if (cameraTransform != null)
+        {
+            cameraTransform.localRotation =
+                Quaternion.identity;
+        }
+    }
 }
