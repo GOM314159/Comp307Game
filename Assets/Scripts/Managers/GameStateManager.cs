@@ -1035,7 +1035,6 @@ public class GameStateManager : MonoBehaviour
 
     internal void ResetBehaviourTree()
     {
-        behaviourAgent.SetVariableValue("Self", true);
         behaviourAgent.SetVariableValue("PlayerAlive", true);
         behaviourAgent.SetVariableValue("AxeInteracted",false);
         Debug.Log("[GameStateManager] Resetting Behaviour Tree variables.");

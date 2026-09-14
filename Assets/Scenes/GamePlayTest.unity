@@ -4853,7 +4853,7 @@ GameObject:
   - component: {fileID: 281335104}
   m_Layer: 0
   m_Name: MainCamera
-  m_TagString: Untagged
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -8732,6 +8732,10 @@ PrefabInstance:
     - target: {fileID: 2971542036940430761, guid: 4dcb5bd34d6dda44ca7bb549476239fa, type: 3}
       propertyPath: m_Layer
       value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 3040559415829058645, guid: 4dcb5bd34d6dda44ca7bb549476239fa, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3384195498503541519, guid: 4dcb5bd34d6dda44ca7bb549476239fa, type: 3}
       propertyPath: m_Layer
@@ -18663,7 +18667,7 @@ MonoBehaviour:
   attackRange: 1
   attackCooldown: 2
   playerHealth: {fileID: 1442830827}
-  debugAttack: 1
+  debugAttack: 0
 --- !u!114 &939189183
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -18678,7 +18682,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BossDeath
   bossHealth: {fileID: 939189180}
   returnPortal: {fileID: 836588982}
-  debugBossDeath: 1
+  debugBossDeath: 0
 --- !u!4 &939189184 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5e089ae1c9732b8418eb03b7b373e87e, type: 3}
@@ -28533,7 +28537,7 @@ MonoBehaviour:
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
   m_SplitScreenIndex: -1
-  m_Camera: {fileID: 0}
+  m_Camera: {fileID: 281335106}
 --- !u!143 &1442830816
 CharacterController:
   m_ObjectHideFlags: 0
