@@ -4901,7 +4901,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 45
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -26346,7 +26346,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.033333335
   m_MinRegionArea: 1
-  m_NavMeshData: {fileID: 23800000, guid: 4770b4dbdffaced4e811af32f04d38f8, type: 2}
+  m_NavMeshData: {fileID: 23800000, guid: fc9d0a439cf869a4d9020ded6aabeb27, type: 2}
   m_BuildHeightMesh: 1
 --- !u!4 &1374268625
 Transform:
