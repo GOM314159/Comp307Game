@@ -246,6 +246,18 @@ public class Chair : WorldInteractable
         {
             GameStateManager.Instance.OnLoss +=
                 HandleGameLoss;
+
+            GameStateManager.Instance.OnGameModeChanged +=
+                HandleGameModeChanged;
+
+            // If the chair exists while already in the Main Menu,
+            // make sure it starts fresh.
+            if (GameStateManager.Instance.GetGameMode() ==
+                GameStateManager.GameMode.MainMenu)
+            {
+                ResetPlayTracking();
+                RestoreChairInteraction();
+            }
         }
     }
 
@@ -256,12 +268,43 @@ public class Chair : WorldInteractable
         {
             GameStateManager.Instance.OnLoss -=
                 HandleGameLoss;
+
+            GameStateManager.Instance.OnGameModeChanged -=
+                HandleGameModeChanged;
         }
 
         // Always hide the chair prompt when disabled.
         HideInteractionPrompt();
 
         StopCurrentPlayIfNecessary();
+    }
+
+    // =========================================================
+    // GAME MODE RESET
+    // =========================================================
+
+    private void HandleGameModeChanged(
+        GameStateManager.GameMode newGameMode
+    )
+    {
+        // A completely new game returns through the Main Menu.
+        //
+        // This clears the chair's local watched-play tracking so
+        // starting a new game does NOT inherit plays watched during
+        // the previous game.
+        if (newGameMode ==
+            GameStateManager.GameMode.MainMenu)
+        {
+            DebugChair(
+                "Main Menu reached. Resetting theater play tracking."
+            );
+
+            StopCurrentPlayIfNecessary();
+
+            ResetPlayTracking();
+
+            RestoreChairInteraction();
+        }
     }
 
 
@@ -1603,6 +1646,60 @@ public class Chair : WorldInteractable
 
         playsWatched =
             newTracking;
+    }
+
+    // =========================================================
+    // WORLD RESET
+    // =========================================================
+
+    protected override void OnResetState()
+    {
+        DebugChair(
+            "World reset detected. Resetting all theater play tracking."
+        );
+
+        // ---------------------------------------------------------
+        // STOP ANY CURRENT PLAY
+        // ---------------------------------------------------------
+
+        StopCurrentPlayIfNecessary();
+
+
+        // ---------------------------------------------------------
+        // RESET ALL WATCHED PLAYS
+        // ---------------------------------------------------------
+        //
+        // This is the important fix.
+        //
+        // GameResetManager calls ResetInteraction() on every
+        // WorldInteractable when the player dies/restarts a day
+        // or starts a completely new game.
+        //
+        // The Chair must therefore reset its PRIVATE
+        // playsWatched array here.
+        //
+        // ---------------------------------------------------------
+
+        ResetPlayTracking();
+
+
+        // ---------------------------------------------------------
+        // RESTORE CHAIR INTERACTION
+        // ---------------------------------------------------------
+
+        RestoreChairInteraction();
+
+
+        // ---------------------------------------------------------
+        // FORCE UPDATE TO RECHECK THE CURRENT DAY
+        // ---------------------------------------------------------
+
+        lastCheckedDay = -1;
+
+
+        DebugChair(
+            "Theater play tracking successfully reset."
+        );
     }
 
 

@@ -11015,7 +11015,9 @@ MonoBehaviour:
   interactionText: {fileID: 2067574884}
   automaticallyFindText: 1
   speedMultiplier: 1.25
+  activatedFOV: 60
   playerMovement: {fileID: 1442830817}
+  playerLook: {fileID: 1442830819}
 --- !u!4 &518359219 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: c109d406095c1b542a0da952543d79b2, type: 3}
@@ -25645,7 +25647,7 @@ Transform:
   m_GameObject: {fileID: 1325199541}
   serializedVersion: 2
   m_LocalRotation: {x: 0.5, y: 0.5, z: 0.5, w: 0.5}
-  m_LocalPosition: {x: -0, y: -0.0271, z: 0}
+  m_LocalPosition: {x: -0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -27858,7 +27860,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerLook
   cameraTransform: {fileID: 281335103}
-  sensitivity: 2
+  defaultFOV: 45
+  currentFOV: 45
+  sensitivity: 1.5
   maxLookAngle: 80
 --- !u!114 &1442830820
 MonoBehaviour:
@@ -39530,11 +39534,11 @@ MonoBehaviour:
     description: Axe and Puppet
     hasTimer: 1
     timeLimit: 1000
-    requiredObject: {fileID: 0}
+    requiredObject: {fileID: 34557650}
     objectName: Axe
     bossName: Puppet
     hasSideQuest: 1
-    sideQuestItem: {fileID: 0}
+    sideQuestItem: {fileID: 518359216}
     sideQuestName: White Powder
     requiredForDayCompletion: 1
   - caseID: 2

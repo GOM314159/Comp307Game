@@ -13,6 +13,20 @@ public class WhitePowderInteractable : WorldInteractable
 
 
     // =========================================================
+    // FOV BOOST
+    // =========================================================
+
+    [Header("Permanent FOV Boost")]
+
+    [Tooltip(
+        "The permanent FOV the player receives after activating "
+        + "the White Powder."
+    )]
+    [SerializeField]
+    private float activatedFOV = 60f;
+
+
+    // =========================================================
     // PLAYER
     // =========================================================
 
@@ -20,6 +34,9 @@ public class WhitePowderInteractable : WorldInteractable
 
     [SerializeField]
     private PlayerMovement playerMovement;
+
+    [SerializeField]
+    private PlayerLook playerLook;
 
 
     // =========================================================
@@ -33,6 +50,11 @@ public class WhitePowderInteractable : WorldInteractable
             return;
         }
 
+
+        // -----------------------------------------------------
+        // PLAYER MOVEMENT
+        // -----------------------------------------------------
+
         if (playerMovement == null)
         {
             Debug.LogError(
@@ -45,11 +67,35 @@ public class WhitePowderInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
-        // APPLY SPEED BOOST
+        // PLAYER LOOK
+        // -----------------------------------------------------
+
+        if (playerLook == null)
+        {
+            Debug.LogError(
+                "[White Powder] PlayerLook "
+                + "has not been assigned."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // APPLY PERMANENT SPEED BOOST
         // -----------------------------------------------------
 
         playerMovement.ApplyPermanentSpeedBoost(
             speedMultiplier
+        );
+
+
+        // -----------------------------------------------------
+        // APPLY PERMANENT FOV
+        // -----------------------------------------------------
+
+        playerLook.ApplyPermanentFOV(
+            activatedFOV
         );
 
 
@@ -96,9 +142,11 @@ public class WhitePowderInteractable : WorldInteractable
 
 
         Debug.Log(
-            "[White Powder] Speed boost activated."
-            + " | Multiplier: x"
+            "[White Powder] Permanent buffs activated."
+            + " | Speed Multiplier: x"
             + speedMultiplier
+            + " | FOV: "
+            + activatedFOV
         );
     }
 
