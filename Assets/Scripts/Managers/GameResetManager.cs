@@ -45,6 +45,9 @@ public class GameResetManager : MonoBehaviour
     private float dayStartStrength = 0f;
     private float dayStartMaxStamina = 100f;
 
+    private bool[] dayExodiaSnapshot =
+    new bool[5];
+
 
     // =========================================================
     // STATE
@@ -197,6 +200,13 @@ public class GameResetManager : MonoBehaviour
                 stamina.MaxStamina;
         }
 
+        if (GameStateManager.Instance != null)
+        {
+            dayExodiaSnapshot =
+                GameStateManager.Instance
+                    .GetExodiaCollectionSnapshot();
+        }
+
         daySnapshotCreated = true;
 
         Debug.Log(
@@ -229,6 +239,14 @@ public class GameResetManager : MonoBehaviour
         // -----------------------------------------------------
 
         RestoreDayInventory();
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance
+                .RestoreExodiaCollectionSnapshot(
+                    dayExodiaSnapshot
+                );
+        }
 
 
         // -----------------------------------------------------
@@ -326,6 +344,11 @@ public class GameResetManager : MonoBehaviour
         ResetWorldInteractables();
 
         ResetBosses();
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.ResetExodiaCollection();
+        }
 
 
         // -----------------------------------------------------

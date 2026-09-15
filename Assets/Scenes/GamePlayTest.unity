@@ -20047,6 +20047,12 @@ MonoBehaviour:
   bossUnlocked: 0
   bossDefeated: 0
   sideQuestComplete: 0
+  exodiaRightLegCollected: 0
+  exodiaLeftLegCollected: 0
+  exodiaRightArmCollected: 0
+  exodiaLeftArmCollected: 0
+  exodiaHeadCollected: 0
+  allExodiaCollected: 0
   caseTimerActive: 0
   caseTimeLimit: 0
   caseTimeRemaining: 0
@@ -27879,6 +27885,7 @@ MonoBehaviour:
   toolbarSize: 7
   mainInventorySize: 21
   startingLetter: {fileID: 11400000, guid: 129d98fee247d9942afd196b9583b26a, type: 2}
+  startingExodiaRightLeg: {fileID: 11400000, guid: eb68c5ee5fce7f94dae776e6ea7fea28, type: 2}
   equipmentManager: {fileID: 1442830825}
   inventoryUI: {fileID: 921588650}
   inventoryCloseButton: {fileID: 1061454213}

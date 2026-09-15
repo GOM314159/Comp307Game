@@ -66,6 +66,19 @@ public class GameStateManager : MonoBehaviour
         TimerExpired
     }
 
+    // =========================================================
+    // EXODIA PIECES
+    // =========================================================
+
+    public enum ExodiaPiece
+    {
+        RightLeg,
+        LeftLeg,
+        RightArm,
+        LeftArm,
+        Head
+    }
+
 
     // =========================================================
     // OVERALL GAME STATE
@@ -147,6 +160,30 @@ public class GameStateManager : MonoBehaviour
 
     [SerializeField]
     private bool sideQuestComplete = false;
+
+    // =========================================================
+    // EXODIA COLLECTION
+    // =========================================================
+
+    [Header("Exodia Collection")]
+
+    [SerializeField]
+    private bool exodiaRightLegCollected;
+
+    [SerializeField]
+    private bool exodiaLeftLegCollected;
+
+    [SerializeField]
+    private bool exodiaRightArmCollected;
+
+    [SerializeField]
+    private bool exodiaLeftArmCollected;
+
+    [SerializeField]
+    private bool exodiaHeadCollected;
+
+    [SerializeField]
+    private bool allExodiaCollected;
 
 
     // =========================================================
@@ -1044,5 +1081,233 @@ public class GameStateManager : MonoBehaviour
     public PlayerGender Gender
     {
         get { return playerGender; }
+    }
+
+    // =========================================================
+    // EXODIA COLLECTION
+    // =========================================================
+
+    public bool RegisterExodiaPiece(
+        ExodiaPiece piece
+    )
+    {
+        if (HasCollectedExodiaPiece(piece))
+        {
+            return false;
+        }
+
+
+        switch (piece)
+        {
+            case ExodiaPiece.RightLeg:
+
+                exodiaRightLegCollected = true;
+
+                break;
+
+
+            case ExodiaPiece.LeftLeg:
+
+                exodiaLeftLegCollected = true;
+
+                break;
+
+
+            case ExodiaPiece.RightArm:
+
+                exodiaRightArmCollected = true;
+
+                break;
+
+
+            case ExodiaPiece.LeftArm:
+
+                exodiaLeftArmCollected = true;
+
+                break;
+
+
+            case ExodiaPiece.Head:
+
+                exodiaHeadCollected = true;
+
+                break;
+        }
+
+
+        UpdateAllExodiaCollected();
+
+
+        Debug.Log(
+            "[Exodia] Collected "
+            + piece
+            + " | "
+            + GetExodiaPiecesCollected()
+            + "/5"
+        );
+
+
+        return true;
+    }
+
+
+    // =========================================================
+    // CHECK INDIVIDUAL PIECE
+    // =========================================================
+
+    public bool HasCollectedExodiaPiece(
+        ExodiaPiece piece
+    )
+    {
+        switch (piece)
+        {
+            case ExodiaPiece.RightLeg:
+                return exodiaRightLegCollected;
+
+            case ExodiaPiece.LeftLeg:
+                return exodiaLeftLegCollected;
+
+            case ExodiaPiece.RightArm:
+                return exodiaRightArmCollected;
+
+            case ExodiaPiece.LeftArm:
+                return exodiaLeftArmCollected;
+
+            case ExodiaPiece.Head:
+                return exodiaHeadCollected;
+        }
+
+
+        return false;
+    }
+
+
+    // =========================================================
+    // UPDATE ALL EXODIA
+    // =========================================================
+
+    private void UpdateAllExodiaCollected()
+    {
+        allExodiaCollected =
+            exodiaRightLegCollected &&
+            exodiaLeftLegCollected &&
+            exodiaRightArmCollected &&
+            exodiaLeftArmCollected &&
+            exodiaHeadCollected;
+
+
+        if (allExodiaCollected)
+        {
+            Debug.Log(
+                "[Exodia] ALL FIVE PIECES HAVE BEEN COLLECTED."
+            );
+        }
+    }
+
+
+    // =========================================================
+    // CHECK ALL FIVE
+    // =========================================================
+
+    public bool HasCollectedAllExodiaPieces()
+    {
+        return allExodiaCollected;
+    }
+
+
+    // =========================================================
+    // COUNT
+    // =========================================================
+
+    public int GetExodiaPiecesCollected()
+    {
+        int count = 0;
+
+
+        if (exodiaRightLegCollected)
+            count++;
+
+        if (exodiaLeftLegCollected)
+            count++;
+
+        if (exodiaRightArmCollected)
+            count++;
+
+        if (exodiaLeftArmCollected)
+            count++;
+
+        if (exodiaHeadCollected)
+            count++;
+
+
+        return count;
+    }
+
+    public bool[] GetExodiaCollectionSnapshot()
+    {
+        return new bool[]
+        {
+        exodiaRightLegCollected,
+        exodiaLeftLegCollected,
+        exodiaRightArmCollected,
+        exodiaLeftArmCollected,
+        exodiaHeadCollected
+        };
+    }
+
+    public void RestoreExodiaCollectionSnapshot(
+    bool[] snapshot
+)
+    {
+        if (
+            snapshot == null ||
+            snapshot.Length != 5
+        )
+        {
+            Debug.LogWarning(
+                "[Exodia] Invalid snapshot."
+            );
+
+            return;
+        }
+
+
+        exodiaRightLegCollected = snapshot[0];
+
+        exodiaLeftLegCollected = snapshot[1];
+
+        exodiaRightArmCollected = snapshot[2];
+
+        exodiaLeftArmCollected = snapshot[3];
+
+        exodiaHeadCollected = snapshot[4];
+
+
+        UpdateAllExodiaCollected();
+    }
+
+
+    // =========================================================
+    // RESET
+    // =========================================================
+
+    public void ResetExodiaCollection()
+    {
+        exodiaRightLegCollected = false;
+
+        exodiaLeftLegCollected = false;
+
+        exodiaRightArmCollected = false;
+
+        exodiaLeftArmCollected = false;
+
+        exodiaHeadCollected = false;
+
+        allExodiaCollected = false;
+
+
+        Debug.Log(
+            "[Exodia] Collection reset."
+        );
     }
 }

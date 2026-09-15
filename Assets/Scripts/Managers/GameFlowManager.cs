@@ -454,6 +454,8 @@ public class GameFlowManager : MonoBehaviour
         if (playerInventory != null)
         {
             playerInventory.GiveStartingLetter();
+
+            playerInventory.GiveStartingExodiaRightLeg();
         }
         else
         {

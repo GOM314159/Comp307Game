@@ -23,6 +23,9 @@ public class PlayerInventory : MonoBehaviour
     [SerializeField]
     private Letter startingLetter;
 
+    [SerializeField]
+    private ExodiaPieceItem startingExodiaRightLeg;
+
     [Header("Equipment")]
 
     [SerializeField]
@@ -1266,5 +1269,71 @@ public class PlayerInventory : MonoBehaviour
                 + "Inventory may be full."
             );
         }
+    }
+
+    // =========================================================
+    // STARTING EXODIA RIGHT LEG
+    // =========================================================
+
+    public void GiveStartingExodiaRightLeg()
+    {
+        if (startingExodiaRightLeg == null)
+        {
+            Debug.LogError(
+                "[Inventory] Starting Exodia Right Leg "
+                + "has not been assigned."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // ADD TO INVENTORY
+        // -----------------------------------------------------
+
+        if (!HasItem(startingExodiaRightLeg))
+        {
+            bool added =
+                AddItem(
+                    startingExodiaRightLeg,
+                    1
+                );
+
+
+            if (!added)
+            {
+                Debug.LogError(
+                    "[Inventory] Could not add the "
+                    + "starting Exodia Right Leg."
+                );
+
+                return;
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // REGISTER WITH GAME STATE
+        // -----------------------------------------------------
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[Inventory] GameStateManager is missing."
+            );
+
+            return;
+        }
+
+
+        GameStateManager.Instance.RegisterExodiaPiece(
+            GameStateManager.ExodiaPiece.RightLeg
+        );
+
+
+        Debug.Log(
+            "[Inventory] Starting Exodia Right Leg given."
+        );
     }
 }
