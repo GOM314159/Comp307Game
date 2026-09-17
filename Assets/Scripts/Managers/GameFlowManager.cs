@@ -1063,7 +1063,7 @@ public class GameFlowManager : MonoBehaviour
 
     public void CaseCompleted()
     {
-        OpenLobby();
+        //OpenLobby();
     }
 
     // =========================================================
