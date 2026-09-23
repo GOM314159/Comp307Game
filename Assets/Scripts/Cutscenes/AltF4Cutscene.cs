@@ -1,15 +1,15 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.Video;
 
 public class AltF4ExitCutscene : MonoBehaviour
 {
-
+ 
 
     [Header("Exit Cutscene Video")]
 
     [SerializeField]
     private VideoPlayer videoPlayer;
-
 
 
     [Header("Settings")]
@@ -18,20 +18,27 @@ public class AltF4ExitCutscene : MonoBehaviour
     private bool enableAltF4ExitCutscene = true;
 
     [SerializeField]
-    private bool renderToMainCamera = true;
-
-    [SerializeField]
     private bool debugExitCutscene = true;
+
 
     private bool exitSequenceRunning = false;
 
     private bool applicationIsQuitting = false;
+
+    private Canvas exitCanvas;
+
+    private RawImage exitVideoImage;
+
+    private RenderTexture exitRenderTexture;
+
+
     private void Awake()
     {
         if (videoPlayer == null)
         {
             videoPlayer = GetComponent<VideoPlayer>();
         }
+
 
         if (videoPlayer == null)
         {
@@ -43,17 +50,18 @@ public class AltF4ExitCutscene : MonoBehaviour
         }
 
 
-
         videoPlayer.playOnAwake = false;
         videoPlayer.isLooping = false;
         videoPlayer.waitForFirstFrame = true;
         videoPlayer.skipOnDrop = false;
-
         videoPlayer.loopPointReached -=
             OnVideoFinished;
 
         videoPlayer.errorReceived -=
             OnVideoError;
+
+        videoPlayer.prepareCompleted -=
+            OnVideoPrepared;
 
         videoPlayer.loopPointReached +=
             OnVideoFinished;
@@ -61,10 +69,8 @@ public class AltF4ExitCutscene : MonoBehaviour
         videoPlayer.errorReceived +=
             OnVideoError;
 
-        if (renderToMainCamera)
-        {
-            SetupCamera();
-        }
+        videoPlayer.prepareCompleted +=
+            OnVideoPrepared;
     }
 
 
@@ -81,48 +87,48 @@ public class AltF4ExitCutscene : MonoBehaviour
             HandleApplicationWantsToQuit;
     }
 
-
     private bool HandleApplicationWantsToQuit()
     {
-
+        
         if (applicationIsQuitting)
         {
             return true;
         }
 
 
-
+        
         if (!enableAltF4ExitCutscene)
         {
             return true;
         }
 
+
+       
         if (exitSequenceRunning)
         {
-            // The user pressed Alt+F4 again while the video wa playing lol
-
-
             DebugExit(
-                "Quit request ignored because exit cutscene " +
-                "is already playing."
+                "Additional quit request ignored."
             );
 
             return false;
         }
 
 
+       
         DebugExit(
-            "Alt+F4 / application quit detected. " +
-            "Starting exit cutscene."
+            "Alt + F4 detected. Starting exit cutscene."
         );
 
 
         exitSequenceRunning = true;
 
+
         StartExitCutscene();
+
 
         return false;
     }
+
 
     private void StartExitCutscene()
     {
@@ -132,6 +138,7 @@ public class AltF4ExitCutscene : MonoBehaviour
                 GameStateManager.GameMode.Cutscene
             );
         }
+
 
         if (PlayerStateManager.Instance != null)
         {
@@ -146,6 +153,115 @@ public class AltF4ExitCutscene : MonoBehaviour
 
         Cursor.visible = false;
 
+
+        HideExistingUI();
+
+        CreateFullscreenVideoUI();
+
+        videoPlayer.Stop();
+
+        videoPlayer.renderMode =
+            VideoRenderMode.RenderTexture;
+
+        videoPlayer.targetTexture =
+            exitRenderTexture;
+
+        videoPlayer.Prepare();
+    }
+
+
+    private void CreateFullscreenVideoUI()
+    {
+        GameObject canvasObject =
+            new GameObject(
+                "AltF4ExitCutsceneCanvas"
+            );
+
+
+        canvasObject.transform.SetParent(
+            transform,
+            false
+        );
+
+
+        exitCanvas =
+            canvasObject.AddComponent<Canvas>();
+
+
+        exitCanvas.renderMode =
+            RenderMode.ScreenSpaceOverlay;
+
+
+        exitCanvas.sortingOrder =
+            32767;
+
+
+        canvasObject.AddComponent<
+            CanvasScaler>();
+
+
+        canvasObject.AddComponent<
+            GraphicRaycaster>();
+
+
+        GameObject imageObject =
+            new GameObject(
+                "ExitVideo"
+            );
+
+
+        imageObject.transform.SetParent(
+            canvasObject.transform,
+            false
+        );
+
+
+        exitVideoImage =
+            imageObject.AddComponent<RawImage>();
+
+
+        RectTransform rect =
+            exitVideoImage.rectTransform;
+
+
+        rect.anchorMin =
+            Vector2.zero;
+
+        rect.anchorMax =
+            Vector2.one;
+
+        rect.offsetMin =
+            Vector2.zero;
+
+        rect.offsetMax =
+            Vector2.zero;
+
+
+     
+        exitRenderTexture =
+            new RenderTexture(
+                Screen.width,
+                Screen.height,
+                0
+            );
+
+
+        exitRenderTexture.name =
+            "AltF4ExitVideoRenderTexture";
+
+
+        exitRenderTexture.Create();
+
+
+        exitVideoImage.texture =
+            exitRenderTexture;
+    }
+
+
+
+    private void HideExistingUI()
+    {
+
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance.SetGameplayHUDVisible(
@@ -154,38 +270,54 @@ public class AltF4ExitCutscene : MonoBehaviour
         }
 
 
-        if (videoPlayer == null)
-        {
-            Debug.LogError(
-                "[AltF4ExitCutscene] VideoPlayer is missing. " +
-                "Closing application."
+
+        Canvas[] canvases =
+            FindObjectsByType<Canvas>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
             );
 
-            QuitApplication();
 
+        foreach (Canvas canvas in canvases)
+        {
+            if (canvas == null)
+            {
+                continue;
+            }
+
+
+            if (
+                exitCanvas != null &&
+                canvas == exitCanvas
+            )
+            {
+                continue;
+            }
+
+
+            canvas.enabled = false;
+        }
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SetGameplayHUDVisible(
+                false
+            );
+        }
+    }
+
+    private void OnVideoPrepared(VideoPlayer player)
+    {
+        if (!exitSequenceRunning)
+        {
             return;
         }
 
-        SetupCamera();
-
-        videoPlayer.Stop();
-
-        videoPlayer.Prepare();
-
-        videoPlayer.prepareCompleted -=
-            OnVideoPrepared;
-
-        videoPlayer.prepareCompleted +=
-            OnVideoPrepared;
-    }
-    private void OnVideoPrepared(VideoPlayer player)
-    {
-        player.prepareCompleted -=
-            OnVideoPrepared;
 
         DebugExit(
-            "Exit video prepared. Starting playback."
+            "Exit video prepared. Playing."
         );
+
 
         player.Play();
     }
@@ -193,8 +325,9 @@ public class AltF4ExitCutscene : MonoBehaviour
     private void OnVideoFinished(VideoPlayer player)
     {
         DebugExit(
-            "Exit video finished. Closing application."
+            "Exit video finished. Quitting."
         );
+
 
         QuitApplication();
     }
@@ -208,9 +341,9 @@ public class AltF4ExitCutscene : MonoBehaviour
             + message
         );
 
-
         QuitApplication();
     }
+
 
     private void QuitApplication()
     {
@@ -219,44 +352,17 @@ public class AltF4ExitCutscene : MonoBehaviour
             return;
         }
 
+
         applicationIsQuitting = true;
+
 
         DebugExit(
             "Calling Application.Quit()."
         );
 
+
         Application.Quit();
     }
-
-    private void SetupCamera()
-    {
-        if (!renderToMainCamera)
-        {
-            return;
-        }
-
-        if (Camera.main == null)
-        {
-            Debug.LogWarning(
-                "[AltF4ExitCutscene] Main Camera not found."
-            );
-
-            return;
-        }
-
-        videoPlayer.renderMode =
-            VideoRenderMode.CameraNearPlane;
-
-        videoPlayer.targetCamera =
-            Camera.main;
-
-        videoPlayer.targetCameraAlpha = 1f;
-    }
-
-
-    // =========================================================
-    // DEBUG
-    // =========================================================
 
     private void DebugExit(string message)
     {
@@ -265,29 +371,37 @@ public class AltF4ExitCutscene : MonoBehaviour
             return;
         }
 
+
         Debug.Log(
-            "[AltF4ExitCutscene] " + message
+            "[AltF4ExitCutscene] "
+            + message
         );
     }
-
 
     private void OnDestroy()
     {
         Application.wantsToQuit -=
             HandleApplicationWantsToQuit;
 
-        if (videoPlayer == null)
+
+        if (videoPlayer != null)
         {
-            return;
+            videoPlayer.loopPointReached -=
+                OnVideoFinished;
+
+            videoPlayer.errorReceived -=
+                OnVideoError;
+
+            videoPlayer.prepareCompleted -=
+                OnVideoPrepared;
         }
 
-        videoPlayer.prepareCompleted -=
-            OnVideoPrepared;
 
-        videoPlayer.loopPointReached -=
-            OnVideoFinished;
+        if (exitRenderTexture != null)
+        {
+            exitRenderTexture.Release();
 
-        videoPlayer.errorReceived -=
-            OnVideoError;
+            Destroy(exitRenderTexture);
+        }
     }
 }
