@@ -38785,7 +38785,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.033333335
   m_MinRegionArea: 1
-  m_NavMeshData: {fileID: 23800000, guid: be09ed008e747894d9a451a40f783ec1, type: 2}
+  m_NavMeshData: {fileID: 23800000, guid: 599b91ee9c35dd2419998fd240ff5aab, type: 2}
   m_BuildHeightMesh: 1
 --- !u!4 &1374268625
 Transform:
@@ -53206,7 +53206,7 @@ VideoPlayer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1975692035}
   m_Enabled: 1
-  m_VideoClip: {fileID: 0}
+  m_VideoClip: {fileID: 32900000, guid: 7715ede6efd8372418ca3ff9153e7a26, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
   m_TargetCamera: {fileID: 281335106}
