@@ -1,24 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Handles resetting gameplay state.
-///
-/// DAY RESET:
-/// - Restores inventory to the beginning of the current day.
-/// - Restores player permanent upgrades to the beginning of the day.
-/// - Resets CaseManager progress.
-/// - Resets world interactables.
-/// - Keeps the current day.
-/// - GameFlowManager then returns the player to the lobby.
-///
-/// FULL GAME RESET:
-/// - Clears inventory.
-/// - Restores player upgrades to their original game-start values.
-/// - Resets case progress.
-/// - Resets world interactables.
-/// - Resets the game progression.
-/// </summary>
+
 public class GameResetManager : MonoBehaviour
 {
     public static GameResetManager Instance { get; private set; }
@@ -81,12 +64,6 @@ public class GameResetManager : MonoBehaviour
     // GAME START SNAPSHOT
     // =========================================================
 
-    /// <summary>
-    /// Creates the original game-state snapshot.
-    ///
-    /// This should happen when a completely new game starts,
-    /// after the player has been initialized.
-    /// </summary>
     public void CreateGameStartSnapshot()
     {
         PlayerMovement movement =
@@ -127,13 +104,7 @@ public class GameResetManager : MonoBehaviour
     // DAY SNAPSHOT
     // =========================================================
 
-    /// <summary>
-    /// Saves the player's exact inventory and permanent upgrades
-    /// at the beginning of a day.
-    ///
-    /// This is what allows us to undo only what happened during
-    /// that particular day.
-    /// </summary>
+
     public void CreateDaySnapshot()
     {
         if (GameStateManager.Instance == null)
@@ -221,12 +192,6 @@ public class GameResetManager : MonoBehaviour
     // RESET CURRENT DAY
     // =========================================================
 
-    /// <summary>
-    /// Restores the player and gameplay to the beginning of
-    /// the current day.
-    ///
-    /// The day number itself does NOT change.
-    /// </summary>
     public void ResetCurrentDay()
     {
         Debug.Log(
@@ -304,12 +269,6 @@ public class GameResetManager : MonoBehaviour
     // RESET ENTIRE GAME
     // =========================================================
 
-    /// <summary>
-    /// Completely resets gameplay progression.
-    ///
-    /// This does NOT choose difficulty or gender.
-    /// Those should be selected again by the Main Menu.
-    /// </summary>
     public void ResetEntireGame()
     {
         Debug.Log(

@@ -2,30 +2,7 @@ using UnityEngine;
 using UnityEngine.Video;
 using System.Collections.Generic;
 
-/// <summary>
-/// Chair interactable used to watch the theater play.
-///
-/// The chair is reusable for every day:
-///
-/// Day 1 -> Play 1
-/// Day 2 -> Play 2
-/// Day 3 -> Play 3
-/// Day 4 -> Play 4
-///
-/// A play can only be watched once during the current run/day.
-///
-/// If the player dies during the case, the watched-play tracking
-/// is reset, allowing the player to watch that day's play again
-/// after respawning.
-///
-/// The chair is NOT disabled while the player is watching.
-/// Instead, interaction is disabled and the interaction prompt
-/// is explicitly hidden.
-///
-/// This is important because PlayerInteraction continuously
-/// checks the object and can otherwise make the prompt appear
-/// again every frame.
-/// </summary>
+
 public class Chair : WorldInteractable
 {
     // =========================================================
@@ -187,13 +164,6 @@ public class Chair : WorldInteractable
     // CHAIR INTERACTION SUPPRESSION
     // ---------------------------------------------------------
 
-    /// <summary>
-    /// True while the chair must not be interacted with.
-    ///
-    /// This is deliberately separate from isWatchingPlay because
-    /// the chair also needs to remain disabled after a play has
-    /// already been watched.
-    /// </summary>
     private bool interactionSuppressed = false;
 
 

@@ -688,6 +688,36 @@ public class GameFlowManager : MonoBehaviour
         introCutscene.PlayIntro();
     }
 
+    // =========================================================
+    // DEBUG - SKIP CURRENT CUTSCENE
+    // =========================================================
+
+    public void SkipCurrentCutscene()
+    {
+        Debug.Log(
+            "[GameFlowManager] Debug override skipping cutscene."
+        );
+
+
+        // =====================================================
+        // STOP INTRO CUTSCENE
+        // =====================================================
+
+        if (introCutscene != null)
+        {
+            introCutscene.StopCutscene();
+        }
+
+
+        // =====================================================
+        // STOP FIRST-GAME CUTSCENE
+        // =====================================================
+
+        if (firstGameCutscene != null)
+        {
+            firstGameCutscene.StopSequence();
+        }
+    }
     public void CheckForIntroCutscene()
     {
         DebugFlow("Checking for intro cutscene.");

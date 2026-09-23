@@ -1,18 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Connects the chair to the theater play videos.
-///
-/// The chair remains reusable for every day.
-///
-/// Index:
-///
-/// 0 = Day 1
-/// 1 = Day 2
-/// 2 = Day 3
-/// 3 = Day 4
-/// </summary>
+
 public class ChairPlayController : MonoBehaviour
 {
     [Header("Play Videos")]

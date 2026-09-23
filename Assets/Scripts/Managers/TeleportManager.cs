@@ -1,5 +1,6 @@
-using UnityEngine;
 using System.Collections;
+using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class TeleportManager : MonoBehaviour
 {
@@ -53,6 +54,30 @@ public class TeleportManager : MonoBehaviour
     private GameObject teleportingPlayer;
 
     private TeleportPortal pendingPortal;
+
+
+[Header("F-Key Debug Overrides")]
+
+[SerializeField]
+private TeleportDestination f1LobbyDay1;
+
+    [SerializeField]
+    private TeleportDestination f2Level1;
+
+    [SerializeField]
+    private TeleportDestination f3LobbyDay2;
+
+    [SerializeField]
+    private TeleportDestination f4Level2;
+
+    [SerializeField]
+    private TeleportDestination f5LobbyDay3;
+
+    [SerializeField]
+    private TeleportDestination f6Level3;
+
+    [SerializeField]
+    private TeleportDestination f7LobbyDay4;
 
 
     // =========================================================
@@ -445,60 +470,290 @@ public class TeleportManager : MonoBehaviour
     }
 
 
-    // =========================================================
-    // DEBUG HOTKEYS
-    // =========================================================
-    //
-    // These are intentionally commented out.
-    //
-    // F1 = Case 1 start
-    // F2 = Case 2 start
-    // F3 = Case 3 start
-    // F4 = Case 1 theater return
-    // F5 = Case 2 theater return
-    // F6 = Case 3 theater return
-    //
-    // =========================================================
-
     private void Update()
     {
-        /*
-        if (Input.GetKeyDown(KeyCode.F1))
+        HandleDebugFKeys();
+    }
+
+    private void HandleDebugFKeys()
+    {
+        if (Keyboard.current == null)
         {
-            DebugTeleportTo(case1StartDestination);
+            return;
+        }
+        if (Keyboard.current.f1Key.wasPressedThisFrame)
+        {
+            DebugTeleportOverride(
+                f1LobbyDay1,
+                1,
+                false
+            );
+        }
+        if (Keyboard.current.f2Key.wasPressedThisFrame)
+        {
+            DebugTeleportOverride(
+                f2Level1,
+                1,
+                true
+            );
         }
 
-        if (Input.GetKeyDown(KeyCode.F2))
+        if (Keyboard.current.f3Key.wasPressedThisFrame)
         {
-            DebugTeleportTo(case2StartDestination);
+            DebugTeleportOverride(
+                f3LobbyDay2,
+                2,
+                false
+            );
+        }
+        if (Keyboard.current.f4Key.wasPressedThisFrame)
+        {
+            DebugTeleportOverride(
+                f4Level2,
+                2,
+                true
+            );
         }
 
-        if (Input.GetKeyDown(KeyCode.F3))
+        if (Keyboard.current.f5Key.wasPressedThisFrame)
         {
-            DebugTeleportTo(case3StartDestination);
+            DebugTeleportOverride(
+                f5LobbyDay3,
+                3,
+                false
+            );
         }
 
-        if (Input.GetKeyDown(KeyCode.F4))
+        if (Keyboard.current.f6Key.wasPressedThisFrame)
         {
-            DebugTeleportTo(theaterCase1ReturnDestination);
+            DebugTeleportOverride(
+                f6Level3,
+                3,
+                true
+            );
         }
 
-        if (Input.GetKeyDown(KeyCode.F5))
+        if (Keyboard.current.f7Key.wasPressedThisFrame)
         {
-            DebugTeleportTo(theaterCase2ReturnDestination);
+            DebugTeleportOverride(
+                f7LobbyDay4,
+                4,
+                false
+            );
         }
-
-        if (Input.GetKeyDown(KeyCode.F6))
-        {
-            DebugTeleportTo(theaterCase3ReturnDestination);
-        }
-        */
     }
 
 
     // =========================================================
-    // DEBUG TELEPORT
+    // FORCE DEBUG LOCATION
     // =========================================================
+
+    private void DebugTeleportOverride(
+        TeleportDestination destination,
+        int day,
+        bool level)
+    {
+        if (destination == null)
+        {
+            Debug.LogError(
+                "[Debug Teleport] Destination is not assigned."
+            );
+
+            return;
+        }
+
+
+        GameObject player =
+            GameObject.FindGameObjectWithTag("Player");
+
+
+        if (player == null)
+        {
+            Debug.LogError(
+                "[Debug Teleport] Player not found."
+            );
+
+            return;
+        }
+
+
+        // =====================================================
+        // SKIP / CANCEL ANY ACTIVE CUTSCENE
+        // =====================================================
+
+        SkipActiveCutscene();
+
+
+        // =====================================================
+        // SET DAY
+        // =====================================================
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetDay(day);
+        }
+
+
+        // =====================================================
+        // SET GAME MODE
+        // =====================================================
+
+        if (GameStateManager.Instance != null)
+        {
+            if (level)
+            {
+                GameStateManager.Instance.SetGameMode(
+                    GameStateManager.GameMode.Case
+                );
+            }
+            else
+            {
+                GameStateManager.Instance.SetGameMode(
+                    GameStateManager.GameMode.Lobby
+                );
+            }
+        }
+
+
+        // =====================================================
+        // CHARACTER CONTROLLER
+        // =====================================================
+
+        CharacterController controller =
+            player.GetComponent<CharacterController>();
+
+
+        if (controller != null)
+        {
+            controller.enabled = false;
+        }
+
+
+        // =====================================================
+        // TELEPORT
+        // =====================================================
+
+        player.transform.SetPositionAndRotation(
+            destination.GetSpawnPosition(),
+            destination.GetSpawnRotation()
+        );
+
+
+        // =====================================================
+        // RE-ENABLE CHARACTER CONTROLLER
+        // =====================================================
+
+        if (controller != null)
+        {
+            controller.enabled = true;
+        }
+
+
+        // =====================================================
+        // RESET MOVEMENT
+        // =====================================================
+
+        PlayerMovement movement =
+            player.GetComponent<PlayerMovement>();
+
+
+        if (movement != null)
+        {
+            movement.ResetMovementAfterTeleport();
+        }
+
+
+        // =====================================================
+        // RESET PLAYER STATE
+        // =====================================================
+
+        PlayerStateManager playerState =
+            player.GetComponent<PlayerStateManager>();
+
+
+        if (playerState != null)
+        {
+            playerState.ResetToDefault();
+        }
+
+
+        // =====================================================
+        // LOBBY
+        // =====================================================
+
+        if (!level)
+        {
+            if (CaseManager.Instance != null)
+            {
+                CaseManager.Instance.DeactivateCase();
+            }
+        }
+
+
+        // =====================================================
+        // DEBUG MESSAGE
+        // =====================================================
+
+        if (level)
+        {
+            Debug.Log(
+                "[Debug Teleport] Forced to Level "
+                + day
+                + "."
+            );
+        }
+        else
+        {
+            Debug.Log(
+                "[Debug Teleport] Forced to Lobby Day "
+                + day
+                + "."
+            );
+        }
+    }
+
+    // =========================================================
+    // SKIP ACTIVE CUTSCENE
+    // =========================================================
+
+    private void SkipActiveCutscene()
+    {
+        Debug.Log(
+            "[Debug Teleport] Skipping active cutscene."
+        );
+
+
+        // =====================================================
+        // STOP ACTIVE CUTSCENES
+        // =====================================================
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SkipCurrentCutscene();
+        }
+
+
+        // =====================================================
+        // RESET PLAYER STATE
+        // =====================================================
+
+        GameObject player =
+            GameObject.FindGameObjectWithTag("Player");
+
+
+        if (player != null)
+        {
+            PlayerStateManager playerState =
+                player.GetComponent<PlayerStateManager>();
+
+
+            if (playerState != null)
+            {
+                playerState.ResetToDefault();
+            }
+        }
+    }
+
 
     private void DebugTeleportTo(
         TeleportDestination destination)

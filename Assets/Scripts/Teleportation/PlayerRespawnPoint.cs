@@ -1,12 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Defines the position and rotation where the player should spawn
-/// when entering gameplay or respawning after death.
-///
-/// This object is the single source of truth for the player's
-/// gameplay spawn position.
-/// </summary>
 public class PlayerRespawnPoint : MonoBehaviour
 {
     // =========================================================

@@ -385,10 +385,6 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     }
 
 
-    /// <summary>
-    /// Override this in an interactable if it has custom
-    /// state that also needs to be restored.
-    /// </summary>
     protected virtual void OnResetState()
     {
     }

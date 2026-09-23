@@ -1,20 +1,6 @@
 using UnityEngine;
 using UnityEngine.Video;
 
-/// <summary>
-/// Controls the first-game cinematic sequence.
-///
-/// Flow:
-///
-/// Intro
-///     ↓
-/// First-game backstory
-///     ↓
-/// Lobby
-///
-/// The backstory video is selected automatically
-/// based on the player's selected gender.
-/// </summary>
 public class FirstGameCutscene : MonoBehaviour
 {
     // =========================================================
@@ -92,9 +78,6 @@ public class FirstGameCutscene : MonoBehaviour
     // PUBLIC START
     // =========================================================
 
-    /// <summary>
-    /// Starts the first-game cinematic sequence.
-    /// </summary>
     public void PlayFirstGameSequence()
     {
         if (sequenceRunning)

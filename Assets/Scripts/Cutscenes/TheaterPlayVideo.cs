@@ -1,19 +1,6 @@
 using UnityEngine;
 using UnityEngine.Video;
 
-/// <summary>
-/// Plays a theater play video.
-///
-/// This is intentionally generic so the chair can use it
-/// for every play/day.
-///
-/// Example:
-///
-/// Day 1 → First Play
-/// Day 2 → Second Play
-/// Day 3 → Third Play
-/// Day 4 → Fourth Play
-/// </summary>
 public class TheaterPlayVideo : MonoBehaviour
 {
     [Header("Video")]

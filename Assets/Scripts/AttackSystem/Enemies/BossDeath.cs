@@ -1,19 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Handles case-boss death registration.
-///
-/// The boss must have a Health component on the same GameObject.
-///
-/// When the boss dies:
-/// - CaseManager is notified
-/// - GameStateManager is updated through CaseManager
-/// - The assigned return portal becomes visible
-///
-/// The portal is hidden when the scene starts.
-///
-/// This system is reusable for every level.
-/// </summary>
 public class BossDeath : MonoBehaviour
 {
     // =========================================================
