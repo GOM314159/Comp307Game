@@ -21,7 +21,6 @@ public partial class DollAliveCondition : Condition
 
     public override void OnStart()
     {
-        True.Value = Doll.Value.GetComponent<Health>().GetCurrentHealth() > 0;
     }
 
     public override void OnEnd()
