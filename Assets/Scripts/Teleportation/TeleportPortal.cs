@@ -194,6 +194,18 @@ public class TeleportPortal : MonoBehaviour
 
 
         // =====================================================
+        // LEVEL PORTAL PROGRESSION
+        // =====================================================
+        // The entry portal is a one-use portal for the current level.
+        // Hide it as soon as the player enters it.
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance.NotifyPortalUsed(this);
+        }
+
+
+        // =====================================================
         // START TELEPORT
         // =====================================================
 

@@ -6,10 +6,10 @@ public class GameResetManager : MonoBehaviour
 {
     public static GameResetManager Instance { get; private set; }
 
+
     // =========================================================
     // INVENTORY SNAPSHOT
     // =========================================================
-
 
     private List<PlayerInventory.InventorySnapshotSlot>
     dayInventorySnapshot =
@@ -29,7 +29,7 @@ public class GameResetManager : MonoBehaviour
     private float dayStartMaxStamina = 100f;
 
     private bool[] dayExodiaSnapshot =
-    new bool[5];
+        new bool[5];
 
 
     // =========================================================
@@ -72,6 +72,7 @@ public class GameResetManager : MonoBehaviour
         PlayerStamina stamina =
             FindAnyObjectByType<PlayerStamina>();
 
+
         if (movement != null)
         {
             gameStartSpeedMultiplier =
@@ -81,18 +82,22 @@ public class GameResetManager : MonoBehaviour
                 movement.GetStrength();
         }
 
+
         if (stamina != null)
         {
             gameStartMaxStamina =
                 stamina.MaxStamina;
         }
 
+
         gameStartSnapshotCreated = true;
+
 
         Debug.Log(
             "[Reset] Game-start snapshot created."
         );
     }
+
 
     public bool HasGameStartSnapshot()
     {
@@ -103,7 +108,6 @@ public class GameResetManager : MonoBehaviour
     // =========================================================
     // DAY SNAPSHOT
     // =========================================================
-
 
     public void CreateDaySnapshot()
     {
@@ -116,6 +120,7 @@ public class GameResetManager : MonoBehaviour
 
             return;
         }
+
 
         PlayerInventory inventory =
             FindAnyObjectByType<PlayerInventory>();
@@ -141,6 +146,7 @@ public class GameResetManager : MonoBehaviour
 
         dayInventorySnapshot.Clear();
 
+
         if (inventory != null)
         {
             dayInventorySnapshot =
@@ -165,11 +171,17 @@ public class GameResetManager : MonoBehaviour
                 movement.GetStrength();
         }
 
+
         if (stamina != null)
         {
             dayStartMaxStamina =
                 stamina.MaxStamina;
         }
+
+
+        // -----------------------------------------------------
+        // EXODIA
+        // -----------------------------------------------------
 
         if (GameStateManager.Instance != null)
         {
@@ -178,7 +190,9 @@ public class GameResetManager : MonoBehaviour
                     .GetExodiaCollectionSnapshot();
         }
 
+
         daySnapshotCreated = true;
+
 
         Debug.Log(
             "[Reset] Day "
@@ -205,6 +219,11 @@ public class GameResetManager : MonoBehaviour
 
         RestoreDayInventory();
 
+
+        // -----------------------------------------------------
+        // RESET EXODIA
+        // -----------------------------------------------------
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance
@@ -222,12 +241,18 @@ public class GameResetManager : MonoBehaviour
 
 
         // -----------------------------------------------------
-        // RESET WORLD
+        // RESET WORLD INTERACTABLES
         // -----------------------------------------------------
 
         ResetWorldInteractables();
 
+
+        // -----------------------------------------------------
+        // RESET BOSSES
+        // -----------------------------------------------------
+
         ResetBosses();
+
 
         // -----------------------------------------------------
         // RESET CASE
@@ -246,12 +271,14 @@ public class GameResetManager : MonoBehaviour
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ResetCurrentDay();
+
             GameStateManager.Instance.ClearLossState();
         }
 
-        //
-        // BEHAVIOUR TREE RESET
-        //
+
+        // -----------------------------------------------------
+        // RESET BEHAVIOUR TREE
+        // -----------------------------------------------------
 
         if (GameStateManager.Instance != null)
         {
@@ -283,6 +310,7 @@ public class GameResetManager : MonoBehaviour
         PlayerInventory inventory =
             FindAnyObjectByType<PlayerInventory>();
 
+
         if (inventory != null)
         {
             inventory.ClearInventory();
@@ -297,12 +325,22 @@ public class GameResetManager : MonoBehaviour
 
 
         // -----------------------------------------------------
-        // RESET WORLD
+        // RESET WORLD INTERACTABLES
         // -----------------------------------------------------
 
         ResetWorldInteractables();
 
+
+        // -----------------------------------------------------
+        // RESET BOSSES
+        // -----------------------------------------------------
+
         ResetBosses();
+
+
+        // -----------------------------------------------------
+        // RESET EXODIA
+        // -----------------------------------------------------
 
         if (GameStateManager.Instance != null)
         {
@@ -349,11 +387,14 @@ public class GameResetManager : MonoBehaviour
         {
             GameStateManager.Instance.ResetEntireGame();
         }
+
+
         gameStartSnapshotCreated = false;
 
         gameStartSpeedMultiplier = 1f;
         gameStartStrength = 0f;
         gameStartMaxStamina = 100f;
+
 
         Debug.Log(
             "[Reset] Entire game reset complete."
@@ -376,8 +417,10 @@ public class GameResetManager : MonoBehaviour
             return;
         }
 
+
         PlayerInventory inventory =
             FindAnyObjectByType<PlayerInventory>();
+
 
         if (inventory == null)
         {
@@ -388,9 +431,11 @@ public class GameResetManager : MonoBehaviour
             return;
         }
 
+
         inventory.RestoreSnapshot(
             dayInventorySnapshot
         );
+
 
         Debug.Log(
             "[Reset] Day inventory restored."
@@ -408,6 +453,7 @@ public class GameResetManager : MonoBehaviour
         {
             return;
         }
+
 
         PlayerMovement movement =
             FindAnyObjectByType<PlayerMovement>();
@@ -427,6 +473,7 @@ public class GameResetManager : MonoBehaviour
             );
         }
 
+
         if (stamina != null)
         {
             stamina.SetMaxStamina(
@@ -434,6 +481,7 @@ public class GameResetManager : MonoBehaviour
             );
         }
     }
+
 
     public void ApplyDaySnapshotToCurrentPlayer()
     {
@@ -446,10 +494,12 @@ public class GameResetManager : MonoBehaviour
             return;
         }
 
+
         Debug.Log(
             "[Reset] Applying beginning-of-day snapshot "
             + "to current Player."
         );
+
 
         RestoreDayInventory();
 
@@ -477,6 +527,7 @@ public class GameResetManager : MonoBehaviour
             );
         }
 
+
         if (stamina != null)
         {
             stamina.SetMaxStamina(
@@ -498,6 +549,7 @@ public class GameResetManager : MonoBehaviour
                 FindObjectsSortMode.None
             );
 
+
         foreach (
             WorldInteractable interactable
             in interactables
@@ -508,8 +560,10 @@ public class GameResetManager : MonoBehaviour
                 continue;
             }
 
+
             interactable.ResetInteraction();
         }
+
 
         Debug.Log(
             "[Reset] World interactables reset: "
@@ -517,43 +571,62 @@ public class GameResetManager : MonoBehaviour
         );
     }
 
+
+    // =========================================================
+    // BOSS RESET
+    // =========================================================
+
     private void ResetBosses()
     {
+        // -----------------------------------------------------
+        // ORIGINAL BOSS SYSTEM
+        // -----------------------------------------------------
+
         BossDeath[] bosses =
             FindObjectsByType<BossDeath>(
                 FindObjectsInactive.Include,
                 FindObjectsSortMode.None
             );
 
-        foreach (BossDeath boss in bosses)
+
+        foreach (
+            BossDeath boss
+            in bosses
+        )
         {
             if (boss == null)
             {
                 continue;
             }
 
+
             Health health =
                 boss.GetComponent<Health>();
+
 
             if (health != null)
             {
                 health.ResetHealth();
             }
 
+
             boss.ResetBossState();
         }
-
-        Debug.Log(
-            "[Reset] Bosses reset: "
-            + bosses.Length
-        );
+   
     }
+
+
+    // =========================================================
+    // DAY CHECKPOINT
+    // =========================================================
 
     public void CommitCurrentProgressAsDayCheckpoint()
     {
         Debug.Log(
-            "[Reset] Committing current progress as the new day checkpoint."
+            "[Reset] Committing current progress "
+            + "as the new day checkpoint."
         );
+
 
         CreateDaySnapshot();
     }

@@ -56,10 +56,10 @@ public class TeleportManager : MonoBehaviour
     private TeleportPortal pendingPortal;
 
 
-[Header("F-Key Debug Overrides")]
+    [Header("F-Key Debug Overrides")]
 
-[SerializeField]
-private TeleportDestination f1LobbyDay1;
+    [SerializeField]
+    private TeleportDestination f1LobbyDay1;
 
     [SerializeField]
     private TeleportDestination f2Level1;
@@ -541,6 +541,12 @@ private TeleportDestination f1LobbyDay1;
                 false
             );
         }
+
+        // F8 = unlock every level portal.
+        if (Keyboard.current.f8Key.wasPressedThisFrame)
+        {
+            DebugUnlockAllPortals();
+        }
     }
 
 
@@ -678,6 +684,22 @@ private TeleportDestination f1LobbyDay1;
 
 
         // =====================================================
+        // RESTORE GAMEPLAY HUD / CURSOR
+        // =====================================================
+        // SkipCurrentCutscene() stops the video, but intentionally does
+        // not decide what the gameplay HUD should look like. The old
+        // debug path therefore left toolbar/health/stamina hidden.
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SetGameplayHUDVisible(true);
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+
+        // =====================================================
         // LOBBY
         // =====================================================
 
@@ -751,6 +773,61 @@ private TeleportDestination f1LobbyDay1;
             {
                 playerState.ResetToDefault();
             }
+        }
+    }
+
+
+    // =========================================================
+    // DEBUG - UNLOCK ALL PORTALS (F8)
+    // =========================================================
+
+    private void DebugUnlockAllPortals()
+    {
+        Debug.Log("[Debug Teleport] F8 pressed. Unlocking all portals.");
+
+        // F8 should also safely break out of a cutscene if it is pressed
+        // while a video is playing, just like the other debug keys.
+        SkipActiveCutscene();
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Lobby
+            );
+        }
+
+        GameObject player =
+            GameObject.FindGameObjectWithTag("Player");
+
+        if (player != null)
+        {
+            PlayerStateManager playerState =
+                player.GetComponent<PlayerStateManager>();
+
+            if (playerState != null)
+            {
+                playerState.ResetToDefault();
+            }
+        }
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SetGameplayHUDVisible(true);
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance.UnlockAllPortals();
+        }
+        else
+        {
+            Debug.LogError(
+                "[Debug Teleport] PortalProgressionManager is missing. " +
+                "F8 cannot unlock the portals."
+            );
         }
     }
 

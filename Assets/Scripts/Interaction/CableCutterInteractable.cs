@@ -3,19 +3,72 @@ using UnityEngine;
 public class CableCutterInteractable : WorldInteractable
 {
     // =========================================================
-    // CABLE CUTTER SETTINGS
+    // CABLE CUTTER
     // =========================================================
 
     [Header("Cable Cutter")]
 
-    [Tooltip("The Cable Cutter item given to the player.")]
+    [Tooltip(
+        "The Cable Cutter item given to the player."
+    )]
     [SerializeField]
     private CableCutterItem cableCutterItem;
 
 
-    [Tooltip("Player inventory that receives the Cable Cutter.")]
+    [Tooltip(
+        "Player inventory that receives the Cable Cutters."
+    )]
     [SerializeField]
     private PlayerInventory playerInventory;
+
+
+    // =========================================================
+    // LEVEL 2 THEATER
+    // =========================================================
+
+    [Header("Level 2 Theater")]
+
+    [Tooltip(
+        "The normal PuppetShow Theater that is visible " +
+        "before the Cable Cutters are collected."
+    )]
+    [SerializeField]
+    private GameObject theaterOriginal;
+
+
+    [Tooltip(
+        "The destroyed PuppetShow Theater that becomes " +
+        "visible after the Cable Cutters are collected."
+    )]
+    [SerializeField]
+    private GameObject theaterDestroyed;
+
+
+    // =========================================================
+    // DEBUG
+    // =========================================================
+
+    [Header("Debug")]
+
+    [SerializeField]
+    private bool debugCableCutter = true;
+
+
+    // =========================================================
+    // UNITY
+    // =========================================================
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+
+        // -----------------------------------------------------
+        // INITIAL THEATER STATE
+        // -----------------------------------------------------
+
+        RestoreTheaterInitialState();
+    }
 
 
     // =========================================================
@@ -31,13 +84,14 @@ public class CableCutterInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
-        // CHECK CABLE CUTTER ITEM
+        // CHECK ITEM
         // -----------------------------------------------------
 
         if (cableCutterItem == null)
         {
             Debug.LogError(
-                "[Cable Cutter] Cable Cutter Item has not been assigned."
+                "[Cable Cutter] Cable Cutter Item has not " +
+                "been assigned."
             );
 
             return;
@@ -51,7 +105,8 @@ public class CableCutterInteractable : WorldInteractable
         if (playerInventory == null)
         {
             Debug.LogError(
-                "[Cable Cutter] Player Inventory has not been assigned."
+                "[Cable Cutter] Player Inventory has not " +
+                "been assigned."
             );
 
             return;
@@ -59,7 +114,7 @@ public class CableCutterInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
-        // ADD CABLE CUTTER TO INVENTORY
+        // ADD TO INVENTORY
         // -----------------------------------------------------
 
         bool added =
@@ -75,9 +130,9 @@ public class CableCutterInteractable : WorldInteractable
 
         if (!added)
         {
-            Debug.Log(
-                "[Cable Cutter] Could not pick up Cable Cutter. "
-                + "Inventory is full."
+            DebugCableCutter(
+                "Could not pick up Cable Cutters. " +
+                "Inventory is full."
             );
 
             return;
@@ -85,22 +140,95 @@ public class CableCutterInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
-        // COMPLETE BASE INTERACTION
+        // COMPLETE INTERACTION
         // -----------------------------------------------------
 
         base.Interact();
 
 
         // -----------------------------------------------------
-        // REMOVE FROM WORLD
+        // CHANGE THEATER
         // -----------------------------------------------------
 
-        Debug.Log(
-            "[Cable Cutter] Cable Cutter picked up."
+        if (theaterOriginal != null)
+        {
+            theaterOriginal.SetActive(false);
+
+            DebugCableCutter(
+                "Original PuppetShow Theater hidden."
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Cable Cutter] Theater Original is not assigned."
+            );
+        }
+
+
+        if (theaterDestroyed != null)
+        {
+            theaterDestroyed.SetActive(true);
+
+            DebugCableCutter(
+                "Destroyed PuppetShow Theater revealed."
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Cable Cutter] Theater Destroyed is not assigned."
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // REMOVE PICKUP
+        // -----------------------------------------------------
+
+        DebugCableCutter(
+            "Cable Cutters picked up."
         );
 
 
         gameObject.SetActive(false);
+    }
+
+
+    // =========================================================
+    // RESET
+    // =========================================================
+
+    protected override void OnResetState()
+    {
+        base.OnResetState();
+
+
+        RestoreTheaterInitialState();
+
+
+        DebugCableCutter(
+            "Cable Cutter and theater state reset."
+        );
+    }
+
+
+    // =========================================================
+    // RESTORE INITIAL THEATER
+    // =========================================================
+
+    private void RestoreTheaterInitialState()
+    {
+        if (theaterOriginal != null)
+        {
+            theaterOriginal.SetActive(true);
+        }
+
+
+        if (theaterDestroyed != null)
+        {
+            theaterDestroyed.SetActive(false);
+        }
     }
 
 
@@ -110,6 +238,24 @@ public class CableCutterInteractable : WorldInteractable
 
     public override string GetInteractionPrompt()
     {
-        return "Pick Up Cable Cutter";
+        return "Pick Up Cable Cutters";
+    }
+
+
+    // =========================================================
+    // DEBUG
+    // =========================================================
+
+    private void DebugCableCutter(string message)
+    {
+        if (!debugCableCutter)
+        {
+            return;
+        }
+
+        Debug.Log(
+            "[Cable Cutter] "
+            + message
+        );
     }
 }

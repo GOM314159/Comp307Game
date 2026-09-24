@@ -170,6 +170,20 @@ public class ChairPlayController : MonoBehaviour
 
 
         // -----------------------------------------------------
+        // REVEAL THE LEVEL PORTAL FOR THIS DAY
+        // -----------------------------------------------------
+        // Day 1 play -> Level 1 portal
+        // Day 2 play -> Level 2 portal
+        // Day 3 play -> Level 3 portal
+        // Day 4 play -> Level 4 portal
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance.RevealPortalForDay(day);
+        }
+
+
+        // -----------------------------------------------------
         // RETURN TO LOBBY
         // -----------------------------------------------------
 
