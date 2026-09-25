@@ -20,7 +20,7 @@ public class AltF4ExitCutscene : MonoBehaviour
     [SerializeField]
     private bool debugExitCutscene = true;
 
-
+    private bool allowNormalQuit = false;
     private bool exitSequenceRunning = false;
 
     private bool applicationIsQuitting = false;
@@ -87,6 +87,12 @@ public class AltF4ExitCutscene : MonoBehaviour
             HandleApplicationWantsToQuit;
     }
 
+    public void AllowNormalQuit()
+    {
+        allowNormalQuit = true;
+        Application.Quit();
+    }
+
     private bool HandleApplicationWantsToQuit()
     {
         
@@ -95,8 +101,13 @@ public class AltF4ExitCutscene : MonoBehaviour
             return true;
         }
 
+        if (allowNormalQuit)
+        {
+            return true;
+        }
 
-        
+
+
         if (!enableAltF4ExitCutscene)
         {
             return true;

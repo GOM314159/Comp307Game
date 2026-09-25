@@ -235,7 +235,7 @@ public class MainMenu : MonoBehaviour
 
 #else
 
-        Application.Quit();
+        FindFirstObjectByType<AltF4ExitCutscene>().AllowNormalQuit();
 
 #endif
     }
