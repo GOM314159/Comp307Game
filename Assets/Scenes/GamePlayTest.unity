@@ -4038,12 +4038,12 @@ Transform:
   m_GameObject: {fileID: 115056591}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 1870.9668, y: 5.97227, z: 506.4475}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1329796398}
-  m_Father: {fileID: 1612998707}
+  m_Father: {fileID: 1978626240}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &115056593
 MonoBehaviour:
@@ -55587,7 +55587,7 @@ VideoPlayer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1329796397}
   m_Enabled: 1
-  m_VideoClip: {fileID: 32900000, guid: 00824c7259d996a448a17d69b0cf6255, type: 3}
+  m_VideoClip: {fileID: 32900000, guid: bdca277e19307354c8f0fa3ec1e4cf37, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
   m_TargetCamera: {fileID: 281335106}
@@ -71821,7 +71821,6 @@ Transform:
   - {fileID: 274156809}
   - {fileID: 406272600}
   - {fileID: 127109323}
-  - {fileID: 115056592}
   - {fileID: 1444877659}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -82815,6 +82814,7 @@ Transform:
   - {fileID: 535117153}
   - {fileID: 1636889715}
   - {fileID: 706151050}
+  - {fileID: 115056592}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1979975156 stripped
