@@ -43146,6 +43146,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Health
   maxHealth: 100
   currentHealth: 10
+  hardcoreHealthMultiplier: 2
   destroyOnDeath: 0
 --- !u!114 &939189182
 MonoBehaviour:
@@ -43162,7 +43163,12 @@ MonoBehaviour:
   damage: 15
   attackRange: 2
   attackCooldown: 1
+  hardcoreDamageMultiplier: 1.5
+  hardcoreCooldownMultiplier: 0.75
+  increaseSpeedOnHardcore: 1
+  hardcoreSpeedMultiplier: 1.25
   playerHealth: {fileID: 1442830827}
+  navMeshAgent: {fileID: 939189170}
   debugAttack: 0
 --- !u!114 &939189183
 MonoBehaviour:
@@ -58173,7 +58179,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.033333335
   m_MinRegionArea: 1
-  m_NavMeshData: {fileID: 23800000, guid: be7d89f4eab575c49af4e3a5a7c47996, type: 2}
+  m_NavMeshData: {fileID: 23800000, guid: 11dd62ed7b1ceba48a609cc62295b66f, type: 2}
   m_BuildHeightMesh: 1
 --- !u!4 &1374268625
 Transform:

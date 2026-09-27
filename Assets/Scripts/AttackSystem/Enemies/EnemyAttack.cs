@@ -1,66 +1,108 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 public class EnemyAttack : MonoBehaviour
 {
-    // =========================================================
-    // ATTACK SETTINGS
-    // =========================================================
-
     [Header("Attack")]
-
-    [Tooltip("Damage dealt to the player per attack.")]
     [SerializeField]
     private float damage = 10f;
 
-    [Tooltip("Maximum distance at which the enemy can attack.")]
     [SerializeField]
     private float attackRange = 2f;
 
-    [Tooltip("Time between attacks.")]
     [SerializeField]
     private float attackCooldown = 2f;
 
+    [Header("Hardcore")]
+    [SerializeField]
+    private float hardcoreDamageMultiplier = 1.5f;
 
-    // =========================================================
-    // PLAYER
-    // =========================================================
+    [SerializeField]
+    private float hardcoreCooldownMultiplier = 0.75f;
+
+    [SerializeField]
+    private bool increaseSpeedOnHardcore = true;
+
+    [SerializeField]
+    private float hardcoreSpeedMultiplier = 1.25f;
 
     [Header("Player")]
-
-    [Tooltip(
-        "Leave empty to automatically find the Player "
-        + "by tag."
-    )]
     [SerializeField]
     private PlayerHealth playerHealth;
 
-
-    // =========================================================
-    // DEBUG
-    // =========================================================
+    [Header("Movement")]
+    [SerializeField]
+    private NavMeshAgent navMeshAgent;
 
     [Header("Debug")]
-
     [SerializeField]
     private bool debugAttack = true;
 
-
-    // =========================================================
-    // STATE
-    // =========================================================
-
     private float attackTimer;
 
+    private float baseDamage;
+    private float baseAttackCooldown;
+    private float baseSpeed;
 
-    // =========================================================
-    // UNITY
-    // =========================================================
+    private void Awake()
+    {
+        baseDamage = damage;
+        baseAttackCooldown = attackCooldown;
+
+        if (navMeshAgent == null)
+        {
+            navMeshAgent =
+                GetComponent<NavMeshAgent>();
+        }
+
+        if (navMeshAgent != null)
+        {
+            baseSpeed = navMeshAgent.speed;
+        }
+    }
 
     private void Start()
     {
         FindPlayer();
+        ApplyDifficulty();
     }
 
+    private void ApplyDifficulty()
+    {
+        damage = baseDamage;
+        attackCooldown = baseAttackCooldown;
+
+        if (navMeshAgent != null)
+        {
+            navMeshAgent.speed = baseSpeed;
+        }
+
+        if (
+            GameStateManager.Instance == null ||
+            !GameStateManager.Instance.IsHardcore()
+        )
+        {
+            return;
+        }
+
+        damage =
+            baseDamage *
+            hardcoreDamageMultiplier;
+
+        attackCooldown =
+            baseAttackCooldown *
+            hardcoreCooldownMultiplier;
+
+        if (
+            increaseSpeedOnHardcore &&
+            navMeshAgent != null
+        )
+        {
+            navMeshAgent.speed =
+                baseSpeed *
+                hardcoreSpeedMultiplier;
+        }
+    }
 
     private void Update()
     {
@@ -76,17 +118,11 @@ public class EnemyAttack : MonoBehaviour
             return;
         }
 
-
         float distance =
             Vector3.Distance(
                 transform.position,
                 playerHealth.transform.position
             );
-
-
-        // -----------------------------------------------------
-        // OUTSIDE RANGE
-        // -----------------------------------------------------
 
         if (distance > attackRange)
         {
@@ -95,13 +131,7 @@ public class EnemyAttack : MonoBehaviour
             return;
         }
 
-
-        // -----------------------------------------------------
-        // ATTACK TIMER
-        // -----------------------------------------------------
-
         attackTimer += Time.deltaTime;
-
 
         if (attackTimer >= attackCooldown)
         {
@@ -110,11 +140,6 @@ public class EnemyAttack : MonoBehaviour
             attackTimer = 0f;
         }
     }
-
-
-    // =========================================================
-    // FIND PLAYER
-    // =========================================================
 
     private void FindPlayer()
     {
@@ -137,11 +162,6 @@ public class EnemyAttack : MonoBehaviour
         }
     }
 
-
-    // =========================================================
-    // ATTACK
-    // =========================================================
-
     private void Attack()
     {
         if (playerHealth == null)
@@ -154,17 +174,11 @@ public class EnemyAttack : MonoBehaviour
             return;
         }
 
-
-        // -----------------------------------------------------
-        // FACE PLAYER
-        // -----------------------------------------------------
-
         Vector3 direction =
             playerHealth.transform.position
             - transform.position;
 
         direction.y = 0f;
-
 
         if (direction.sqrMagnitude > 0.001f)
         {
@@ -172,13 +186,7 @@ public class EnemyAttack : MonoBehaviour
                 Quaternion.LookRotation(direction);
         }
 
-
-        // -----------------------------------------------------
-        // DAMAGE
-        // -----------------------------------------------------
-
         playerHealth.TakeDamage(damage);
-
 
         if (debugAttack)
         {
