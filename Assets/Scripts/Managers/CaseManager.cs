@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using System;
 using System.Collections.Generic;
 
@@ -35,9 +36,9 @@ public class CaseManager : MonoBehaviour
         public string description;
 
 
-        // =========================================================
+        // =====================================================
         // TIMER
-        // =========================================================
+        // =====================================================
 
         [Header("Timer")]
 
@@ -47,59 +48,48 @@ public class CaseManager : MonoBehaviour
         public float timeLimit = 300f;
 
 
-        // =========================================================
+        // =====================================================
         // MAIN OBJECTIVE
-        // =========================================================
+        // =====================================================
 
         [Header("Main Objective")]
 
         [Tooltip(
-            "The world interactable that completes the " +
-            "main objective for this case.\n\n" +
-            "Example:\n" +
-            "Day 1 = Axe\n" +
-            "Day 2 = Cable Cutter\n" +
-            "Day 3 = Gun"
+            "Display name for the required object.\n\n" +
+            "The actual object reference is assigned in the " +
+            "CaseSceneBinding inside the appropriate level scene."
         )]
-        public WorldInteractable requiredObject;
-
-        [Tooltip("Display name for the required object.")]
         public string objectName = "Required Object";
 
 
-        // =========================================================
+        // =====================================================
         // BOSS
-        // =========================================================
+        // =====================================================
 
         [Header("Boss")]
 
         public string bossName = "Case Boss";
 
 
-        // =========================================================
+        // =====================================================
         // SIDE QUEST
-        // =========================================================
+        // =====================================================
 
         [Header("Side Quest")]
 
         public bool hasSideQuest = true;
 
         [Tooltip(
-            "The world interactable that completes the side quest " +
-            "for this case.\n\n" +
-            "Example:\n" +
-            "Day 1 = White Powder\n" +
-            "Day 2 = Blue Tablet\n" +
-            "Day 3 = White Tablet"
+            "Display name for the side quest item.\n\n" +
+            "The actual object reference is assigned in the " +
+            "CaseSceneBinding inside the appropriate level scene."
         )]
-        public WorldInteractable sideQuestItem;
-
         public string sideQuestName;
 
 
-        // =========================================================
+        // =====================================================
         // COMPLETION
-        // =========================================================
+        // =====================================================
 
         [Header("Completion")]
 
@@ -129,6 +119,29 @@ public class CaseManager : MonoBehaviour
 
     [SerializeField]
     private int currentCaseIndex = -1;
+
+
+    // =========================================================
+    // SCENE REFERENCES
+    // =========================================================
+    //
+    // IMPORTANT:
+    //
+    // These are NOT serialized because the objects belong to
+    // scenes that are loaded/unloaded.
+    //
+    // CaseSceneBinding supplies these references after the
+    // appropriate scene loads.
+    //
+    // =========================================================
+
+    [Header("Runtime Scene References")]
+
+    [SerializeField]
+    private WorldInteractable currentRequiredObject;
+
+    [SerializeField]
+    private WorldInteractable currentSideQuestItem;
 
 
     // =========================================================
@@ -218,6 +231,18 @@ public class CaseManager : MonoBehaviour
     }
 
 
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+    }
+
+
     private void Update()
     {
         if (!timerRunning)
@@ -227,6 +252,155 @@ public class CaseManager : MonoBehaviour
 
         UpdateTimer();
     }
+
+
+    // =========================================================
+    // SCENE LOADED
+    // =========================================================
+
+    private void OnSceneLoaded(
+        Scene scene,
+        LoadSceneMode mode)
+    {
+        RefreshSceneReferences();
+    }
+
+
+    public void RefreshSceneReferences()
+    {
+        // -----------------------------------------------------
+        // CLEAR OLD SCENE REFERENCES
+        // -----------------------------------------------------
+
+        currentRequiredObject = null;
+
+        currentSideQuestItem = null;
+
+
+        // -----------------------------------------------------
+        // NO CURRENT CASE
+        // -----------------------------------------------------
+
+        if (currentCase == null)
+        {
+            DebugCase(
+                "No current case. Scene references cleared."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // FIND SCENE BINDINGS
+        // -----------------------------------------------------
+
+        CaseSceneBinding[] bindings =
+            FindObjectsByType<CaseSceneBinding>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+
+        // -----------------------------------------------------
+        // FIND THE BINDING FOR THIS CASE
+        // -----------------------------------------------------
+
+        CaseSceneBinding matchingBinding = null;
+
+        foreach (
+            CaseSceneBinding binding
+            in bindings
+        )
+        {
+            if (binding == null)
+            {
+                continue;
+            }
+
+            if (
+                binding.GetCaseID()
+                == currentCase.caseID
+            )
+            {
+                matchingBinding = binding;
+                break;
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // NO BINDING
+        // -----------------------------------------------------
+
+        if (matchingBinding == null)
+        {
+            DebugCase(
+                "No CaseSceneBinding for Case "
+                + currentCase.caseID
+                + " was found in scene '"
+                + SceneManager.GetActiveScene().name
+                + "'."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // ASSIGN REQUIRED OBJECT
+        // -----------------------------------------------------
+
+        currentRequiredObject =
+            matchingBinding.GetRequiredObject();
+
+
+        // -----------------------------------------------------
+        // ASSIGN SIDE QUEST OBJECT
+        // -----------------------------------------------------
+
+        currentSideQuestItem =
+            matchingBinding.GetSideQuestItem();
+
+
+        // -----------------------------------------------------
+        // VALIDATION
+        // -----------------------------------------------------
+
+        if (currentRequiredObject == null)
+        {
+            Debug.LogError(
+                "[Case Manager] Case "
+                + currentCase.caseID
+                + " has a CaseSceneBinding, but its " +
+                "Required Object is missing."
+            );
+        }
+
+        if (
+            currentCase.hasSideQuest &&
+            currentSideQuestItem == null
+        )
+        {
+            Debug.LogError(
+                "[Case Manager] Case "
+                + currentCase.caseID
+                + " has a CaseSceneBinding, but its " +
+                "Side Quest Item is missing."
+            );
+        }
+
+
+        DebugCase(
+            "Scene references refreshed for Case "
+            + currentCase.caseID
+            + ". Required Object = "
+            + GetObjectName(currentRequiredObject)
+            + ", Side Quest = "
+            + GetObjectName(currentSideQuestItem)
+        );
+    }
+
 
     // =========================================================
     // RESET FOR DAY
@@ -239,6 +413,10 @@ public class CaseManager : MonoBehaviour
         currentCaseIndex = -1;
 
         currentCase = null;
+
+        currentRequiredObject = null;
+
+        currentSideQuestItem = null;
 
         DebugCase(
             "Case Manager reset for current day."
@@ -258,10 +436,15 @@ public class CaseManager : MonoBehaviour
 
         currentCase = null;
 
+        currentRequiredObject = null;
+
+        currentSideQuestItem = null;
+
         DebugCase(
             "Case Manager reset for entire game."
         );
     }
+
 
     // =========================================================
     // START CASE
@@ -283,14 +466,34 @@ public class CaseManager : MonoBehaviour
             return false;
         }
 
+
+        // -----------------------------------------------------
+        // SELECT CASE
+        // -----------------------------------------------------
+
         currentCase = selectedCase;
 
         currentCaseIndex =
             cases.IndexOf(selectedCase);
 
+
+        // -----------------------------------------------------
+        // RESET CASE STATE
+        // -----------------------------------------------------
+
         ResetCaseState();
 
+
+        // -----------------------------------------------------
+        // ACTIVATE CASE
+        // -----------------------------------------------------
+
         caseActive = true;
+
+
+        // -----------------------------------------------------
+        // GAME STATE
+        // -----------------------------------------------------
 
         if (GameStateManager.Instance != null)
         {
@@ -299,6 +502,11 @@ public class CaseManager : MonoBehaviour
             GameStateManager.Instance.StartCase();
         }
 
+
+        // -----------------------------------------------------
+        // DEBUG
+        // -----------------------------------------------------
+
         DebugCase(
             "Started Case "
             + caseID
@@ -306,12 +514,31 @@ public class CaseManager : MonoBehaviour
             + selectedCase.caseName
         );
 
+
+        // -----------------------------------------------------
+        // TIMER
+        // -----------------------------------------------------
+
         if (selectedCase.hasTimer)
         {
             StartTimer(
                 selectedCase.timeLimit
             );
         }
+
+
+        // -----------------------------------------------------
+        // IMPORTANT
+        // -----------------------------------------------------
+        //
+        // We DO NOT try to assign the level objects here.
+        //
+        // The case scene has not necessarily loaded yet.
+        //
+        // TeleportManager loads the scene, and OnSceneLoaded
+        // calls RefreshSceneReferences().
+        //
+        // -----------------------------------------------------
 
         OnCaseStarted?.Invoke();
 
@@ -325,7 +552,10 @@ public class CaseManager : MonoBehaviour
 
     public CaseData GetCase(int caseID)
     {
-        foreach (CaseData caseData in cases)
+        foreach (
+            CaseData caseData
+            in cases
+        )
         {
             if (caseData == null)
             {
@@ -360,6 +590,22 @@ public class CaseManager : MonoBehaviour
 
 
     // =========================================================
+    // CURRENT OBJECTS
+    // =========================================================
+
+    public WorldInteractable GetCurrentRequiredObject()
+    {
+        return currentRequiredObject;
+    }
+
+
+    public WorldInteractable GetCurrentSideQuestItem()
+    {
+        return currentSideQuestItem;
+    }
+
+
+    // =========================================================
     // OBJECTIVE 1
     // FIND OBJECT
     // =========================================================
@@ -379,8 +625,9 @@ public class CaseManager : MonoBehaviour
         return true;
     }
 
+
     public bool TryRegisterRequiredObject(
-    WorldInteractable pickedUpObject)
+        WorldInteractable pickedUpObject)
     {
         if (!caseActive)
         {
@@ -392,6 +639,7 @@ public class CaseManager : MonoBehaviour
             return false;
         }
 
+
         if (pickedUpObject == null)
         {
             Debug.LogWarning(
@@ -400,6 +648,7 @@ public class CaseManager : MonoBehaviour
 
             return false;
         }
+
 
         if (currentCase == null)
         {
@@ -410,11 +659,25 @@ public class CaseManager : MonoBehaviour
             return false;
         }
 
-        // ---------------------------------------------------------
-        // MAKE SURE THIS IS THE CORRECT CASE ITEM
-        // ---------------------------------------------------------
 
-        if (currentCase.requiredObject != pickedUpObject)
+        // -----------------------------------------------------
+        // ENSURE CURRENT SCENE REFERENCES ARE VALID
+        // -----------------------------------------------------
+
+        if (currentRequiredObject == null)
+        {
+            RefreshSceneReferences();
+        }
+
+
+        // -----------------------------------------------------
+        // CORRECT OBJECT?
+        // -----------------------------------------------------
+
+        if (
+            currentRequiredObject == null ||
+            currentRequiredObject != pickedUpObject
+        )
         {
             Debug.LogWarning(
                 "[Case Manager] "
@@ -428,37 +691,44 @@ public class CaseManager : MonoBehaviour
             return false;
         }
 
-        // ---------------------------------------------------------
+
+        // -----------------------------------------------------
         // ALREADY FOUND
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         if (objectFound)
         {
             return false;
         }
 
-        // ---------------------------------------------------------
+
+        // -----------------------------------------------------
         // REGISTER
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         objectFound = true;
+
         bossUnlocked = true;
 
-        // ---------------------------------------------------------
+
+        // -----------------------------------------------------
         // GAME STATE
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.FindObject();
         }
 
-        // ---------------------------------------------------------
+
+        // -----------------------------------------------------
         // EVENTS
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         OnObjectFound?.Invoke();
+
         OnBossUnlocked?.Invoke();
+
 
         DebugCase(
             "Required object registered: "
@@ -469,8 +739,13 @@ public class CaseManager : MonoBehaviour
         return true;
     }
 
+
+    // =========================================================
+    // SIDE QUEST OBJECT
+    // =========================================================
+
     public bool TryRegisterSideQuestItem(
-    WorldInteractable pickedUpItem)
+        WorldInteractable pickedUpItem)
     {
         if (!caseActive)
         {
@@ -482,26 +757,43 @@ public class CaseManager : MonoBehaviour
             return false;
         }
 
+
         if (pickedUpItem == null)
         {
             return false;
         }
+
 
         if (currentCase == null)
         {
             return false;
         }
 
+
         if (!currentCase.hasSideQuest)
         {
             return false;
         }
 
-        // ---------------------------------------------------------
-        // MAKE SURE THIS IS THE CORRECT SIDE QUEST ITEM
-        // ---------------------------------------------------------
 
-        if (currentCase.sideQuestItem != pickedUpItem)
+        // -----------------------------------------------------
+        // ENSURE CURRENT SCENE REFERENCES ARE VALID
+        // -----------------------------------------------------
+
+        if (currentSideQuestItem == null)
+        {
+            RefreshSceneReferences();
+        }
+
+
+        // -----------------------------------------------------
+        // CORRECT OBJECT?
+        // -----------------------------------------------------
+
+        if (
+            currentSideQuestItem == null ||
+            currentSideQuestItem != pickedUpItem
+        )
         {
             Debug.LogWarning(
                 "[Case Manager] "
@@ -515,35 +807,47 @@ public class CaseManager : MonoBehaviour
             return false;
         }
 
-        // ---------------------------------------------------------
+
+        // -----------------------------------------------------
         // ALREADY COMPLETE
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         if (sideQuestComplete)
         {
             return false;
         }
 
-        // ---------------------------------------------------------
+
+        // -----------------------------------------------------
         // COMPLETE SIDE QUEST
-        // ---------------------------------------------------------
+        // -----------------------------------------------------
 
         sideQuestComplete = true;
 
+
         if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.CompleteSideQuest();
+            GameStateManager.Instance
+                .CompleteSideQuest();
         }
+
 
         DebugCase(
             "Side quest item registered: "
             + pickedUpItem.gameObject.name
         );
 
+
         OnSideQuestCompleted?.Invoke();
 
         return true;
     }
+
+
+    // =========================================================
+    // DIRECT OBJECTIVE ADVANCE
+    // =========================================================
+
     public void FindRequiredObject()
     {
         if (!CanFindObject())
@@ -551,28 +855,34 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
-        // The required object has been found.
+
         objectFound = true;
 
-        // Tell GameStateManager to advance the official objective.
+        bossUnlocked = true;
+
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.FindObject();
         }
 
-        // Keep CaseManager synchronized with GameStateManager.
-        bossUnlocked = true;
 
-        DebugCase("Required object found.");
-        DebugCase("Boss objective unlocked.");
+        DebugCase(
+            "Required object found."
+        );
+
+        DebugCase(
+            "Boss objective unlocked."
+        );
+
 
         OnObjectFound?.Invoke();
+
         OnBossUnlocked?.Invoke();
     }
 
 
     // =========================================================
-    // OBJECTIVE 2
     // BOSS
     // =========================================================
 
@@ -602,7 +912,9 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
+
         bossDefeated = true;
+
 
         if (GameStateManager.Instance != null)
         {
@@ -610,11 +922,14 @@ public class CaseManager : MonoBehaviour
                 .DefeatCaseBoss();
         }
 
+
         DebugCase(
             "Case boss defeated."
         );
 
+
         OnBossDefeated?.Invoke();
+
 
         CheckCaseCompletion();
     }
@@ -644,17 +959,21 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
+
         if (!HasSideQuest())
         {
             return;
         }
+
 
         if (sideQuestComplete)
         {
             return;
         }
 
+
         sideQuestComplete = true;
+
 
         if (GameStateManager.Instance != null)
         {
@@ -662,9 +981,11 @@ public class CaseManager : MonoBehaviour
                 .CompleteSideQuest();
         }
 
+
         DebugCase(
             "Side quest completed."
         );
+
 
         OnSideQuestCompleted?.Invoke();
     }
@@ -681,10 +1002,12 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
+
         if (!bossDefeated)
         {
             return;
         }
+
 
         CompleteCase();
     }
@@ -697,20 +1020,22 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
+
         caseComplete = true;
 
         caseActive = false;
 
         StopTimer();
 
+
         DebugCase(
             "Case completed."
         );
 
+
         OnCaseCompleted?.Invoke();
 
-        // GameFlowManager handles returning
-        // to the lobby / theater progression.
+
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance.CaseCompleted();
@@ -733,9 +1058,11 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
+
         timeRemaining = duration;
 
         timerRunning = true;
+
 
         if (GameStateManager.Instance != null)
         {
@@ -743,11 +1070,13 @@ public class CaseManager : MonoBehaviour
                 .StartCaseTimer(duration);
         }
 
+
         DebugCase(
             "Case timer started: "
             + duration
             + " seconds."
         );
+
 
         OnTimerStarted?.Invoke();
     }
@@ -757,20 +1086,25 @@ public class CaseManager : MonoBehaviour
     {
         timeRemaining -= Time.deltaTime;
 
+
         if (timeRemaining > 0f)
         {
             return;
         }
 
+
         timeRemaining = 0f;
 
         timerRunning = false;
+
 
         DebugCase(
             "Case timer expired."
         );
 
+
         OnTimerExpired?.Invoke();
+
 
         TimerExpired();
     }
@@ -783,7 +1117,9 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
+
         caseActive = false;
+
 
         if (GameStateManager.Instance != null)
         {
@@ -791,6 +1127,7 @@ public class CaseManager : MonoBehaviour
                 GameStateManager.LossReason.TimerExpired
             );
         }
+
 
         if (GameFlowManager.Instance != null)
         {
@@ -802,6 +1139,7 @@ public class CaseManager : MonoBehaviour
     public void StopTimer()
     {
         timerRunning = false;
+
 
         if (GameStateManager.Instance != null)
         {
@@ -869,6 +1207,7 @@ public class CaseManager : MonoBehaviour
             return GameStateManager.ObjectiveState.NotStarted;
         }
 
+
         return GameStateManager.Instance
             .GetCurrentObjective();
     }
@@ -904,16 +1243,19 @@ public class CaseManager : MonoBehaviour
 
         ResetCaseState();
 
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance
                 .ResetCaseProgress();
         }
 
+
         DebugCase(
             "Current case reset."
         );
     }
+
 
     // =========================================================
     // DEACTIVATE CASE
@@ -926,13 +1268,16 @@ public class CaseManager : MonoBehaviour
             return;
         }
 
+
         caseActive = false;
 
         StopTimer();
 
+
         DebugCase(
             "Case deactivated."
         );
+
 
         if (GameStateManager.Instance != null)
         {
@@ -942,6 +1287,11 @@ public class CaseManager : MonoBehaviour
                 GameStateManager.GameMode.Lobby
             );
         }
+
+
+        currentRequiredObject = null;
+
+        currentSideQuestItem = null;
     }
 
 
@@ -949,16 +1299,30 @@ public class CaseManager : MonoBehaviour
     // DEBUG
     // =========================================================
 
-    private void DebugCase(string message)
+    private void DebugCase(
+        string message)
     {
         if (!debugCaseManager)
         {
             return;
         }
 
+
         Debug.Log(
             "[Case Manager] "
             + message
         );
+    }
+
+
+    private string GetObjectName(
+        WorldInteractable interactable)
+    {
+        if (interactable == null)
+        {
+            return "NULL";
+        }
+
+        return interactable.gameObject.name;
     }
 }

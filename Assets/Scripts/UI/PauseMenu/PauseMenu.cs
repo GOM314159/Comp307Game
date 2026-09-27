@@ -27,6 +27,11 @@ public class PauseMenu : MonoBehaviour
 
     private void Awake()
     {
+        if (playerInventory == null)
+        {
+            playerInventory =
+                FindFirstObjectByType<PlayerInventory>();
+        }
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);

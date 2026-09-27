@@ -21,6 +21,7 @@ public class PlayerDeathManager : MonoBehaviour
         }
 
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     private void Start()

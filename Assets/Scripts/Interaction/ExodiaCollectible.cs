@@ -48,7 +48,11 @@ public class ExodiaCollectible : WorldInteractable
             return;
         }
 
-
+        if (playerInventory == null)
+        {
+            playerInventory =
+                FindFirstObjectByType<PlayerInventory>();
+        }
         if (playerInventory == null)
         {
             Debug.LogError(

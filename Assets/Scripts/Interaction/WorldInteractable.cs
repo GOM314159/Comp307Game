@@ -27,11 +27,17 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
     [Header("Interaction Prompt")]
 
-    [Tooltip("Text object used to display the interaction prompt.")]
+    [Tooltip(
+        "Optional local interaction text. " +
+        "Leave empty when using PersistentGameplayUI."
+    )]
     [SerializeField]
     private TextMeshProUGUI interactionText;
 
-    [Tooltip("Automatically searches this object and its children for the TextMeshPro UI.")]
+    [Tooltip(
+        "Automatically finds local text first, then the " +
+        "shared PersistentGameplayUI interaction text."
+    )]
     [SerializeField]
     private bool automaticallyFindText = true;
 
@@ -63,6 +69,7 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     // =========================================================
 
     public event System.Action OnInteracted;
+
     public event System.Action OnInteractionDisabled;
 
 
@@ -72,12 +79,8 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
     protected virtual void Awake()
     {
-        if (automaticallyFindText &&
-            interactionText == null)
-        {
-            interactionText =
-                GetComponentInChildren<TextMeshProUGUI>(true);
-        }
+        ResolveInteractionText();
+
 
         // -----------------------------------------------------
         // SAVE ORIGINAL WORLD STATE
@@ -104,6 +107,60 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
 
     // =========================================================
+    // FIND SHARED UI
+    // =========================================================
+
+    private void ResolveInteractionText()
+    {
+        if (!automaticallyFindText)
+        {
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // 1. TRY LOCAL TEXT
+        // -----------------------------------------------------
+
+        if (interactionText == null)
+        {
+            interactionText =
+                GetComponentInChildren<TextMeshProUGUI>(true);
+        }
+
+
+        // -----------------------------------------------------
+        // 2. TRY PERSISTENT GAMEPLAY UI
+        // -----------------------------------------------------
+
+        if (interactionText == null)
+        {
+            if (PersistentGameplayUI.Instance != null)
+            {
+                interactionText =
+                    PersistentGameplayUI.Instance
+                        .GetInteractionText();
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // 3. WARNING
+        // -----------------------------------------------------
+
+        if (interactionText == null)
+        {
+            Debug.LogWarning(
+                "[WorldInteractable] No Interaction Text found " +
+                "for: "
+                + gameObject.name
+                + ". Make sure PersistentGameplayUI exists."
+            );
+        }
+    }
+
+
+    // =========================================================
     // INTERACTION
     // =========================================================
 
@@ -114,17 +171,22 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             return;
         }
 
+
         Debug.Log(
             "[Interaction] "
             + gameObject.name
             + " interacted with."
         );
 
+
         hasBeenInteractedWith = true;
+
 
         HideInteractionPrompt();
 
+
         OnInteracted?.Invoke();
+
 
         if (interactOnlyOnce)
         {
@@ -147,13 +209,18 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
     public void ShowInteractionPrompt()
     {
+        ResolveInteractionText();
+
+
         if (interactionText == null)
         {
             return;
         }
 
+
         interactionText.text =
             BuildInteractionPrompt();
+
 
         interactionText.gameObject.SetActive(true);
     }
@@ -166,6 +233,7 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             return;
         }
 
+
         interactionText.gameObject.SetActive(false);
     }
 
@@ -174,6 +242,7 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     {
         string interactionButton =
             GetInteractionButtonText();
+
 
         return interactionButton
                + " to "
@@ -189,6 +258,7 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     {
         PlayerControls controls =
             new PlayerControls();
+
 
         InputAction interactAction =
             controls.Player.Interact;
@@ -219,12 +289,14 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             InputBinding binding =
                 action.bindings[i];
 
+
             if (
                 binding.isComposite ||
                 binding.isPartOfComposite)
             {
                 continue;
             }
+
 
             if (
                 binding.groups != null &&
@@ -237,6 +309,7 @@ public class WorldInteractable : MonoBehaviour, IInteractable
                 );
             }
         }
+
 
         return "Interact";
     }
@@ -253,12 +326,14 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             InputBinding binding =
                 action.bindings[i];
 
+
             if (
                 binding.isComposite ||
                 binding.isPartOfComposite)
             {
                 continue;
             }
+
 
             if (
                 binding.groups != null &&
@@ -275,6 +350,7 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             }
         }
 
+
         return "Interact";
     }
 
@@ -290,12 +366,14 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             return false;
         }
 
+
         if (
             interactOnlyOnce &&
             hasBeenInteractedWith)
         {
             return false;
         }
+
 
         return true;
     }
@@ -316,6 +394,7 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     {
         canInteract = enabled;
 
+
         if (!enabled)
         {
             HideInteractionPrompt();
@@ -335,10 +414,6 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
     public virtual void ResetInteraction()
     {
-        // -----------------------------------------------------
-        // RESTORE TRANSFORM
-        // -----------------------------------------------------
-
         if (transform.parent != originalParent)
         {
             transform.SetParent(
@@ -346,40 +421,31 @@ public class WorldInteractable : MonoBehaviour, IInteractable
             );
         }
 
+
         transform.localPosition =
             originalLocalPosition;
+
 
         transform.localRotation =
             originalLocalRotation;
 
+
         transform.localScale =
             originalLocalScale;
 
-
-        // -----------------------------------------------------
-        // RESTORE ACTIVE STATE
-        // -----------------------------------------------------
 
         gameObject.SetActive(
             originalActiveState
         );
 
 
-        // -----------------------------------------------------
-        // RESTORE INTERACTION STATE
-        // -----------------------------------------------------
-
         hasBeenInteractedWith = false;
 
         canInteract = true;
 
+
         HideInteractionPrompt();
 
-
-        // -----------------------------------------------------
-        // ALLOW CHILD CLASSES TO RESET
-        // THEIR OWN CUSTOM STATE
-        // -----------------------------------------------------
 
         OnResetState();
     }

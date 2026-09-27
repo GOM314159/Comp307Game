@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using Unity.Behavior;
+using UnityEngine.SceneManagement;
 
 public class GameStateManager : MonoBehaviour
 {
@@ -310,6 +311,29 @@ public class GameStateManager : MonoBehaviour
         Instance = this;
 
         DontDestroyOnLoad(gameObject);
+
+        SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+    }
+
+    private void OnSceneLoaded(
+    Scene scene,
+    LoadSceneMode mode)
+    {
+        RefreshBehaviourAgentReference();
+
+        Debug.Log(
+            "[GameStateManager] Scene loaded: "
+            + scene.name
+            + ". BehaviourGraphAgent reference refreshed."
+        );
     }
 
     public void SetPlayerGender(PlayerGender newGender)
@@ -1072,10 +1096,37 @@ public class GameStateManager : MonoBehaviour
 
     internal void ResetBehaviourTree()
     {
-        behaviourAgent.SetVariableValue("PlayerAlive", true);
-        behaviourAgent.SetVariableValue("AxeInteracted",false);
-        Debug.Log("[GameStateManager] Resetting Behaviour Tree variables.");
+        RefreshBehaviourAgentReference();
 
+        if (behaviourAgent == null)
+        {
+            Debug.Log(
+                "[GameStateManager] No BehaviorGraphAgent exists " +
+                "in the current scene. Behaviour tree reset skipped."
+            );
+
+            return;
+        }
+
+        behaviourAgent.SetVariableValue(
+            "PlayerAlive",
+            true
+        );
+
+        behaviourAgent.SetVariableValue(
+            "AxeInteracted",
+            false
+        );
+
+        Debug.Log(
+            "[GameStateManager] Resetting Behaviour Tree variables."
+        );
+    }
+
+    private void RefreshBehaviourAgentReference()
+    {
+        behaviourAgent =
+            FindAnyObjectByType<BehaviorGraphAgent>();
     }
 
     public PlayerGender Gender

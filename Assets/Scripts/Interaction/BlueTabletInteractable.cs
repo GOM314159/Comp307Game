@@ -18,8 +18,37 @@ public class BlueTabletInteractable : WorldInteractable
 
     [Header("Player")]
 
+    [Tooltip(
+        "Automatically found from the persistent Player if left empty."
+    )]
     [SerializeField]
     private PlayerStamina playerStamina;
+
+
+    // =========================================================
+    // UNITY
+    // =========================================================
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        ResolvePlayerReferences();
+    }
+
+
+    // =========================================================
+    // FIND PLAYER
+    // =========================================================
+
+    private void ResolvePlayerReferences()
+    {
+        if (playerStamina == null)
+        {
+            playerStamina =
+                FindFirstObjectByType<PlayerStamina>();
+        }
+    }
 
 
     // =========================================================
@@ -35,13 +64,21 @@ public class BlueTabletInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
+        // FIND PLAYER STAMINA
+        // -----------------------------------------------------
+
+        ResolvePlayerReferences();
+
+
+        // -----------------------------------------------------
         // CHECK PLAYER STAMINA
         // -----------------------------------------------------
 
         if (playerStamina == null)
         {
             Debug.LogError(
-                "[Blue Tablet] PlayerStamina has not been assigned."
+                "[Blue Tablet] PlayerStamina "
+                + "could not be found on the persistent Player."
             );
 
             return;
@@ -66,6 +103,13 @@ public class BlueTabletInteractable : WorldInteractable
             + " | Increase: +"
             + staminaIncrease
         );
+
+
+        // -----------------------------------------------------
+        // BASE INTERACTION
+        // -----------------------------------------------------
+
+        base.Interact();
 
 
         // -----------------------------------------------------

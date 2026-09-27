@@ -18,8 +18,37 @@ public class WhiteTabletInteractable : WorldInteractable
 
     [Header("Player")]
 
+    [Tooltip(
+        "Automatically found from the persistent Player if left empty."
+    )]
     [SerializeField]
     private PlayerMovement playerMovement;
+
+
+    // =========================================================
+    // UNITY
+    // =========================================================
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        ResolvePlayerReferences();
+    }
+
+
+    // =========================================================
+    // FIND PLAYER
+    // =========================================================
+
+    private void ResolvePlayerReferences()
+    {
+        if (playerMovement == null)
+        {
+            playerMovement =
+                FindFirstObjectByType<PlayerMovement>();
+        }
+    }
 
 
     // =========================================================
@@ -35,13 +64,21 @@ public class WhiteTabletInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
+        // FIND PLAYER MOVEMENT
+        // -----------------------------------------------------
+
+        ResolvePlayerReferences();
+
+
+        // -----------------------------------------------------
         // CHECK PLAYER
         // -----------------------------------------------------
 
         if (playerMovement == null)
         {
             Debug.LogError(
-                "[White Tablet] PlayerMovement has not been assigned."
+                "[White Tablet] PlayerMovement "
+                + "could not be found on the persistent Player."
             );
 
             return;
@@ -66,6 +103,13 @@ public class WhiteTabletInteractable : WorldInteractable
             + " | Increase: +"
             + strengthIncrease
         );
+
+
+        // -----------------------------------------------------
+        // BASE INTERACTION
+        // -----------------------------------------------------
+
+        base.Interact();
 
 
         // -----------------------------------------------------

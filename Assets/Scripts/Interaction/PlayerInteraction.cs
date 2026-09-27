@@ -49,15 +49,28 @@ public class PlayerInteraction : MonoBehaviour
     {
         controls = new PlayerControls();
 
-        controls.Player.Interact.performed +=
-    context =>
-    {
-        GameInputDevice.SetLastUsedDevice(
-            context.control.device
-        );
+        // Automatically find persistent Player references.
+        if (inventory == null)
+        {
+            inventory =
+                GetComponent<PlayerInventory>();
+        }
 
-        HandleInteract();
-    };
+        if (stateManager == null)
+        {
+            stateManager =
+                GetComponent<PlayerStateManager>();
+        }
+
+        controls.Player.Interact.performed +=
+            context =>
+            {
+                GameInputDevice.SetLastUsedDevice(
+                    context.control.device
+                );
+
+                HandleInteract();
+            };
     }
 
 

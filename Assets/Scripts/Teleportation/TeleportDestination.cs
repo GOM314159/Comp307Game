@@ -2,6 +2,12 @@ using UnityEngine;
 
 public class TeleportDestination : MonoBehaviour
 {
+    [Header("Cross-Scene Destination")]
+
+    [Tooltip("Unique ID used to find this destination after another scene loads.")]
+    [SerializeField]
+    private string destinationID;
+
     [Header("Spawn Settings")]
 
     [Tooltip("Optional offset applied to the player's spawn position.")]
@@ -12,6 +18,11 @@ public class TeleportDestination : MonoBehaviour
     // =========================================================
     // GETTERS
     // =========================================================
+
+    public string GetDestinationID()
+    {
+        return destinationID;
+    }
 
     public Vector3 GetSpawnPosition()
     {

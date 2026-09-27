@@ -19,6 +19,13 @@ public class GameFlowManager : MonoBehaviour
     [SerializeField] private string caseScene = "Case";
     [SerializeField] private string creditsScene = "Credits";
 
+    // The single master scene that holds the "Managers" root,
+    // the Main Menu UI, the Lobby, and everything else this
+    // game actually runs out of. Some scenes get tested on
+    // their own in the Editor, so any "return to Main Menu"
+    // request needs to be able to get back here from anywhere.
+    [SerializeField] private string gamePlayTestScene = "GamePlayTest";
+
     [Header("Main Menu / Intro")]
 
     [SerializeField]
@@ -65,6 +72,12 @@ public class GameFlowManager : MonoBehaviour
 
     private Coroutine newGamePreparationCoroutine;
 
+    // Set while we're waiting for GamePlayTest to load so a
+    // caller (OpenMainMenu, OpenLobby, ...) can finish its work
+    // once that scene is actually ready. See
+    // EnsureInGamePlayTestScene().
+    private System.Action pendingGamePlayTestAction;
+
     [Header("Debug")]
 
     [SerializeField] private bool debugFlow = true;
@@ -83,8 +96,146 @@ public class GameFlowManager : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        SceneManager.sceneLoaded += OnSceneLoaded;
+
+        // ---------------------------------------------------------
+        // PICK UP REFERENCES FOR THE SCENE WE STARTED IN
+        // ---------------------------------------------------------
+        //
+        // SceneManager.sceneLoaded only fires for scenes loaded
+        // AFTER this subscription runs. When Play is pressed
+        // directly inside a scene that already has the "Managers"
+        // object in it (e.g. testing GamePlayTest on its own), that
+        // scene is already loaded by the time this Awake() runs, so
+        // the event never fires for it and RefreshSceneReferences()
+        // was never called. That left playerRespawnPoint (and
+        // player) null, which is why MovePlayerToRespawnPoint()
+        // was failing with "Player Respawn Point has not been
+        // assigned in the Inspector!" even though it was assigned
+        // in the scene, just never picked up. Refreshing once here
+        // covers the initial scene too.
+        RefreshSceneReferences();
     }
 
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+    }
+
+    private void OnSceneLoaded(
+    Scene scene,
+    LoadSceneMode mode)
+    {
+        RefreshSceneReferences();
+
+        DebugFlow(
+            "Scene loaded: "
+            + scene.name
+            + ". Scene references refreshed."
+        );
+
+        // If EnsureInGamePlayTestScene() had to load GamePlayTest
+        // first for something, finish that work now that it's
+        // actually ready.
+        if (pendingGamePlayTestAction != null
+            && scene.name == gamePlayTestScene)
+        {
+            System.Action action = pendingGamePlayTestAction;
+            pendingGamePlayTestAction = null;
+
+            action();
+        }
+    }
+
+    // =========================================================
+    // GAMEPLAYTEST SCENE GUARD
+    // =========================================================
+    //
+    // Several flows (returning to the Main Menu, opening the
+    // Lobby) only make sense inside GamePlayTest - that's where
+    // the Main Menu UI, the Lobby, and the day's PlayerRespawnPoint
+    // actually live. If one of those is requested while a
+    // different scene happens to be loaded on its own (e.g. you
+    // died mid-level, in a level scene loaded via TeleportManager,
+    // or you're testing a level scene directly), load GamePlayTest
+    // first and run the real logic once it's ready. If we're
+    // already there, it just runs immediately.
+
+    private void EnsureInGamePlayTestScene(System.Action onReady)
+    {
+        if (SceneManager.GetActiveScene().name == gamePlayTestScene)
+        {
+            onReady();
+            return;
+        }
+
+        DebugFlow(
+            "Not currently in "
+            + gamePlayTestScene
+            + ". Loading it before continuing."
+        );
+
+        pendingGamePlayTestAction = onReady;
+
+        SceneManager.LoadScene(gamePlayTestScene);
+    }
+
+    public void RefreshSceneReferences()
+    {
+        // =====================================================
+        // PLAYER
+        // =====================================================
+
+        GameObject scenePlayer =
+            GameObject.FindGameObjectWithTag("Player");
+
+        if (scenePlayer != null)
+        {
+            player = scenePlayer;
+        }
+
+        // =====================================================
+        // RESPAWN POINT
+        // =====================================================
+
+        PlayerRespawnPoint sceneRespawnPoint =
+            FindAnyObjectByType<PlayerRespawnPoint>();
+
+        if (sceneRespawnPoint != null)
+        {
+            playerRespawnPoint =
+                sceneRespawnPoint;
+        }
+
+        // =====================================================
+        // CUTSCENES
+        // =====================================================
+
+        IntroCutscene sceneIntro =
+            FindAnyObjectByType<IntroCutscene>();
+
+        if (sceneIntro != null)
+        {
+            introCutscene =
+                sceneIntro;
+        }
+
+        FirstGameCutscene sceneFirstGame =
+            FindAnyObjectByType<FirstGameCutscene>();
+
+        if (sceneFirstGame != null)
+        {
+            firstGameCutscene =
+                sceneFirstGame;
+        }
+
+        DebugFlow(
+            "Scene-local GameFlow references refreshed."
+        );
+    }
     //private void Start()
     //{
     //    if (GameStateManager.Instance != null)
@@ -228,6 +379,11 @@ public class GameFlowManager : MonoBehaviour
     }
 
     public void OpenMainMenu()
+    {
+        EnsureInGamePlayTestScene(FinishReturnToMainMenu);
+    }
+
+    private void FinishReturnToMainMenu()
     {
         DebugFlow("Returning to Main Menu. Resetting entire game.");
 
@@ -768,6 +924,23 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartDay(int day)
     {
+        StartDay(day, true);
+    }
+
+    // createDaySnapshot: whether this should capture a fresh
+    // "beginning of day" snapshot once the player lands in the
+    // Lobby. This should be true for an actual new day (first day,
+    // CompleteDay, or a full game reset back to Day 1) and false
+    // when we're just restarting the SAME day after a death or
+    // timeout - in that case ResetCurrentDay() already restored
+    // the player to the existing day-start snapshot, and
+    // recapturing it here would instead bake in whatever state the
+    // player happened to be in right after the reset (e.g. an item
+    // they'd picked up that day that the reset failed to strip),
+    // permanently corrupting that day's baseline for every future
+    // restart.
+    public void StartDay(int day, bool createDaySnapshot)
+    {
         if (GameStateManager.Instance == null)
         {
             Debug.LogError(
@@ -793,10 +966,10 @@ public class GameFlowManager : MonoBehaviour
         }
 
         // ---------------------------------------------------------
-        // MARK THAT A NEW DAY SNAPSHOT IS REQUIRED
+        // MARK WHETHER A NEW DAY SNAPSHOT IS REQUIRED
         // ---------------------------------------------------------
 
-        createDaySnapshotOnLobbyLoad = true;
+        createDaySnapshotOnLobbyLoad = createDaySnapshot;
 
         DebugFlow(
             "Starting Day " + day
@@ -827,6 +1000,11 @@ public class GameFlowManager : MonoBehaviour
     // =========================================================
 
     public void OpenLobby()
+    {
+        EnsureInGamePlayTestScene(FinishOpenLobby);
+    }
+
+    private void FinishOpenLobby()
     {
         if (GameStateManager.Instance == null)
         {
@@ -1250,8 +1428,12 @@ public class GameFlowManager : MonoBehaviour
         // ---------------------------------------------------------
         // RETURN TO THE SAME DAY'S LOBBY
         // ---------------------------------------------------------
+        //
+        // Same day, not a new one - keep the existing day-start
+        // snapshot instead of recapturing it from whatever state
+        // the reset just produced.
 
-        StartDay(day);
+        StartDay(day, false);
     }
 
     private void RestartEntireGame()
@@ -1345,8 +1527,16 @@ public class GameFlowManager : MonoBehaviour
         // ---------------------------------------------------------
         // RESTART SAME DAY
         // ---------------------------------------------------------
+        //
+        // Same day, not a new one - keep the existing day-start
+        // snapshot instead of recapturing it from whatever state
+        // the reset just produced. This is what let a weapon
+        // picked up during the day (e.g. the axe) survive a death
+        // and get permanently baked into the day's baseline
+        // inventory, so every future restart of that day kept it
+        // too.
 
-        StartDay(day);
+        StartDay(day, false);
     }
 
 

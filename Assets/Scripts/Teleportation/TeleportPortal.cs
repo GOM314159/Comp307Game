@@ -20,9 +20,17 @@ public class TeleportPortal : MonoBehaviour
 
     [Header("Destination")]
 
-    [Tooltip("Drag the TeleportDestination object from the Hierarchy here.")]
+    [Tooltip("Used for same-scene teleporting. Leave empty for cross-scene teleporting.")]
     [SerializeField]
     private TeleportDestination destination;
+
+    [Tooltip("Scene to load. Leave empty to preserve the original same-scene behaviour.")]
+    [SerializeField]
+    private string destinationSceneName;
+
+    [Tooltip("Destination ID inside the destination scene. Must match TeleportDestination.destinationID.")]
+    [SerializeField]
+    private string destinationID;
 
 
     // =========================================================
@@ -34,6 +42,18 @@ public class TeleportPortal : MonoBehaviour
     [SerializeField]
     private TeleportType teleportType =
         TeleportType.Normal;
+
+
+    // =========================================================
+    // CASE SETTINGS
+    // =========================================================
+
+    [Header("Portal Progression")]
+
+    [Tooltip("0 = not a level-entry portal. 1/2/3/4 = the corresponding level portal.")]
+    [Min(0)]
+    [SerializeField]
+    private int portalLevel = 0;
 
 
     // =========================================================
@@ -147,11 +167,12 @@ public class TeleportPortal : MonoBehaviour
         // DESTINATION CHECK
         // -----------------------------------------------------
 
-        if (destination == null)
+        if (!HasValidDestination())
         {
             Debug.LogError(
-                "[Teleport] No destination assigned to "
+                "[Teleport] No valid destination configured on "
                 + gameObject.name
+                + ". Assign a same-scene destination OR a destination scene name + destination ID."
             );
 
             return;
@@ -333,6 +354,27 @@ public class TeleportPortal : MonoBehaviour
         return destination;
     }
 
+    public string GetDestinationSceneName()
+    {
+        return destinationSceneName;
+    }
+
+    public string GetDestinationID()
+    {
+        return destinationID;
+    }
+
+    public bool HasCrossSceneDestination()
+    {
+        return !string.IsNullOrWhiteSpace(destinationSceneName)
+            && !string.IsNullOrWhiteSpace(destinationID);
+    }
+
+    public bool HasValidDestination()
+    {
+        return destination != null || HasCrossSceneDestination();
+    }
+
 
     public TeleportType GetTeleportType()
     {
@@ -343,6 +385,11 @@ public class TeleportPortal : MonoBehaviour
     public int GetCaseID()
     {
         return caseID;
+    }
+
+    public int GetPortalLevel()
+    {
+        return portalLevel;
     }
 
 

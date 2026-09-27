@@ -101,7 +101,11 @@ public class CableCutterInteractable : WorldInteractable
         // -----------------------------------------------------
         // CHECK INVENTORY
         // -----------------------------------------------------
-
+        if (playerInventory == null)
+        {
+            playerInventory =
+                FindFirstObjectByType<PlayerInventory>();
+        }
         if (playerInventory == null)
         {
             Debug.LogError(

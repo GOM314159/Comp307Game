@@ -1,9 +1,29 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 public class TeleportManager : MonoBehaviour
 {
+    // =========================================================
+    // DEBUG TARGET
+    // =========================================================
+
+    [System.Serializable]
+    private class DebugTarget
+    {
+        public TeleportDestination sameSceneDestination;
+
+        public string sceneName;
+
+        public string destinationID;
+    }
+
+
+    // =========================================================
+    // SINGLETON
+    // =========================================================
+
     public static TeleportManager Instance { get; private set; }
 
 
@@ -18,36 +38,6 @@ public class TeleportManager : MonoBehaviour
 
 
     // =========================================================
-    // DEBUG DESTINATIONS
-    // =========================================================
-    //
-    // These are intentionally here so the F-key debug system
-    // can be enabled later without modifying the teleport code.
-    //
-    // =========================================================
-
-    [Header("Debug Destinations")]
-
-    [SerializeField]
-    private TeleportDestination case1StartDestination;
-
-    [SerializeField]
-    private TeleportDestination case2StartDestination;
-
-    [SerializeField]
-    private TeleportDestination case3StartDestination;
-
-    [SerializeField]
-    private TeleportDestination theaterCase1ReturnDestination;
-
-    [SerializeField]
-    private TeleportDestination theaterCase2ReturnDestination;
-
-    [SerializeField]
-    private TeleportDestination theaterCase3ReturnDestination;
-
-
-    // =========================================================
     // CURRENT TELEPORT
     // =========================================================
 
@@ -55,6 +45,26 @@ public class TeleportManager : MonoBehaviour
 
     private TeleportPortal pendingPortal;
 
+    private string pendingSceneName;
+
+    private string pendingDestinationID;
+
+    private TeleportPortal.TeleportType pendingTeleportType;
+
+
+    // =========================================================
+    // LOADING SCREEN
+    // =========================================================
+
+    [Header("Scene Transition")]
+
+    [SerializeField]
+    private LoadingScreenManager loadingScreenManager;
+
+
+    // =========================================================
+    // DEBUG DESTINATIONS
+    // =========================================================
 
     [Header("F-Key Debug Overrides")]
 
@@ -80,6 +90,28 @@ public class TeleportManager : MonoBehaviour
     private TeleportDestination f7LobbyDay4;
 
 
+    [SerializeField]
+    private DebugTarget f1Target = new DebugTarget();
+
+    [SerializeField]
+    private DebugTarget f2Target = new DebugTarget();
+
+    [SerializeField]
+    private DebugTarget f3Target = new DebugTarget();
+
+    [SerializeField]
+    private DebugTarget f4Target = new DebugTarget();
+
+    [SerializeField]
+    private DebugTarget f5Target = new DebugTarget();
+
+    [SerializeField]
+    private DebugTarget f6Target = new DebugTarget();
+
+    [SerializeField]
+    private DebugTarget f7Target = new DebugTarget();
+
+
     // =========================================================
     // UNITY
     // =========================================================
@@ -93,51 +125,117 @@ public class TeleportManager : MonoBehaviour
         }
 
         Instance = this;
+
+        DontDestroyOnLoad(gameObject);
+
+        EnsureLoadingScreen();
     }
 
 
     // =========================================================
-    // TELEPORT
+    // NORMAL TELEPORT
     // =========================================================
 
     public void Teleport(
         TeleportPortal portal,
         GameObject player)
     {
+        // -----------------------------------------------------
+        // VALIDATE PORTAL
+        // -----------------------------------------------------
+
         if (portal == null)
         {
+            Debug.LogError(
+                "[Teleport] Portal is null."
+            );
+
             return;
         }
+
+
+        // -----------------------------------------------------
+        // VALIDATE PLAYER
+        // -----------------------------------------------------
 
         if (player == null)
         {
+            Debug.LogError(
+                "[Teleport] Player is null."
+            );
+
             return;
         }
 
+
+        // -----------------------------------------------------
+        // PREVENT DOUBLE TELEPORT
+        // -----------------------------------------------------
+
         if (teleportingPlayer != null)
         {
+            Debug.LogWarning(
+                "[Teleport] A teleport is already in progress."
+            );
+
             return;
         }
+
+
+        // -----------------------------------------------------
+        // VALID DESTINATION
+        // -----------------------------------------------------
+
+        if (!portal.HasValidDestination())
+        {
+            Debug.LogError(
+                "[Teleport] Portal "
+                + portal.gameObject.name
+                + " has no valid destination."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
+        // STORE TELEPORT INFORMATION
+        // -----------------------------------------------------
 
         teleportingPlayer = player;
 
         pendingPortal = portal;
 
+        pendingSceneName =
+            portal.GetDestinationSceneName();
 
-        DebugTeleport(
-            "Teleport requested."
+        pendingDestinationID =
+            portal.GetDestinationID();
+
+        pendingTeleportType =
+            portal.GetTeleportType();
+
+
+        // -----------------------------------------------------
+        // KEEP PLAYER ALIVE DURING SCENE CHANGE
+        // -----------------------------------------------------
+
+        DontDestroyOnLoad(
+            teleportingPlayer
         );
 
 
         // -----------------------------------------------------
-        // EFFECT
+        // TELEPORT EFFECT
         // -----------------------------------------------------
 
-        PlayTeleportEffect(portal);
+        PlayTeleportEffect(
+            portal
+        );
 
 
         // -----------------------------------------------------
-        // DAY
+        // DAY CHANGE
         // -----------------------------------------------------
 
         if (portal.ChangesDay())
@@ -152,11 +250,13 @@ public class TeleportManager : MonoBehaviour
         // CASE STATE
         // -----------------------------------------------------
 
-        HandleCaseState(portal);
+        HandleCaseState(
+            portal
+        );
 
 
         // -----------------------------------------------------
-        // TELEPORT
+        // START TELEPORT
         // -----------------------------------------------------
 
         StartCoroutine(
@@ -168,7 +268,7 @@ public class TeleportManager : MonoBehaviour
 
 
     // =========================================================
-    // FINISH TELEPORT
+    // TELEPORT DELAY
     // =========================================================
 
     private IEnumerator FinishTeleportAfterDelay(
@@ -176,12 +276,18 @@ public class TeleportManager : MonoBehaviour
     {
         if (delay > 0f)
         {
-            yield return new WaitForSeconds(delay);
+            yield return new WaitForSeconds(
+                delay
+            );
         }
 
         yield return FinishTeleport();
     }
 
+
+    // =========================================================
+    // FINISH TELEPORT
+    // =========================================================
 
     private IEnumerator FinishTeleport()
     {
@@ -189,7 +295,7 @@ public class TeleportManager : MonoBehaviour
 
 
         // -----------------------------------------------------
-        // DESTINATION
+        // VALIDATE
         // -----------------------------------------------------
 
         if (pendingPortal == null)
@@ -200,6 +306,79 @@ public class TeleportManager : MonoBehaviour
         }
 
 
+        // =====================================================
+        // CROSS-SCENE TELEPORT
+        // =====================================================
+
+        if (pendingPortal.HasCrossSceneDestination())
+        {
+            // -------------------------------------------------
+            // GAME STATE
+            // -------------------------------------------------
+
+            if (GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.SetGameMode(
+                    GameStateManager.GameMode.Loading
+                );
+            }
+
+
+            // -------------------------------------------------
+            // PLAYER STATE
+            // -------------------------------------------------
+
+            if (PlayerStateManager.Instance != null)
+            {
+                PlayerStateManager.Instance.SetState(
+                    PlayerStateManager.PlayerState.NoMovementNoCamera
+                );
+            }
+
+
+            // -------------------------------------------------
+            // LOADING SCREEN
+            // -------------------------------------------------
+
+            EnsureLoadingScreen();
+
+            if (loadingScreenManager != null)
+            {
+                loadingScreenManager.Show();
+            }
+
+
+            // -------------------------------------------------
+            // DEBUG
+            // -------------------------------------------------
+
+            DebugTeleport(
+                "Loading scene '"
+                + pendingSceneName
+                + "' for destination '"
+                + pendingDestinationID
+                + "'."
+            );
+
+
+            // -------------------------------------------------
+            // LOAD THE EXACT REQUESTED SCENE
+            // -------------------------------------------------
+
+            yield return LoadSceneAndFinishTeleport(
+                pendingSceneName,
+                pendingDestinationID,
+                pendingTeleportType
+            );
+
+            yield break;
+        }
+
+
+        // =====================================================
+        // SAME-SCENE TELEPORT
+        // =====================================================
+
         TeleportDestination destination =
             pendingPortal.GetDestination();
 
@@ -207,7 +386,7 @@ public class TeleportManager : MonoBehaviour
         if (destination == null)
         {
             Debug.LogError(
-                "[Teleport] Destination is missing."
+                "[Teleport] Same-scene destination is missing."
             );
 
             ResetTeleportState();
@@ -217,11 +396,652 @@ public class TeleportManager : MonoBehaviour
 
 
         // -----------------------------------------------------
+        // MOVE PLAYER
+        // -----------------------------------------------------
+
+        MovePlayerToDestination(
+            teleportingPlayer,
+            destination
+        );
+
+
+        // -----------------------------------------------------
+        // RESTORE GAMEPLAY
+        // -----------------------------------------------------
+
+        RestoreGameplayState();
+
+
+        // -----------------------------------------------------
+        // RESET
+        // -----------------------------------------------------
+
+        ResetTeleportState();
+    }
+
+
+    private IEnumerator LoadSceneAndFinishTeleport(
+    string sceneName,
+    string destinationID,
+    TeleportPortal.TeleportType teleportType)
+    {
+        // =========================================================
+        // VALIDATE SCENE
+        // =========================================================
+
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            Debug.LogError(
+                "[Teleport] Scene name is empty."
+            );
+
+            FailSceneTeleport();
+
+            yield break;
+        }
+
+
+        // =========================================================
+        // VALIDATE DESTINATION
+        // =========================================================
+
+        if (string.IsNullOrWhiteSpace(destinationID))
+        {
+            Debug.LogError(
+                "[Teleport] Destination ID is empty."
+            );
+
+            FailSceneTeleport();
+
+            yield break;
+        }
+
+
+        // =========================================================
+        // FIND BUILD INDEX
+        // =========================================================
+
+        int buildIndex =
+            SceneUtility.GetBuildIndexByScenePath(
+                sceneName
+            );
+
+
+        if (buildIndex < 0)
+        {
+            Debug.LogError(
+                "[Teleport] Scene '"
+                + sceneName
+                + "' is NOT available in the Build Profile."
+            );
+
+            FailSceneTeleport();
+
+            yield break;
+        }
+
+
+        Debug.Log(
+            "[Teleport] Scene '"
+            + sceneName
+            + "' has Build Index "
+            + buildIndex
+            + "."
+        );
+
+
+        // =========================================================
+        // GIVE LOADING SCREEN A FRAME TO APPEAR
+        // =========================================================
+
+        Debug.Log(
+            "[Teleport] Preparing loading screen before "
+            + "loading scene."
+        );
+
+
+        yield return null;
+
+
+        // =========================================================
+        // CREATE SCENE LOADED CALLBACK
+        // =========================================================
+        //
+        // IMPORTANT:
+        // The rest of the teleport is deliberately performed
+        // inside this callback.
+        //
+        // We do NOT wait for the callback from this coroutine.
+        //
+        // This prevents the teleport from depending on the
+        // coroutine continuing after the scene transition.
+        //
+        // =========================================================
+
+        UnityEngine.Events.UnityAction<Scene, LoadSceneMode>
+            onSceneLoaded =
+            null;
+
+
+        onSceneLoaded =
+            (loadedScene, loadMode) =>
+            {
+                // =================================================
+                // IGNORE OTHER SCENES
+                // =================================================
+
+                if (loadedScene.name != sceneName)
+                {
+                    return;
+                }
+
+
+                // =================================================
+                // REMOVE CALLBACK IMMEDIATELY
+                // =================================================
+
+                SceneManager.sceneLoaded -= onSceneLoaded;
+
+
+                // =================================================
+                // DEBUG
+                // =================================================
+
+                Debug.Log(
+                    "[Teleport] sceneLoaded event received for '"
+                    + loadedScene.name
+                    + "'."
+                );
+
+
+                // =================================================
+                // VERIFY SCENE
+                // =================================================
+
+                if (!loadedScene.IsValid())
+                {
+                    Debug.LogError(
+                        "[Teleport] Loaded scene is invalid."
+                    );
+
+                    FailSceneTeleport();
+
+                    return;
+                }
+
+
+                if (!loadedScene.isLoaded)
+                {
+                    Debug.LogError(
+                        "[Teleport] Loaded scene reports "
+                        + "isLoaded = FALSE."
+                    );
+
+                    FailSceneTeleport();
+
+                    return;
+                }
+
+
+                Debug.Log(
+                    "[Teleport] Scene loaded successfully: "
+                    + loadedScene.name
+                );
+
+
+                // =================================================
+                // VERIFY ACTIVE SCENE
+                // =================================================
+
+                Scene activeScene =
+                    SceneManager.GetActiveScene();
+
+
+                Debug.Log(
+                    "[Teleport] Active scene after load: "
+                    + activeScene.name
+                );
+
+
+                // =================================================
+                // SET ACTIVE SCENE IF NECESSARY
+                // =================================================
+
+                if (activeScene.name != sceneName)
+                {
+                    Debug.Log(
+                        "[Teleport] Setting loaded scene as "
+                        + "the active scene."
+                    );
+
+
+                    if (!SceneManager.SetActiveScene(
+                        loadedScene))
+                    {
+                        Debug.LogError(
+                            "[Teleport] Failed to set '"
+                            + loadedScene.name
+                            + "' as the active scene."
+                        );
+
+                        FailSceneTeleport();
+
+                        return;
+                    }
+                }
+
+
+                // =================================================
+                // VERIFY ACTIVE SCENE
+                // =================================================
+
+                activeScene =
+                    SceneManager.GetActiveScene();
+
+
+                if (activeScene.name != sceneName)
+                {
+                    Debug.LogError(
+                        "[Teleport] Wrong scene is active."
+                    );
+
+                    Debug.LogError(
+                        "[Teleport] Expected: "
+                        + sceneName
+                    );
+
+                    Debug.LogError(
+                        "[Teleport] Actual: "
+                        + activeScene.name
+                    );
+
+                    FailSceneTeleport();
+
+                    return;
+                }
+
+
+                Debug.Log(
+                    "[Teleport] Active scene verified: "
+                    + activeScene.name
+                );
+
+
+                // =================================================
+                // FIND DESTINATION
+                // =================================================
+
+                Debug.Log(
+                    "[Teleport] Looking for destination '"
+                    + destinationID
+                    + "'."
+                );
+
+
+                TeleportDestination destination =
+                    FindDestinationByID(
+                        destinationID
+                    );
+
+
+                if (destination == null)
+                {
+                    Debug.LogError(
+                        "[Teleport] Could not find destination '"
+                        + destinationID
+                        + "' in scene '"
+                        + loadedScene.name
+                        + "'."
+                    );
+
+
+                    // ---------------------------------------------
+                    // DEBUG ALL DESTINATIONS
+                    // ---------------------------------------------
+
+                    TeleportDestination[] allDestinations =
+                        FindObjectsByType<TeleportDestination>(
+                            FindObjectsInactive.Include,
+                            FindObjectsSortMode.None
+                        );
+
+
+                    Debug.Log(
+                        "[Teleport] Teleport destinations found: "
+                        + allDestinations.Length
+                    );
+
+
+                    foreach (
+                        TeleportDestination possibleDestination
+                        in allDestinations)
+                    {
+                        if (possibleDestination == null)
+                        {
+                            continue;
+                        }
+
+
+                        Debug.Log(
+                            "[Teleport] Destination: '"
+                            + possibleDestination.gameObject.name
+                            + "'"
+                            + " | ID: '"
+                            + possibleDestination.GetDestinationID()
+                            + "'"
+                        );
+                    }
+
+
+                    FailSceneTeleport();
+
+                    return;
+                }
+
+
+                Debug.Log(
+                    "[Teleport] Destination found: "
+                    + destination.gameObject.name
+                );
+
+
+                // =================================================
+                // FIND PLAYER
+                // =================================================
+
+                if (teleportingPlayer == null)
+                {
+                    teleportingPlayer =
+                        GameObject.FindGameObjectWithTag(
+                            "Player"
+                        );
+                }
+
+
+                if (teleportingPlayer == null)
+                {
+                    Debug.LogError(
+                        "[Teleport] Player could not be found "
+                        + "after loading scene."
+                    );
+
+                    FailSceneTeleport();
+
+                    return;
+                }
+
+
+                Debug.Log(
+                    "[Teleport] Player found: "
+                    + teleportingPlayer.name
+                );
+
+
+                // =================================================
+                // MOVE PLAYER
+                // =================================================
+
+                Debug.Log(
+                    "[Teleport] Moving player to destination '"
+                    + destinationID
+                    + "'."
+                );
+
+
+                MovePlayerToDestination(
+                    teleportingPlayer,
+                    destination
+                );
+
+
+                // =================================================
+                // REFRESH SCENE REFERENCES
+                // =================================================
+
+                Debug.Log(
+                    "[Teleport] Refreshing scene references."
+                );
+
+
+                RebindSceneSystems();
+
+
+                // =================================================
+                // CASE / LOBBY STATE
+                // =================================================
+
+                if (GameStateManager.Instance != null)
+                {
+                    if (
+                        teleportType
+                        == TeleportPortal.TeleportType.EnterCase
+                    )
+                    {
+                        GameStateManager.Instance.SetGameMode(
+                            GameStateManager.GameMode.Case
+                        );
+                    }
+                    else
+                    {
+                        GameStateManager.Instance.SetGameMode(
+                            GameStateManager.GameMode.Lobby
+                        );
+                    }
+                }
+
+
+                // =================================================
+                // RETURN FROM CASE
+                // =================================================
+
+                if (
+                    teleportType
+                    == TeleportPortal.TeleportType.ReturnFromCase
+                )
+                {
+                    if (CaseManager.Instance != null)
+                    {
+                        CaseManager.Instance.DeactivateCase();
+                    }
+                }
+
+
+                // =================================================
+                // PLAYER STATE
+                // =================================================
+
+                if (PlayerStateManager.Instance != null)
+                {
+                    PlayerStateManager.Instance.ResetToDefault();
+
+                    PlayerStateManager.Instance.SetState(
+                        PlayerStateManager.PlayerState.AllMovement
+                    );
+                }
+
+
+                // =================================================
+                // HUD
+                // =================================================
+
+                if (GameFlowManager.Instance != null)
+                {
+                    GameFlowManager.Instance.SetGameplayHUDVisible(
+                        true
+                    );
+                }
+
+
+                // =================================================
+                // CURSOR
+                // =================================================
+
+                Cursor.lockState =
+                    CursorLockMode.Locked;
+
+                Cursor.visible = false;
+
+
+                // =================================================
+                // HIDE LOADING SCREEN
+                // =================================================
+
+                Debug.Log(
+                    "[Teleport] Hiding loading screen."
+                );
+
+
+                // Re-resolve right before use instead of trusting the
+                // cached reference across the scene load -- if the
+                // instance we grabbed before loading no longer exists,
+                // this finds whichever instance is now the real survivor.
+                EnsureLoadingScreen();
+
+                if (loadingScreenManager != null)
+                {
+                    loadingScreenManager.Hide();
+                }
+                else
+                {
+                    Debug.LogWarning(
+                        "[Teleport] LoadingScreenManager is NULL "
+                        + "when trying to hide loading screen."
+                    );
+                }
+
+
+                // =================================================
+                // COMPLETE
+                // =================================================
+
+                Debug.Log(
+                    "[Teleport] ========================================"
+                );
+
+                Debug.Log(
+                    "[Teleport] CROSS-SCENE TELEPORT COMPLETE"
+                );
+
+                Debug.Log(
+                    "[Teleport] Scene: "
+                    + loadedScene.name
+                );
+
+                Debug.Log(
+                    "[Teleport] Destination: "
+                    + destinationID
+                );
+
+                Debug.Log(
+                    "[Teleport] Player position: "
+                    + teleportingPlayer.transform.position
+                );
+
+                Debug.Log(
+                    "[Teleport] ========================================"
+                );
+
+
+                // =================================================
+                // RESET
+                // =================================================
+
+                ResetTeleportState();
+            };
+
+
+        // =========================================================
+        // REGISTER CALLBACK
+        // =========================================================
+
+        SceneManager.sceneLoaded += onSceneLoaded;
+
+
+        // =========================================================
+        // LOAD TARGET SCENE
+        // =========================================================
+
+        Debug.Log(
+            "[Teleport] Loading scene '"
+            + sceneName
+            + "' using Build Index "
+            + buildIndex
+            + "."
+        );
+
+
+        try
+        {
+            SceneManager.LoadScene(
+                buildIndex,
+                LoadSceneMode.Single
+            );
+        }
+        catch (System.Exception exception)
+        {
+            SceneManager.sceneLoaded -= onSceneLoaded;
+
+            Debug.LogException(
+                exception
+            );
+
+            FailSceneTeleport();
+
+            yield break;
+        }
+
+
+        // =========================================================
+        // IMPORTANT
+        // =========================================================
+        //
+        // Do NOT wait here.
+        //
+        // The sceneLoaded callback above now completes the
+        // teleport when Unity finishes loading the scene.
+        //
+        // =========================================================
+
+        yield break;
+    }
+
+
+    // =========================================================
+    // MOVE PLAYER
+    // =========================================================
+
+    private void MovePlayerToDestination(
+        GameObject player,
+        TeleportDestination destination)
+    {
+        if (player == null)
+        {
+            Debug.LogError(
+                "[Teleport] Cannot move player because "
+                + "player is null."
+            );
+
+            return;
+        }
+
+
+        if (destination == null)
+        {
+            Debug.LogError(
+                "[Teleport] Cannot move player because "
+                + "destination is null."
+            );
+
+            return;
+        }
+
+
+        // -----------------------------------------------------
         // CHARACTER CONTROLLER
         // -----------------------------------------------------
 
         CharacterController controller =
-            teleportingPlayer.GetComponent<CharacterController>();
+            player.GetComponent<CharacterController>();
 
 
         if (controller != null)
@@ -231,18 +1051,20 @@ public class TeleportManager : MonoBehaviour
 
 
         // -----------------------------------------------------
-        // MOVE PLAYER
+        // POSITION / ROTATION
         // -----------------------------------------------------
 
-        teleportingPlayer.transform.position =
-            destination.GetSpawnPosition();
+        player.transform.SetPositionAndRotation(
+            destination.GetSpawnPosition(),
+            destination.GetSpawnRotation()
+        );
 
-        teleportingPlayer.transform.rotation =
-            destination.GetSpawnRotation();
+
+        Physics.SyncTransforms();
 
 
         // -----------------------------------------------------
-        // RE-ENABLE CONTROLLER
+        // CHARACTER CONTROLLER BACK ON
         // -----------------------------------------------------
 
         if (controller != null)
@@ -251,31 +1073,76 @@ public class TeleportManager : MonoBehaviour
         }
 
 
-        DebugTeleport(
-            "Player teleported to "
-            + destination.gameObject.name
-        );
+        // -----------------------------------------------------
+        // RESET MOVEMENT
+        // -----------------------------------------------------
+
+        PlayerMovement movement =
+            player.GetComponent<PlayerMovement>();
+
+
+        if (movement != null)
+        {
+            movement.ResetMovementAfterTeleport();
+        }
 
 
         // -----------------------------------------------------
-        // FUTURE EFFECTS / ANIMATION
-        // -----------------------------------------------------
-        //
-        // This section is intentionally left available for:
-        //
-        // - Screen fade
-        // - Fade to black
-        // - Teleport animation
-        // - Particles
-        // - Camera effects
-        // - Sound
-        // - Loading effects
-        // - Player animation
-        //
+        // RESET PLAYER STATE
         // -----------------------------------------------------
 
+        PlayerStateManager state =
+            player.GetComponent<PlayerStateManager>();
 
-        ResetTeleportState();
+
+        if (state != null)
+        {
+            state.ResetToDefault();
+        }
+    }
+
+
+    // =========================================================
+    // FIND DESTINATION
+    // =========================================================
+
+    private TeleportDestination FindDestinationByID(
+        string destinationID)
+    {
+        if (string.IsNullOrWhiteSpace(destinationID))
+        {
+            return null;
+        }
+
+
+        TeleportDestination[] destinations =
+            FindObjectsByType<TeleportDestination>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+
+        foreach (
+            TeleportDestination destination
+            in destinations)
+        {
+            if (destination == null)
+            {
+                continue;
+            }
+
+
+            if (
+                destination.GetDestinationID()
+                == destinationID
+            )
+            {
+                return destination;
+            }
+        }
+
+
+        return null;
     }
 
 
@@ -292,12 +1159,14 @@ public class TeleportManager : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // ENTER CASE
-        // -----------------------------------------------------
+        // =====================================================
 
-        if (portal.GetTeleportType() ==
-            TeleportPortal.TeleportType.EnterCase)
+        if (
+            portal.GetTeleportType()
+            == TeleportPortal.TeleportType.EnterCase
+        )
         {
             int caseID =
                 portal.GetCaseID();
@@ -306,18 +1175,11 @@ public class TeleportManager : MonoBehaviour
             if (caseID < 0)
             {
                 Debug.LogWarning(
-                    "[Teleport] Enter Case teleport "
-                    + "has no valid Case ID."
+                    "[Teleport] EnterCase portal has no Case ID."
                 );
 
                 return;
             }
-
-
-            DebugTeleport(
-                "Activating Case "
-                + caseID
-            );
 
 
             if (CaseManager.Instance != null)
@@ -329,7 +1191,7 @@ public class TeleportManager : MonoBehaviour
             else
             {
                 Debug.LogError(
-                    "[Teleport] CaseManager not found."
+                    "[Teleport] CaseManager is missing."
                 );
             }
 
@@ -338,40 +1200,181 @@ public class TeleportManager : MonoBehaviour
         }
 
 
-        // -----------------------------------------------------
+        // =====================================================
         // RETURN FROM CASE
-        // -----------------------------------------------------
+        // =====================================================
 
-        if (portal.GetTeleportType() ==
-            TeleportPortal.TeleportType.ReturnFromCase)
+        if (
+            portal.GetTeleportType()
+            == TeleportPortal.TeleportType.ReturnFromCase
+        )
         {
-            DebugTeleport(
-                "Deactivating current case."
-            );
-
-
             if (CaseManager.Instance != null)
             {
                 CaseManager.Instance.DeactivateCase();
             }
 
+
             if (GameResetManager.Instance != null)
             {
                 GameResetManager.Instance
                     .CommitCurrentProgressAsDayCheckpoint();
+            }
+        }
+    }
 
-                DebugTeleport(
-                    "Case return checkpoint saved."
+
+    // =========================================================
+    // REBIND SCENE SYSTEMS
+    // =========================================================
+
+    private void RebindSceneSystems()
+    {
+        // -----------------------------------------------------
+        // GAME FLOW
+        // -----------------------------------------------------
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance
+                .RefreshSceneReferences();
+        }
+
+
+        // -----------------------------------------------------
+        // CASE MANAGER
+        // -----------------------------------------------------
+
+        if (CaseManager.Instance != null)
+        {
+            CaseManager.Instance
+                .RefreshSceneReferences();
+        }
+    }
+
+
+    // =========================================================
+    // LOADING SCREEN
+    // =========================================================
+
+    private void EnsureLoadingScreen()
+    {
+        if (loadingScreenManager == null)
+        {
+            loadingScreenManager =
+                LoadingScreenManager.Instance;
+        }
+
+
+        if (loadingScreenManager == null)
+        {
+            loadingScreenManager =
+                FindAnyObjectByType<LoadingScreenManager>();
+        }
+
+
+        if (loadingScreenManager == null)
+        {
+            Debug.LogWarning(
+                "[Teleport] LoadingScreenManager could not be found."
+            );
+        }
+    }
+
+
+    // =========================================================
+    // RESTORE GAMEPLAY
+    // =========================================================
+
+    private void RestoreGameplayState()
+    {
+        // -----------------------------------------------------
+        // GAME STATE
+        // -----------------------------------------------------
+
+        if (GameStateManager.Instance != null)
+        {
+            if (
+                pendingTeleportType
+                == TeleportPortal.TeleportType.EnterCase
+            )
+            {
+                GameStateManager.Instance.SetGameMode(
+                    GameStateManager.GameMode.Case
                 );
             }
-
-            if (GameStateManager.Instance != null)
+            else
             {
                 GameStateManager.Instance.SetGameMode(
                     GameStateManager.GameMode.Lobby
                 );
             }
         }
+
+
+        // -----------------------------------------------------
+        // PLAYER STATE
+        // -----------------------------------------------------
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.AllMovement
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // HUD
+        // -----------------------------------------------------
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.SetGameplayHUDVisible(
+                true
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // CURSOR
+        // -----------------------------------------------------
+
+        Cursor.lockState =
+            CursorLockMode.Locked;
+
+        Cursor.visible = false;
+    }
+
+
+    // =========================================================
+    // FAILURE
+    // =========================================================
+
+    private void FailSceneTeleport()
+    {
+        Debug.LogError(
+            "[Teleport] Cross-scene teleport failed."
+        );
+
+
+        EnsureLoadingScreen();
+
+        if (loadingScreenManager != null)
+        {
+            loadingScreenManager.Hide();
+        }
+
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.AllMovement
+            );
+        }
+
+
+        ResetTeleportState();
     }
 
 
@@ -389,19 +1392,20 @@ public class TeleportManager : MonoBehaviour
 
         if (TheaterManager.Instance != null)
         {
-            TheaterManager.Instance.SetTheaterDay(day);
+            TheaterManager.Instance.SetTheaterDay(
+                day
+            );
         }
 
 
         DebugTeleport(
-            "Day changed to Day "
-            + day
+            "Day changed to " + day
         );
     }
 
 
     // =========================================================
-    // EFFECTS
+    // TELEPORT EFFECTS
     // =========================================================
 
     private void PlayTeleportEffect(
@@ -434,7 +1438,7 @@ public class TeleportManager : MonoBehaviour
 
 
     // =========================================================
-    // RESET
+    // RESET TELEPORT STATE
     // =========================================================
 
     private void ResetTeleportState()
@@ -448,11 +1452,18 @@ public class TeleportManager : MonoBehaviour
         teleportingPlayer = null;
 
         pendingPortal = null;
+
+        pendingSceneName = null;
+
+        pendingDestinationID = null;
+
+        pendingTeleportType =
+            TeleportPortal.TeleportType.Normal;
     }
 
 
     // =========================================================
-    // DEBUG
+    // DEBUG LOG
     // =========================================================
 
     private void DebugTeleport(
@@ -463,17 +1474,22 @@ public class TeleportManager : MonoBehaviour
             return;
         }
 
+
         Debug.Log(
-            "[Teleport] "
-            + message
+            "[Teleport] " + message
         );
     }
 
+
+    // =========================================================
+    // F KEYS
+    // =========================================================
 
     private void Update()
     {
         HandleDebugFKeys();
     }
+
 
     private void HandleDebugFKeys()
     {
@@ -481,68 +1497,117 @@ public class TeleportManager : MonoBehaviour
         {
             return;
         }
+
+
+        // =====================================================
+        // F1 - LOBBY DAY 1
+        // =====================================================
+
         if (Keyboard.current.f1Key.wasPressedThisFrame)
         {
             DebugTeleportOverride(
                 f1LobbyDay1,
+                f1Target,
                 1,
                 false
             );
         }
+
+
+        // =====================================================
+        // F2 - LEVEL 1
+        // =====================================================
+
         if (Keyboard.current.f2Key.wasPressedThisFrame)
         {
             DebugTeleportOverride(
                 f2Level1,
+                f2Target,
                 1,
                 true
             );
         }
+
+
+        // =====================================================
+        // F3 - LOBBY DAY 2
+        // =====================================================
 
         if (Keyboard.current.f3Key.wasPressedThisFrame)
         {
             DebugTeleportOverride(
                 f3LobbyDay2,
+                f3Target,
                 2,
                 false
             );
         }
+
+
+        // =====================================================
+        // F4 - LEVEL 2
+        // =====================================================
+
         if (Keyboard.current.f4Key.wasPressedThisFrame)
         {
             DebugTeleportOverride(
                 f4Level2,
+                f4Target,
                 2,
                 true
             );
         }
+
+
+        // =====================================================
+        // F5 - LOBBY DAY 3
+        // =====================================================
 
         if (Keyboard.current.f5Key.wasPressedThisFrame)
         {
             DebugTeleportOverride(
                 f5LobbyDay3,
+                f5Target,
                 3,
                 false
             );
         }
+
+
+        // =====================================================
+        // F6 - LEVEL 3
+        // =====================================================
 
         if (Keyboard.current.f6Key.wasPressedThisFrame)
         {
             DebugTeleportOverride(
                 f6Level3,
+                f6Target,
                 3,
                 true
             );
         }
 
+
+        // =====================================================
+        // F7 - LOBBY DAY 4
+        // =====================================================
+
         if (Keyboard.current.f7Key.wasPressedThisFrame)
         {
             DebugTeleportOverride(
                 f7LobbyDay4,
+                f7Target,
                 4,
                 false
             );
         }
 
-        // F8 = unlock every level portal.
+
+        // =====================================================
+        // F8 - UNLOCK ALL PORTALS
+        // =====================================================
+
         if (Keyboard.current.f8Key.wasPressedThisFrame)
         {
             DebugUnlockAllPortals();
@@ -551,26 +1616,146 @@ public class TeleportManager : MonoBehaviour
 
 
     // =========================================================
-    // FORCE DEBUG LOCATION
+    // DEBUG TELEPORT OVERRIDE
     // =========================================================
 
     private void DebugTeleportOverride(
         TeleportDestination destination,
+        DebugTarget crossSceneTarget,
         int day,
         bool level)
     {
+        // =====================================================
+        // STOP ANY ACTIVE CUTSCENE FIRST
+        // =====================================================
+
+        SkipActiveCutscene();
+
+
+        // =====================================================
+        // CROSS-SCENE DEBUG TARGET
+        // =====================================================
+
         if (destination == null)
         {
+            if (
+                crossSceneTarget == null
+                || string.IsNullOrWhiteSpace(
+                    crossSceneTarget.sceneName
+                )
+                || string.IsNullOrWhiteSpace(
+                    crossSceneTarget.destinationID
+                )
+            )
+            {
+                Debug.LogError(
+                    "[Debug Teleport] No destination configured."
+                );
+
+                return;
+            }
+
+
+            DebugTeleportCrossScene(
+                crossSceneTarget.sceneName,
+                crossSceneTarget.destinationID,
+                day,
+                level
+            );
+
+
+            return;
+        }
+
+
+        // =====================================================
+        // SAME-SCENE DEBUG TARGET
+        // =====================================================
+
+        GameObject player =
+            GameObject.FindGameObjectWithTag(
+                "Player"
+            );
+
+
+        if (player == null)
+        {
             Debug.LogError(
-                "[Debug Teleport] Destination is not assigned."
+                "[Debug Teleport] Player not found."
             );
 
             return;
         }
 
 
+        // -----------------------------------------------------
+        // DAY
+        // -----------------------------------------------------
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetDay(
+                day
+            );
+
+
+            GameStateManager.Instance.SetGameMode(
+                level
+                    ? GameStateManager.GameMode.Case
+                    : GameStateManager.GameMode.Lobby
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // MOVE PLAYER
+        // -----------------------------------------------------
+
+        MovePlayerToDestination(
+            player,
+            destination
+        );
+
+
+        // -----------------------------------------------------
+        // RESTORE GAMEPLAY
+        // -----------------------------------------------------
+
+        RestoreGameplayState();
+
+
+        // -----------------------------------------------------
+        // RETURN TO LOBBY
+        // -----------------------------------------------------
+
+        if (
+            !level
+            && CaseManager.Instance != null
+        )
+        {
+            CaseManager.Instance.DeactivateCase();
+        }
+    }
+
+
+    // =========================================================
+    // DEBUG CROSS-SCENE TELEPORT
+    // =========================================================
+
+    private void DebugTeleportCrossScene(
+        string sceneName,
+        string destinationID,
+        int day,
+        bool level)
+    {
+        // =====================================================
+        // FIND PLAYER
+        // =====================================================
+
         GameObject player =
-            GameObject.FindGameObjectWithTag("Player");
+            GameObject.FindGameObjectWithTag(
+                "Player"
+            );
 
 
         if (player == null)
@@ -584,210 +1769,212 @@ public class TeleportManager : MonoBehaviour
 
 
         // =====================================================
-        // SKIP / CANCEL ANY ACTIVE CUTSCENE
+        // STOP ACTIVE CUTSCENE
         // =====================================================
 
         SkipActiveCutscene();
 
 
         // =====================================================
-        // SET DAY
+        // VALIDATE SCENE NAME
+        // =====================================================
+
+        if (string.IsNullOrWhiteSpace(sceneName))
+        {
+            Debug.LogError(
+                "[Debug Teleport] Scene name is empty."
+            );
+
+            return;
+        }
+
+
+        // =====================================================
+        // VALIDATE DESTINATION
+        // =====================================================
+
+        if (string.IsNullOrWhiteSpace(destinationID))
+        {
+            Debug.LogError(
+                "[Debug Teleport] Destination ID is empty."
+            );
+
+            return;
+        }
+
+
+        // =====================================================
+        // PREVENT DOUBLE TELEPORT
+        // =====================================================
+
+        if (teleportingPlayer != null)
+        {
+            Debug.LogWarning(
+                "[Debug Teleport] A teleport is already in progress."
+            );
+
+            return;
+        }
+
+
+        // =====================================================
+        // DAY / GAME STATE
         // =====================================================
 
         if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.SetDay(day);
+            GameStateManager.Instance.SetDay(
+                day
+            );
+
+
+            GameStateManager.Instance.SetGameMode(
+                level
+                    ? GameStateManager.GameMode.Case
+                    : GameStateManager.GameMode.Lobby
+            );
         }
 
 
         // =====================================================
-        // SET GAME MODE
+        // KEEP PLAYER ALIVE
         // =====================================================
 
-        if (GameStateManager.Instance != null)
+        DontDestroyOnLoad(
+            player
+        );
+
+        teleportingPlayer = player;
+
+
+        // =====================================================
+        // CLEAR OLD TELEPORT DATA
+        // =====================================================
+
+        pendingPortal = null;
+
+
+        // =====================================================
+        // STORE TARGET
+        // =====================================================
+
+        pendingSceneName =
+            sceneName;
+
+        pendingDestinationID =
+            destinationID;
+
+
+        pendingTeleportType =
+            level
+                ? TeleportPortal.TeleportType.EnterCase
+                : TeleportPortal.TeleportType.ReturnFromCase;
+
+
+        // =====================================================
+        // DISABLE PLAYER CONTROL
+        // =====================================================
+
+        if (PlayerStateManager.Instance != null)
         {
-            if (level)
-            {
-                GameStateManager.Instance.SetGameMode(
-                    GameStateManager.GameMode.Case
-                );
-            }
-            else
-            {
-                GameStateManager.Instance.SetGameMode(
-                    GameStateManager.GameMode.Lobby
-                );
-            }
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.NoMovementNoCamera
+            );
         }
 
 
         // =====================================================
-        // CHARACTER CONTROLLER
+        // SHOW LOADING SCREEN
         // =====================================================
 
-        CharacterController controller =
-            player.GetComponent<CharacterController>();
+        EnsureLoadingScreen();
 
 
-        if (controller != null)
+        if (loadingScreenManager != null)
         {
-            controller.enabled = false;
+            loadingScreenManager.Show();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Debug Teleport] LoadingScreenManager "
+                + "could not be found."
+            );
         }
 
 
         // =====================================================
-        // TELEPORT
+        // DEBUG LOG
         // =====================================================
 
-        player.transform.SetPositionAndRotation(
-            destination.GetSpawnPosition(),
-            destination.GetSpawnRotation()
+        DebugTeleport(
+            "DEBUG: Loading scene '"
+            + sceneName
+            + "' for destination '"
+            + destinationID
+            + "'."
         );
 
 
         // =====================================================
-        // RE-ENABLE CHARACTER CONTROLLER
+        // START CROSS-SCENE LOAD
         // =====================================================
 
-        if (controller != null)
-        {
-            controller.enabled = true;
-        }
-
-
-        // =====================================================
-        // RESET MOVEMENT
-        // =====================================================
-
-        PlayerMovement movement =
-            player.GetComponent<PlayerMovement>();
-
-
-        if (movement != null)
-        {
-            movement.ResetMovementAfterTeleport();
-        }
-
-
-        // =====================================================
-        // RESET PLAYER STATE
-        // =====================================================
-
-        PlayerStateManager playerState =
-            player.GetComponent<PlayerStateManager>();
-
-
-        if (playerState != null)
-        {
-            playerState.ResetToDefault();
-        }
-
-
-        // =====================================================
-        // RESTORE GAMEPLAY HUD / CURSOR
-        // =====================================================
-        // SkipCurrentCutscene() stops the video, but intentionally does
-        // not decide what the gameplay HUD should look like. The old
-        // debug path therefore left toolbar/health/stamina hidden.
-
-        if (GameFlowManager.Instance != null)
-        {
-            GameFlowManager.Instance.SetGameplayHUDVisible(true);
-        }
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-
-        // =====================================================
-        // LOBBY
-        // =====================================================
-
-        if (!level)
-        {
-            if (CaseManager.Instance != null)
-            {
-                CaseManager.Instance.DeactivateCase();
-            }
-        }
-
-
-        // =====================================================
-        // DEBUG MESSAGE
-        // =====================================================
-
-        if (level)
-        {
-            Debug.Log(
-                "[Debug Teleport] Forced to Level "
-                + day
-                + "."
-            );
-        }
-        else
-        {
-            Debug.Log(
-                "[Debug Teleport] Forced to Lobby Day "
-                + day
-                + "."
-            );
-        }
+        StartCoroutine(
+            LoadSceneAndFinishTeleport(
+                sceneName,
+                destinationID,
+                pendingTeleportType
+            )
+        );
     }
 
+
     // =========================================================
-    // SKIP ACTIVE CUTSCENE
+    // STOP ACTIVE CUTSCENE
     // =========================================================
 
     private void SkipActiveCutscene()
     {
-        Debug.Log(
-            "[Debug Teleport] Skipping active cutscene."
-        );
+        // -----------------------------------------------------
+        // FIRST-GAME CUTSCENE
+        // -----------------------------------------------------
+
+        FirstGameCutscene firstGameCutscene =
+            FindAnyObjectByType<FirstGameCutscene>();
 
 
-        // =====================================================
-        // STOP ACTIVE CUTSCENES
-        // =====================================================
-
-        if (GameFlowManager.Instance != null)
+        if (firstGameCutscene != null)
         {
-            GameFlowManager.Instance.SkipCurrentCutscene();
+            firstGameCutscene.StopSequence();
+
+            DebugTeleport(
+                "Active first-game cutscene stopped."
+            );
         }
 
 
-        // =====================================================
-        // RESET PLAYER STATE
-        // =====================================================
+        // -----------------------------------------------------
+        // INTRO CUTSCENE
+        // -----------------------------------------------------
 
-        GameObject player =
-            GameObject.FindGameObjectWithTag("Player");
+        IntroCutscene introCutscene =
+            FindAnyObjectByType<IntroCutscene>();
 
 
-        if (player != null)
+        if (introCutscene != null)
         {
-            PlayerStateManager playerState =
-                player.GetComponent<PlayerStateManager>();
+            introCutscene.StopCutscene();
 
-
-            if (playerState != null)
-            {
-                playerState.ResetToDefault();
-            }
+            DebugTeleport(
+                "Active intro cutscene stopped."
+            );
         }
-    }
 
 
-    // =========================================================
-    // DEBUG - UNLOCK ALL PORTALS (F8)
-    // =========================================================
-
-    private void DebugUnlockAllPortals()
-    {
-        Debug.Log("[Debug Teleport] F8 pressed. Unlocking all portals.");
-
-        // F8 should also safely break out of a cutscene if it is pressed
-        // while a video is playing, just like the other debug keys.
-        SkipActiveCutscene();
+        // -----------------------------------------------------
+        // GAME STATE
+        // -----------------------------------------------------
 
         if (GameStateManager.Instance != null)
         {
@@ -796,87 +1983,36 @@ public class TeleportManager : MonoBehaviour
             );
         }
 
-        GameObject player =
-            GameObject.FindGameObjectWithTag("Player");
 
-        if (player != null)
+        // -----------------------------------------------------
+        // PLAYER STATE
+        // -----------------------------------------------------
+
+        if (PlayerStateManager.Instance != null)
         {
-            PlayerStateManager playerState =
-                player.GetComponent<PlayerStateManager>();
-
-            if (playerState != null)
-            {
-                playerState.ResetToDefault();
-            }
-        }
-
-        if (GameFlowManager.Instance != null)
-        {
-            GameFlowManager.Instance.SetGameplayHUDVisible(true);
-        }
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
-        if (PortalProgressionManager.Instance != null)
-        {
-            PortalProgressionManager.Instance.UnlockAllPortals();
-        }
-        else
-        {
-            Debug.LogError(
-                "[Debug Teleport] PortalProgressionManager is missing. " +
-                "F8 cannot unlock the portals."
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.AllMovement
             );
         }
     }
 
 
-    private void DebugTeleportTo(
-        TeleportDestination destination)
+    // =========================================================
+    // DEBUG UNLOCK
+    // =========================================================
+
+    private void DebugUnlockAllPortals()
     {
-        if (teleportingPlayer == null)
-        {
-            return;
-        }
-
-
-        if (destination == null)
-        {
-            Debug.LogWarning(
-                "[Teleport Debug] Destination not assigned."
-            );
-
-            return;
-        }
-
-
-        CharacterController controller =
-            teleportingPlayer.GetComponent<CharacterController>();
-
-
-        if (controller != null)
-        {
-            controller.enabled = false;
-        }
-
-
-        teleportingPlayer.transform.position =
-            destination.GetSpawnPosition();
-
-        teleportingPlayer.transform.rotation =
-            destination.GetSpawnRotation();
-
-
-        if (controller != null)
-        {
-            controller.enabled = true;
-        }
-
-
-        DebugTeleport(
-            "Debug teleported to "
-            + destination.gameObject.name
+        Debug.Log(
+            "[Debug Teleport] F8 pressed. "
+            + "Unlocking all portals."
         );
+
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance
+                .UnlockAllPortals();
+        }
     }
 }

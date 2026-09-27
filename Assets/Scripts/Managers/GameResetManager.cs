@@ -232,6 +232,13 @@ public class GameResetManager : MonoBehaviour
                 );
         }
 
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance.ResetForDay(
+                GameStateManager.Instance.GetCurrentDay()
+            );
+        }
+
 
         // -----------------------------------------------------
         // RESET PLAYER UPGRADES

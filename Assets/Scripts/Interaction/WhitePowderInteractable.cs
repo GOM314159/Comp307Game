@@ -32,11 +32,58 @@ public class WhitePowderInteractable : WorldInteractable
 
     [Header("Player")]
 
+    [Tooltip(
+        "Automatically found from the persistent Player if left empty."
+    )]
     [SerializeField]
     private PlayerMovement playerMovement;
 
+    [Tooltip(
+        "Automatically found from the persistent Player if left empty."
+    )]
     [SerializeField]
     private PlayerLook playerLook;
+
+
+    // =========================================================
+    // UNITY
+    // =========================================================
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        ResolvePlayerReferences();
+    }
+
+
+    // =========================================================
+    // FIND PLAYER
+    // =========================================================
+
+    private void ResolvePlayerReferences()
+    {
+        // -----------------------------------------------------
+        // PLAYER MOVEMENT
+        // -----------------------------------------------------
+
+        if (playerMovement == null)
+        {
+            playerMovement =
+                FindFirstObjectByType<PlayerMovement>();
+        }
+
+
+        // -----------------------------------------------------
+        // PLAYER LOOK
+        // -----------------------------------------------------
+
+        if (playerLook == null)
+        {
+            playerLook =
+                FindFirstObjectByType<PlayerLook>();
+        }
+    }
 
 
     // =========================================================
@@ -52,6 +99,13 @@ public class WhitePowderInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
+        // MAKE SURE PLAYER REFERENCES EXIST
+        // -----------------------------------------------------
+
+        ResolvePlayerReferences();
+
+
+        // -----------------------------------------------------
         // PLAYER MOVEMENT
         // -----------------------------------------------------
 
@@ -59,7 +113,7 @@ public class WhitePowderInteractable : WorldInteractable
         {
             Debug.LogError(
                 "[White Powder] PlayerMovement "
-                + "has not been assigned."
+                + "could not be found on the persistent Player."
             );
 
             return;
@@ -74,7 +128,7 @@ public class WhitePowderInteractable : WorldInteractable
         {
             Debug.LogError(
                 "[White Powder] PlayerLook "
-                + "has not been assigned."
+                + "could not be found on the persistent Player."
             );
 
             return;

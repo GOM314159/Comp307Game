@@ -17,6 +17,7 @@ public class DeathScreen : MonoBehaviour
     [SerializeField] private Button hardcoreMainMenuButton;
 
     [Header("Main Menu")]
+
     [SerializeField] private GameObject mainMenu;
 
 
@@ -277,61 +278,12 @@ public class DeathScreen : MonoBehaviour
 
 
         // =========================================================
-        // SET GAME STATE
-        // =========================================================
-
-        if (GameStateManager.Instance != null)
-        {
-            if (GameStateManager.Instance.IsHardcore())
-            {
-                Debug.Log(
-                    "[DeathScreen] Hardcore death - resetting entire game."
-                );
-
-                GameStateManager.Instance.ResetEntireGame();
-            }
-            else
-            {
-                Debug.Log(
-                    "[DeathScreen] Normal death - returning to Main Menu."
-                );
-
-                GameStateManager.Instance.ResetCurrentDay();
-
-                GameStateManager.Instance.SetGameMode(
-                    GameStateManager.GameMode.MainMenu
-                );
-            }
-        }
-
-
-        // =========================================================
         // HIDE DEATH SCREEN
         // =========================================================
 
         if (deathScreenGroup != null)
         {
             deathScreenGroup.SetActive(false);
-        }
-
-
-        // =========================================================
-        // SHOW MAIN MENU
-        // =========================================================
-
-        if (mainMenu != null)
-        {
-            mainMenu.SetActive(true);
-
-            Debug.Log(
-                "[DeathScreen] Main Menu UI activated."
-            );
-        }
-        else
-        {
-            Debug.LogError(
-                "[DeathScreen] Main Menu reference is not assigned."
-            );
         }
 
 
@@ -348,6 +300,31 @@ public class DeathScreen : MonoBehaviour
         // =========================================================
 
         ClearUISelection();
+
+
+        // =========================================================
+        // RETURN TO MAIN MENU
+        // =========================================================
+        //
+        // GameFlowManager owns the entire "return to Main Menu"
+        // flow: it resets game progress the same as before, and -
+        // if death happened in a scene that was loaded on its own
+        // rather than through GamePlayTest - it will load
+        // GamePlayTest first so the Main Menu UI is guaranteed to
+        // actually exist and work. Doing it this way instead of
+        // toggling a local `mainMenu` reference here means this
+        // still works no matter which scene the death happened in.
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.OpenMainMenu();
+        }
+        else
+        {
+            Debug.LogError(
+                "[DeathScreen] GameFlowManager.Instance is missing!"
+            );
+        }
     }
 
 

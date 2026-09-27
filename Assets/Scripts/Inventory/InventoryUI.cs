@@ -41,16 +41,29 @@ public class InventoryUI : MonoBehaviour
 
     private void Start()
     {
+        ResolvePlayerInventory();
+
         if (playerInventory == null)
         {
             Debug.LogError(
-                "[Inventory UI] PlayerInventory has not been assigned."
+                "[Inventory UI] PlayerInventory could not be found."
             );
 
             return;
         }
 
         RefreshUI();
+    }
+
+    private void ResolvePlayerInventory()
+    {
+        if (playerInventory != null)
+        {
+            return;
+        }
+
+        playerInventory =
+            FindFirstObjectByType<PlayerInventory>();
     }
 
 
@@ -60,19 +73,22 @@ public class InventoryUI : MonoBehaviour
 
     public void RefreshUI()
     {
+        ResolvePlayerInventory();
+
         if (playerInventory == null)
         {
             return;
         }
 
         Debug.Log("[InventoryUI] RefreshUI() started.");
+
         RefreshToolbar();
 
         RefreshSelectedSlot();
 
         RefreshMainInventory();
-        Debug.Log("[InventoryUI] RefreshUI() finished.");
 
+        Debug.Log("[InventoryUI] RefreshUI() finished.");
     }
 
 

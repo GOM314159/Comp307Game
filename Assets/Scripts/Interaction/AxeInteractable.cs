@@ -64,11 +64,16 @@ public class AxeInteractable : WorldInteractable
         // -----------------------------------------------------
         // CHECK INVENTORY
         // -----------------------------------------------------
+        if (playerInventory == null)
+        {
+            playerInventory =
+                FindFirstObjectByType<PlayerInventory>();
+        }
 
         if (playerInventory == null)
         {
             Debug.LogError(
-                "[Axe] Player Inventory has not been assigned."
+                "[Axe] Player Inventory could not be found."
             );
 
             return;
