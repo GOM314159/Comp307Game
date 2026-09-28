@@ -795,6 +795,21 @@ public class TeleportManager : MonoBehaviour
 
 
                 // =================================================
+                // HIDE LOADING SCREEN EARLY
+                // =================================================
+                // The destination scene and player are valid now.
+                // Hide the loading screen before optional scene-manager
+                // rebinding so a broken optional manager cannot trap
+                // the player behind the loading overlay.
+
+                EnsureLoadingScreen();
+
+                if (loadingScreenManager != null)
+                {
+                    loadingScreenManager.Hide();
+                }
+
+                // =================================================
                 // REFRESH SCENE REFERENCES
                 // =================================================
 
@@ -802,8 +817,18 @@ public class TeleportManager : MonoBehaviour
                     "[Teleport] Refreshing scene references."
                 );
 
-
-                RebindSceneSystems();
+                try
+                {
+                    RebindSceneSystems();
+                }
+                catch (System.Exception exception)
+                {
+                    Debug.LogError(
+                        "[Teleport] Scene reference refresh threw an "
+                        + "exception. Teleport will continue."
+                        + exception
+                    );
+                }
 
 
                 // =================================================
@@ -1215,11 +1240,13 @@ public class TeleportManager : MonoBehaviour
             }
 
 
-            if (GameResetManager.Instance != null)
-            {
-                GameResetManager.Instance
-                    .CommitCurrentProgressAsDayCheckpoint();
-            }
+            // Do NOT commit the case state as a new day checkpoint.
+            // Normal death must restore the original beginning-of-day
+            // snapshot, removing items and boosts gained during this day.
+            Debug.Log(
+                "[Teleport] Case completed. Existing beginning-of-day "
+                + "death snapshot remains unchanged."
+            );
         }
     }
 
@@ -1605,12 +1632,12 @@ public class TeleportManager : MonoBehaviour
 
 
         // =====================================================
-        // F8 - UNLOCK ALL PORTALS
+        // F8 - TOGGLE PORTAL VISIBILITY
         // =====================================================
 
         if (Keyboard.current.f8Key.wasPressedThisFrame)
         {
-            DebugUnlockAllPortals();
+            DebugTogglePortals();
         }
     }
 
@@ -2001,18 +2028,22 @@ public class TeleportManager : MonoBehaviour
     // DEBUG UNLOCK
     // =========================================================
 
-    private void DebugUnlockAllPortals()
+    private void DebugTogglePortals()
     {
         Debug.Log(
-            "[Debug Teleport] F8 pressed. "
-            + "Unlocking all portals."
+            "[Debug Teleport] F8 pressed. Toggling portal visibility."
         );
-
 
         if (PortalProgressionManager.Instance != null)
         {
             PortalProgressionManager.Instance
-                .UnlockAllPortals();
+                .ToggleDebugPortals();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Debug Teleport] PortalProgressionManager is missing."
+            );
         }
     }
 }

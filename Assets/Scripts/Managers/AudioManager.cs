@@ -171,6 +171,12 @@ public class AudioManager : MonoBehaviour
 
         DontDestroyOnLoad(gameObject);
 
+        // Load the master volume before any source volumes are applied.
+        masterVolume =
+            PlayerPrefs.GetFloat(
+                "Settings.MasterVolume",
+                masterVolume);
+
         SetupAudioSources();
     }
 
@@ -628,6 +634,12 @@ public class AudioManager : MonoBehaviour
     {
         masterVolume =
             Mathf.Clamp01(volume);
+
+        PlayerPrefs.SetFloat(
+            "Settings.MasterVolume",
+            masterVolume);
+
+        PlayerPrefs.Save();
 
         ApplyVolumes();
     }

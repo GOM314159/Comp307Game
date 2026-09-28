@@ -744,6 +744,37 @@ public class PlayerInventory : MonoBehaviour
 
         return true;
     }
+    // REMOVE ALL COPIES OF A SPECIFIC ITEM
+
+    public bool RemoveItemData(ItemData item)
+    {
+        if (item == null)
+            return false;
+
+        bool removed = false;
+
+        for (int i = 0; i < slots.Count; i++)
+        {
+            InventorySlot slot = slots[i];
+
+            if (slot == null || slot.IsEmpty() || slot.item != item)
+                continue;
+
+            slots[i] = new InventorySlot(null, 0);
+            removed = true;
+        }
+
+        if (removed)
+        {
+            selectedSlot = 0;
+            RefreshInventoryUI();
+            RefreshSelectedEquipment();
+        }
+
+        return removed;
+    }
+
+
     // CHECK IF PLAYER HAS ITEM
 
     public bool HasItem(
