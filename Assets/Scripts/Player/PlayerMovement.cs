@@ -48,6 +48,10 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private Transform cameraTransform;
 
+    [Header("Main Menu Safety")]
+    [Tooltip("Optional point where the persistent player is placed while the Main Menu is active. This prevents an old gameplay position from remaining in the scene.")]
+    [SerializeField] private Transform mainMenuSafePoint;
+
     private CharacterController controller;
     private PlayerControls controls;
 
@@ -65,6 +69,7 @@ public class PlayerMovement : MonoBehaviour
     private PlayerStamina stamina;
 
     private PlayerStateManager stateManager;
+    private bool mainMenuPositionApplied = false;
 
     private void Awake()
     {
@@ -101,6 +106,25 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        // The player object persists across scenes, including the Main Menu.
+        // In the Main Menu / Loading state there may be no ground collider at
+        // all, so applying CharacterController gravity would make the player
+        // fall thousands of units below the scene.
+        if (IsMenuOrLoadingState())
+        {
+            if (IsMainMenuState())
+            {
+                MoveToMainMenuSafePointOnce();
+            }
+
+            velocity = Vector3.zero;
+            isSprinting = false;
+            isCrouching = false;
+            return;
+        }
+
+        mainMenuPositionApplied = false;
+
         CheckGround();
 
         Move();
@@ -126,6 +150,56 @@ public class PlayerMovement : MonoBehaviour
         {
             isCrouching = false;
         }
+    }
+
+
+    private bool IsMainMenuState()
+    {
+        return GameStateManager.Instance != null &&
+               GameStateManager.Instance.CurrentGameMode == GameStateManager.GameMode.MainMenu;
+    }
+
+    private void MoveToMainMenuSafePointOnce()
+    {
+        if (mainMenuPositionApplied)
+            return;
+
+        if (mainMenuSafePoint != null && controller != null)
+        {
+            bool wasEnabled = controller.enabled;
+            controller.enabled = false;
+
+            transform.SetPositionAndRotation(
+                mainMenuSafePoint.position,
+                mainMenuSafePoint.rotation);
+
+            controller.enabled = wasEnabled;
+        }
+
+        mainMenuPositionApplied = true;
+    }
+
+    private bool IsMenuOrLoadingState()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.GameMode mode =
+                GameStateManager.Instance.CurrentGameMode;
+
+            if (mode == GameStateManager.GameMode.MainMenu ||
+                mode == GameStateManager.GameMode.Loading)
+            {
+                return true;
+            }
+        }
+
+        if (stateManager != null &&
+            stateManager.GetCurrentState() == PlayerStateManager.PlayerState.MainMenu)
+        {
+            return true;
+        }
+
+        return false;
     }
 
     private void StartSprint()

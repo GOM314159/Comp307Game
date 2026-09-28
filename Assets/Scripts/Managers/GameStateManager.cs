@@ -252,6 +252,10 @@ public class GameStateManager : MonoBehaviour
     [SerializeField]
     private BehaviorGraphAgent behaviourAgent;
 
+    [Header("Persistent Manager Transform")]
+    [Tooltip("GameStateManager is a logic-only persistent manager. Keep its transform at the origin so it cannot accidentally be moved/fall with a scene object.")]
+    [SerializeField] private bool keepTransformAtOrigin = true;
+
 
     // =========================================================
     // EVENTS
@@ -310,9 +314,35 @@ public class GameStateManager : MonoBehaviour
 
         Instance = this;
 
+        // Managers should never be positioned inside the playable world.
+        // If this object was accidentally placed at a world position in the
+        // scene, normalize it before making it persistent.
+        if (transform.parent != null)
+        {
+            transform.SetParent(null, true);
+        }
+
+        if (keepTransformAtOrigin)
+        {
+            transform.position = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+        }
+
         DontDestroyOnLoad(gameObject);
 
         SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void LateUpdate()
+    {
+        if (keepTransformAtOrigin)
+        {
+            if (transform.position != Vector3.zero)
+                transform.position = Vector3.zero;
+
+            if (transform.rotation != Quaternion.identity)
+                transform.rotation = Quaternion.identity;
+        }
     }
 
     private void OnDestroy()

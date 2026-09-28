@@ -16,6 +16,9 @@ public class PauseMenu : MonoBehaviour
     [Header("Scene")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
+    [Header("Settings")]
+    [SerializeField] private SettingsMenu settingsMenu;
+
     private bool isPaused;
 
     private bool toolbarWasActive;
@@ -279,6 +282,22 @@ public class PauseMenu : MonoBehaviour
     public void SettingsButton()
     {
         Debug.Log("[PauseMenu] Settings button pressed.");
+
+        if (settingsMenu == null)
+        {
+            settingsMenu =
+                FindFirstObjectByType<SettingsMenu>();
+        }
+
+        if (settingsMenu == null)
+        {
+            Debug.LogError(
+                "[PauseMenu] SettingsMenu could not be found."
+            );
+            return;
+        }
+
+        settingsMenu.OpenFromPauseMenu();
     }
 
 

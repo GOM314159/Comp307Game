@@ -136,8 +136,23 @@ public class GameResetManager : MonoBehaviour
         // DAY
         // -----------------------------------------------------
 
-        snapshotDay =
+        int currentDay =
             GameStateManager.Instance.GetCurrentDay();
+
+        // A day-start snapshot must NEVER be overwritten while restarting
+        // the same day. This is the key protection against a case item such
+        // as the Day 1 axe becoming part of the death baseline.
+        if (daySnapshotCreated && snapshotDay == currentDay)
+        {
+            Debug.Log(
+                "[Reset] Day " + currentDay +
+                " snapshot already exists. Keeping the original beginning-of-day snapshot."
+            );
+
+            return;
+        }
+
+        snapshotDay = currentDay;
 
 
         // -----------------------------------------------------
@@ -412,6 +427,60 @@ public class GameResetManager : MonoBehaviour
     // =========================================================
     // INVENTORY RESTORE
     // =========================================================
+
+    private void RemoveCurrentDayCaseItem()
+    {
+        PlayerInventory inventory =
+            FindAnyObjectByType<PlayerInventory>();
+
+        if (inventory == null || GameStateManager.Instance == null)
+            return;
+
+        int day = GameStateManager.Instance.GetCurrentDay();
+        ItemData caseItem = FindCaseItemForDay(day);
+
+        if (caseItem == null)
+            return;
+
+        if (inventory.RemoveItemData(caseItem))
+        {
+            Debug.Log(
+                "[Reset] Removed Day " + day +
+                " case item from inventory after death: " +
+                caseItem.itemName
+            );
+        }
+    }
+
+    private ItemData FindCaseItemForDay(int day)
+    {
+        if (day == 1)
+        {
+            AxeItem[] items =
+                Resources.FindObjectsOfTypeAll<AxeItem>();
+
+            if (items.Length > 0)
+                return items[0];
+        }
+        else if (day == 2)
+        {
+            CableCutterItem[] items =
+                Resources.FindObjectsOfTypeAll<CableCutterItem>();
+
+            if (items.Length > 0)
+                return items[0];
+        }
+        else if (day == 3)
+        {
+            GunItem[] items =
+                Resources.FindObjectsOfTypeAll<GunItem>();
+
+            if (items.Length > 0)
+                return items[0];
+        }
+
+        return null;
+    }
 
     private void RestoreDayInventory()
     {

@@ -13,6 +13,9 @@ public class MainMenu : MonoBehaviour
     [Header("Game Mode / Gender Selection")]
     [SerializeField] private GameObject gameModeSelectionScreen;
 
+    [Header("Settings")]
+    [SerializeField] private SettingsMenu settingsMenu;
+
 
     // =========================================================
     // PLAYER SELECTIONS
@@ -196,7 +199,21 @@ public class MainMenu : MonoBehaviour
     {
         Debug.Log("[MainMenu] Settings pressed.");
 
-        // Settings will be implemented later.
+        if (settingsMenu == null)
+        {
+            settingsMenu =
+                FindFirstObjectByType<SettingsMenu>();
+        }
+
+        if (settingsMenu == null)
+        {
+            Debug.LogError(
+                "[MainMenu] SettingsMenu could not be found."
+            );
+            return;
+        }
+
+        settingsMenu.OpenFromMainMenu();
     }
 
 

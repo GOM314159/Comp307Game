@@ -1191,12 +1191,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 115056591}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7041264477f246a4891ca70e52ae46b4, type: 3}
+  m_Script: {fileID: 11500000, guid: a2dffb0a2c564f146b04e1576b3644e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AltF4ExitCutscene
   videoPlayer: {fileID: 1329796399}
   enableAltF4ExitCutscene: 1
   debugExitCutscene: 1
+  altF4DetectionWindow: 0.5
 --- !u!1 &127109321
 GameObject:
   m_ObjectHideFlags: 0
@@ -2498,7 +2499,7 @@ MonoBehaviour:
       playName: The Marionette Child
       description: Axe
       hasCase: 1
-      caseID: 1
+      caseID: 0
       isFinalPlay: 0
       musicType: 0
       ambienceType: 0
@@ -2510,7 +2511,7 @@ MonoBehaviour:
       playName: Forgot
       description: Cables
       hasCase: 1
-      caseID: 2
+      caseID: 1
       isFinalPlay: 0
       musicType: 0
       ambienceType: 0
@@ -2522,7 +2523,7 @@ MonoBehaviour:
       playName: Forgot
       description: 
       hasCase: 1
-      caseID: 3
+      caseID: 2
       isFinalPlay: 0
       musicType: 0
       ambienceType: 0
@@ -2534,7 +2535,7 @@ MonoBehaviour:
       playName: 
       description: 
       hasCase: 1
-      caseID: 4
+      caseID: 3
       isFinalPlay: 1
       musicType: 0
       ambienceType: 0
@@ -2888,6 +2889,7 @@ MonoBehaviour:
   playerInventory: {fileID: 1442830820}
   toolbar: {fileID: 990789233}
   mainMenuSceneName: MainMenu
+  settingsMenu: {fileID: 0}
 --- !u!1 &299873135 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 9156954397234015292, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
@@ -7604,6 +7606,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LoadingScreenManager
   canvasGroup: {fileID: 2068425582}
+  loadingImage: {fileID: 2068425583}
+  imageTint: {r: 1, g: 1, b: 1, a: 1}
+  sortingOrder: 5000
 --- !u!64 &526452589
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -12393,6 +12398,7 @@ MonoBehaviour:
   gameOver: 0
   lastLossReason: 0
   behaviourAgent: {fileID: 0}
+  keepTransformAtOrigin: 1
 --- !u!4 &1031666087
 Transform:
   m_ObjectHideFlags: 0
@@ -12402,7 +12408,7 @@ Transform:
   m_GameObject: {fileID: 1031666085}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 2470.465, y: -0.00001, z: 6392.4224}
+  m_LocalPosition: {x: 2470.465, y: 0, z: 6392.4224}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -13583,6 +13589,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MainMenu
   mainMenuGroup: {fileID: 682185822}
   gameModeSelectionScreen: {fileID: 1916985731}
+  settingsMenu: {fileID: 0}
 --- !u!1001 &1115679970
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16516,6 +16523,7 @@ MonoBehaviour:
   crouchingCameraHeight: 1.1
   crouchTransitionSpeed: 8
   cameraTransform: {fileID: 281335103}
+  mainMenuSafePoint: {fileID: 0}
 --- !u!114 &1442830818
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21776,14 +21784,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 0.9056604, g: 0, b: 0, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 21300000, guid: 27c0be872f0e38d4b816aab11fe9a90d, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
