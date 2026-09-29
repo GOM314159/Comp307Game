@@ -217,6 +217,35 @@ public class TeleportManager : MonoBehaviour
 
 
         // -----------------------------------------------------
+        // CAPTURE PRE-CASE CHECKPOINT
+        // -----------------------------------------------------
+        //
+        // This happens BEFORE the level scene is loaded. If the
+        // player dies inside the case, GameResetManager restores
+        // this exact state instead of allowing case pickups to
+        // leak into the next attempt.
+
+        if (
+            pendingTeleportType ==
+            TeleportPortal.TeleportType.EnterCase
+        )
+        {
+            if (GameResetManager.Instance != null)
+            {
+                GameResetManager.Instance
+                    .CreateCaseEntrySnapshot();
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[Teleport] GameResetManager is missing. " +
+                    "No pre-case inventory checkpoint was captured."
+                );
+            }
+        }
+
+
+        // -----------------------------------------------------
         // KEEP PLAYER ALIVE DURING SCENE CHANGE
         // -----------------------------------------------------
 
@@ -1240,13 +1269,29 @@ public class TeleportManager : MonoBehaviour
             }
 
 
-            // Do NOT commit the case state as a new day checkpoint.
-            // Normal death must restore the original beginning-of-day
-            // snapshot, removing items and boosts gained during this day.
-            Debug.Log(
-                "[Teleport] Case completed. Existing beginning-of-day "
-                + "death snapshot remains unchanged."
-            );
+            // A successful return is the new checkpoint.
+            //
+            // This is important when a player completes Case 1,
+            // returns to the lobby, and later dies during Case 2:
+            // Case 1 rewards must survive, while Case 2 pickups must
+            // be discarded on death.
+            if (GameResetManager.Instance != null)
+            {
+                GameResetManager.Instance
+                    .CommitCurrentProgressAsDayCheckpoint();
+
+                Debug.Log(
+                    "[Teleport] Successful case return committed as "
+                    + "the new day checkpoint."
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[Teleport] GameResetManager is missing. "
+                    + "Case return checkpoint was not committed."
+                );
+            }
         }
     }
 
@@ -1896,6 +1941,29 @@ public class TeleportManager : MonoBehaviour
             level
                 ? TeleportPortal.TeleportType.EnterCase
                 : TeleportPortal.TeleportType.ReturnFromCase;
+
+
+        // DEBUG level-entry teleports must use the same checkpoint
+        // rules as normal level portals.
+
+        if (
+            pendingTeleportType ==
+            TeleportPortal.TeleportType.EnterCase
+        )
+        {
+            if (GameResetManager.Instance != null)
+            {
+                GameResetManager.Instance
+                    .CreateCaseEntrySnapshot();
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[Debug Teleport] GameResetManager is missing. " +
+                    "No pre-case inventory checkpoint was captured."
+                );
+            }
+        }
 
 
         // =====================================================

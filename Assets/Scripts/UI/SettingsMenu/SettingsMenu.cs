@@ -1,18 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Shared settings menu used from either the Main Menu or Pause Menu.
-///
-/// UI:
-/// - Close button
-/// - Controls button
-/// - Camera sensitivity slider
-/// - Master volume slider
-///
-/// The settings are stored in PlayerPrefs so the values survive scene
-/// changes and restarting the game.
-/// </summary>
 public class SettingsMenu : MonoBehaviour
 {
     public static SettingsMenu Instance { get; private set; }
@@ -24,24 +12,32 @@ public class SettingsMenu : MonoBehaviour
     }
 
     [Header("Settings UI")]
+
+    [Tooltip("The Settings GameObject itself.")]
     [SerializeField] private GameObject settingsRoot;
-    [SerializeField] private GameObject settingsPanel;
-    [SerializeField] private GameObject controlsPanel;
 
     [Header("Sliders")]
+
     [SerializeField] private Slider cameraSensitivitySlider;
     [SerializeField] private Slider volumeSlider;
 
     [Header("Slider Ranges")]
+
     [SerializeField] private float minimumSensitivity = 0.1f;
     [SerializeField] private float maximumSensitivity = 5f;
 
     [Header("Optional Return Containers")]
-    [Tooltip("Main menu panel that should be shown again when Close is pressed.")]
+
+    [Tooltip("Main menu panel/container that should be shown when Settings is closed.")]
     [SerializeField] private GameObject mainMenuContainer;
 
-    [Tooltip("Pause menu panel that should be shown again when Close is pressed.")]
+    [Tooltip("Pause menu panel/container that should be shown when Settings is closed.")]
     [SerializeField] private GameObject pauseMenuContainer;
+
+    [Header("Optional Controls Panel")]
+
+    [Tooltip("Optional controls panel. Leave empty if you do not currently have one.")]
+    [SerializeField] private GameObject controlsPanel;
 
     private const string SensitivityKey = "Settings.CameraSensitivity";
     private const string VolumeKey = "Settings.MasterVolume";
@@ -59,22 +55,38 @@ public class SettingsMenu : MonoBehaviour
 
         Instance = this;
 
+        // Make sure the sliders are configured correctly.
         if (cameraSensitivitySlider != null)
         {
             cameraSensitivitySlider.minValue = minimumSensitivity;
             cameraSensitivitySlider.maxValue = maximumSensitivity;
-            cameraSensitivitySlider.onValueChanged.AddListener(OnSensitivityChanged);
+
+            cameraSensitivitySlider.onValueChanged.AddListener(
+                OnSensitivityChanged
+            );
         }
 
         if (volumeSlider != null)
         {
             volumeSlider.minValue = 0f;
             volumeSlider.maxValue = 1f;
-            volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
+
+            volumeSlider.onValueChanged.AddListener(
+                OnVolumeChanged
+            );
         }
 
+        // Settings starts closed.
         if (settingsRoot != null)
+        {
             settingsRoot.SetActive(false);
+        }
+
+        // Controls panel should also start hidden if one exists.
+        if (controlsPanel != null)
+        {
+            controlsPanel.SetActive(false);
+        }
     }
 
     private void Start()
@@ -85,24 +97,42 @@ public class SettingsMenu : MonoBehaviour
     private void OnDestroy()
     {
         if (cameraSensitivitySlider != null)
-            cameraSensitivitySlider.onValueChanged.RemoveListener(OnSensitivityChanged);
+        {
+            cameraSensitivitySlider.onValueChanged.RemoveListener(
+                OnSensitivityChanged
+            );
+        }
 
         if (volumeSlider != null)
-            volumeSlider.onValueChanged.RemoveListener(OnVolumeChanged);
+        {
+            volumeSlider.onValueChanged.RemoveListener(
+                OnVolumeChanged
+            );
+        }
 
         if (Instance == this)
+        {
             Instance = null;
+        }
     }
+
+    // =========================================================
+    // OPEN SETTINGS
+    // =========================================================
 
     public void OpenFromMainMenu()
     {
         openOrigin = OpenOrigin.MainMenu;
 
         if (mainMenuContainer != null)
+        {
             mainMenuContainer.SetActive(false);
+        }
 
         if (pauseMenuContainer != null)
+        {
             pauseMenuContainer.SetActive(false);
+        }
 
         Open();
     }
@@ -112,10 +142,14 @@ public class SettingsMenu : MonoBehaviour
         openOrigin = OpenOrigin.PauseMenu;
 
         if (mainMenuContainer != null)
+        {
             mainMenuContainer.SetActive(false);
+        }
 
         if (pauseMenuContainer != null)
+        {
             pauseMenuContainer.SetActive(false);
+        }
 
         Open();
     }
@@ -125,126 +159,178 @@ public class SettingsMenu : MonoBehaviour
         RefreshValuesFromSystems();
 
         if (controlsPanel != null)
+        {
             controlsPanel.SetActive(false);
-
-        if (settingsPanel != null)
-            settingsPanel.SetActive(true);
+        }
 
         if (settingsRoot != null)
+        {
             settingsRoot.SetActive(true);
+        }
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
 
-    /// <summary>
-    /// Close button. Returns to whichever menu opened Settings.
-    /// </summary>
+    // =========================================================
+    // CLOSE SETTINGS
+    // =========================================================
     public void CloseButton()
     {
         if (controlsPanel != null)
-            controlsPanel.SetActive(false);
+        {
 
-        if (settingsPanel != null)
-            settingsPanel.SetActive(false);
+            controlsPanel.SetActive(false);
+        }
 
         if (settingsRoot != null)
+        {
             settingsRoot.SetActive(false);
+        }
 
         if (openOrigin == OpenOrigin.PauseMenu)
         {
+            // Return to the Pause Menu.
             if (pauseMenuContainer != null)
+            {
                 pauseMenuContainer.SetActive(true);
+            }
 
-            // PauseMenu remains paused; do not change Time.timeScale.
+            // Keep the game paused.
+            Time.timeScale = 0f;
+
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
         else
         {
+
             if (mainMenuContainer != null)
+            {
                 mainMenuContainer.SetActive(true);
+            }
+
+            if (pauseMenuContainer != null)
+            {
+                pauseMenuContainer.SetActive(true);
+            }
 
             Time.timeScale = 1f;
+
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
     }
 
-    /// <summary>
-    /// Opens the separate Controls UI.
-    /// </summary>
+
+    // =========================================================
+    // CONTROLS
+    // =========================================================
+
     public void ControlsButton()
     {
-        if (settingsPanel != null)
-            settingsPanel.SetActive(false);
+        if (controlsPanel == null)
+        {
+            Debug.LogWarning(
+                "SettingsMenu: View Controls was pressed, but no Controls Panel is assigned."
+            );
 
-        if (controlsPanel != null)
-            controlsPanel.SetActive(true);
+            return;
+        }
+
+        settingsRoot.SetActive(false);
+        controlsPanel.SetActive(true);
     }
 
-    /// <summary>
-    /// Assign this to a Back/Close button on the Controls UI if desired.
-    /// </summary>
     public void ControlsBackButton()
     {
         if (controlsPanel != null)
+        {
             controlsPanel.SetActive(false);
+        }
 
-        if (settingsPanel != null)
-            settingsPanel.SetActive(true);
+        if (settingsRoot != null)
+        {
+            settingsRoot.SetActive(true);
+        }
     }
+
+    // =========================================================
+    // LOAD SETTINGS
+    // =========================================================
 
     private void RefreshValuesFromSystems()
     {
         suppressSliderCallbacks = true;
 
+        // Camera sensitivity
         float sensitivity = PlayerPrefs.GetFloat(
             SensitivityKey,
-            2f);
+            2f
+        );
 
         PlayerLook playerLook =
             FindFirstObjectByType<PlayerLook>();
 
         if (playerLook != null)
+        {
             sensitivity = playerLook.GetSensitivity();
+        }
 
+        // Master volume
         float volume = PlayerPrefs.GetFloat(
             VolumeKey,
-            1f);
+            1f
+        );
 
         if (AudioManager.Instance != null)
+        {
             volume = AudioManager.Instance.GetMasterVolume();
+        }
 
+        // Apply sensitivity slider
         if (cameraSensitivitySlider != null)
         {
             cameraSensitivitySlider.value =
                 Mathf.Clamp(
                     sensitivity,
                     minimumSensitivity,
-                    maximumSensitivity);
+                    maximumSensitivity
+                );
         }
 
+        // Apply volume slider
         if (volumeSlider != null)
-            volumeSlider.value = Mathf.Clamp01(volume);
+        {
+            volumeSlider.value =
+                Mathf.Clamp01(volume);
+        }
 
         suppressSliderCallbacks = false;
     }
 
+    // =========================================================
+    // CAMERA SENSITIVITY
+    // =========================================================
+
     private void OnSensitivityChanged(float value)
     {
         if (suppressSliderCallbacks)
+        {
             return;
+        }
 
         float sensitivity =
             Mathf.Clamp(
                 value,
                 minimumSensitivity,
-                maximumSensitivity);
+                maximumSensitivity
+            );
 
         PlayerPrefs.SetFloat(
             SensitivityKey,
-            sensitivity);
+            sensitivity
+        );
 
         PlayerPrefs.Save();
 
@@ -252,19 +338,29 @@ public class SettingsMenu : MonoBehaviour
             FindFirstObjectByType<PlayerLook>();
 
         if (playerLook != null)
+        {
             playerLook.SetSensitivity(sensitivity);
+        }
     }
+
+    // =========================================================
+    // MASTER VOLUME
+    // =========================================================
 
     private void OnVolumeChanged(float value)
     {
         if (suppressSliderCallbacks)
+        {
             return;
+        }
 
-        float volume = Mathf.Clamp01(value);
+        float volume =
+            Mathf.Clamp01(value);
 
         PlayerPrefs.SetFloat(
             VolumeKey,
-            volume);
+            volume
+        );
 
         PlayerPrefs.Save();
 
@@ -274,8 +370,13 @@ public class SettingsMenu : MonoBehaviour
         }
     }
 
+    // =========================================================
+    // STATUS
+    // =========================================================
+
     public bool IsOpen()
     {
-        return settingsRoot != null && settingsRoot.activeSelf;
+        return settingsRoot != null &&
+               settingsRoot.activeSelf;
     }
 }

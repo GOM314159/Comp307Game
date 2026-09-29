@@ -984,6 +984,24 @@ public class GameFlowManager : MonoBehaviour
 
     public void CompleteDay()
     {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Cannot complete day because GameStateManager is missing."
+            );
+
+            return;
+        }
+
+        int completedDay =
+            GameStateManager.Instance.GetCurrentDay();
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance
+                .CompleteDay(completedDay);
+        }
+
         if (GameStateManager.Instance.IsFinalDay())
         {
             StartFinalPlay();
@@ -992,7 +1010,9 @@ public class GameFlowManager : MonoBehaviour
 
         GameStateManager.Instance.AdvanceDay();
 
-        StartDay(GameStateManager.Instance.GetCurrentDay());
+        StartDay(
+            GameStateManager.Instance.GetCurrentDay()
+        );
     }
 
     // =========================================================
