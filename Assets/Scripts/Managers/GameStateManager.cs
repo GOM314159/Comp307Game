@@ -126,6 +126,12 @@ public class GameStateManager : MonoBehaviour
     [SerializeField]
     private int currentPlay = -1;
 
+    [Header("Portal Progression")]
+
+    [Tooltip("The level portal unlocked by the most recently completed theater play. -1 means none.")]
+    [SerializeField]
+    private int revealedPortalDay = -1;
+
 
     // =========================================================
     // CASE
@@ -499,6 +505,35 @@ public class GameStateManager : MonoBehaviour
     public bool IsFinalDay()
     {
         return currentDay == maximumDay;
+    }
+
+
+    // =========================================================
+    // PORTAL PROGRESSION
+    // =========================================================
+
+    public void SetRevealedPortalDay(int day)
+    {
+        if (day < -1)
+        {
+            day = -1;
+        }
+        else if (day > maximumDay)
+        {
+            day = maximumDay;
+        }
+
+        revealedPortalDay = day;
+    }
+
+    public int GetRevealedPortalDay()
+    {
+        return revealedPortalDay;
+    }
+
+    public void ClearRevealedPortalDay()
+    {
+        revealedPortalDay = -1;
     }
 
     public int GetMaximumDay()
@@ -1014,6 +1049,11 @@ public class GameStateManager : MonoBehaviour
     {
         currentPlay = -1;
 
+        // IMPORTANT: resetting a day after death must NOT clear the
+        // theater portal that was already unlocked for this day.
+        // Portal progression is cleared only by CompleteDay() or a
+        // full-game reset.
+
         currentCase = -1;
 
         ResetCaseProgress();
@@ -1049,6 +1089,8 @@ public class GameStateManager : MonoBehaviour
         currentDay = 1;
 
         currentPlay = -1;
+
+        revealedPortalDay = -1;
 
         currentCase = -1;
 

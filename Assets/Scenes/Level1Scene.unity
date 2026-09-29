@@ -1919,6 +1919,18 @@ PrefabInstance:
       propertyPath: m_Shadows.m_NearPlane
       value: 0.7
       objectReference: {fileID: 0}
+    - target: {fileID: 8123190591499908089, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -1.79
+      objectReference: {fileID: 0}
+    - target: {fileID: 8123190591499908089, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.951
+      objectReference: {fileID: 0}
+    - target: {fileID: 8123190591499908089, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -15.538
+      objectReference: {fileID: 0}
     - target: {fileID: 8262848669603533810, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
       propertyPath: m_Name
       value: Level 1 Root

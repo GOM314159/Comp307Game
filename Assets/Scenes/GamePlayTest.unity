@@ -663,7 +663,7 @@ MonoBehaviour:
   destinationSceneName: Level2Scene
   destinationID: Level2_Start
   teleportType: 1
-  portalLevel: 0
+  portalLevel: 2
   caseID: 1
   changesDay: 0
   destinationDay: 2
@@ -9513,7 +9513,7 @@ MonoBehaviour:
   destinationSceneName: 
   destinationID: 
   teleportType: 1
-  portalLevel: 0
+  portalLevel: 3
   caseID: 2
   changesDay: 0
   destinationDay: 3
@@ -19122,7 +19122,7 @@ MonoBehaviour:
   destinationSceneName: Level1Scene
   destinationID: Level1_Start
   teleportType: 1
-  portalLevel: 0
+  portalLevel: 1
   caseID: 0
   changesDay: 0
   destinationDay: 1
@@ -19674,11 +19674,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa16d268dae4362438a2ac52d58f43d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PortalProgressionManager
-  level1Portal: {fileID: 1438291329}
-  level2Portal: {fileID: 68309503}
-  level3Portal: {fileID: 511851237}
-  level4Portal: {fileID: 0}
+  revealedDay: -1
   debugPortalProgression: 1
+  debugAllPortalsVisible: 0
 --- !u!1 &1446776213 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 9156954397234015292, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
