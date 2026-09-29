@@ -1959,6 +1959,11 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 315150908420668361, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
   m_PrefabInstance: {fileID: 161948678}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &171620251 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+  m_PrefabInstance: {fileID: 371693086}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &186441003
 GameObject:
   m_ObjectHideFlags: 0
@@ -4006,6 +4011,73 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 358947383}
   m_CullTransparentMesh: 1
+--- !u!1001 &371693086
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 1442830814}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 1.05
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_Name
+      value: Niece
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects:
+    - {fileID: 65702495048144492, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+    - {fileID: -8700617353114198275, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ccb41304b6de01a419a7c67138671bf1, type: 3}
 --- !u!1 &381401471
 GameObject:
   m_ObjectHideFlags: 0
@@ -7055,7 +7127,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e1c4815415e81a1448a0f3d7a0a73715, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 8.89
+      value: 7.71
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e1c4815415e81a1448a0f3d7a0a73715, type: 3}
       propertyPath: m_LocalPosition.z
@@ -14988,6 +15060,7 @@ MonoBehaviour:
   currentDay: 1
   maximumDay: 4
   currentPlay: -1
+  revealedPortalDay: -1
   currentCase: -1
   caseActive: 0
   currentObjective: 0
@@ -19289,6 +19362,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1071562732}
+  - {fileID: 171620251}
   - {fileID: 281335103}
   - {fileID: 1436056632}
   - {fileID: 1312444926}
