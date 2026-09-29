@@ -300,24 +300,14 @@ public class GameResetManager : MonoBehaviour
             );
         }
 
-
-        // -----------------------------------------------------
-        // RESET WORLD INTERACTABLES
-        // -----------------------------------------------------
-
         ResetWorldInteractables();
 
-
-        // -----------------------------------------------------
-        // RESET BOSSES
-        // -----------------------------------------------------
 
         ResetBosses();
 
 
-        // -----------------------------------------------------
-        // RESET CASE
-        // -----------------------------------------------------
+        JumpscareTrigger.ResetAllJumpscares();
+
 
         if (CaseManager.Instance != null)
         {
