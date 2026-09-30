@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using System;
 using Unity.Behavior;
 using UnityEngine.SceneManagement;
@@ -238,8 +239,14 @@ public class GameStateManager : MonoBehaviour
 
     [Header("Gacha")]
 
+    [SerializeField, Min(0)]
+    private int startingGachaCurrency = 100;
+
     [SerializeField]
-    private int gachaCurrency = 0;
+    private int gachaCurrency = 100;
+
+    [SerializeField]
+    private List<string> collectedGachaRewardIDs = new List<string>();
 
 
     // =========================================================
@@ -946,6 +953,51 @@ public class GameStateManager : MonoBehaviour
     }
 
 
+    public bool HasGachaRewardBeenCollected(string rewardID)
+    {
+        if (string.IsNullOrEmpty(rewardID))
+        {
+            return false;
+        }
+
+        return collectedGachaRewardIDs.Contains(rewardID);
+    }
+
+
+    public void MarkGachaRewardCollected(string rewardID)
+    {
+        if (string.IsNullOrEmpty(rewardID))
+        {
+            return;
+        }
+
+        if (!collectedGachaRewardIDs.Contains(rewardID))
+        {
+            collectedGachaRewardIDs.Add(rewardID);
+        }
+    }
+
+
+    public void ClearGachaRewards()
+    {
+        collectedGachaRewardIDs.Clear();
+    }
+
+
+    public bool HasAllDragonBalls()
+    {
+        for (int i = 1; i <= 7; i++)
+        {
+            if (!HasGachaRewardBeenCollected("DragonBall" + i))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
     public int GetGachaCurrency()
     {
         return gachaCurrency;
@@ -1102,7 +1154,8 @@ public class GameStateManager : MonoBehaviour
 
         finalCutsceneComplete = false;
 
-        gachaCurrency = 0;
+        gachaCurrency = Mathf.Max(0, startingGachaCurrency);
+        collectedGachaRewardIDs.Clear();
 
         gameOver = false;
 

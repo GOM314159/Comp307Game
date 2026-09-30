@@ -540,6 +540,11 @@ public class CaseManager : MonoBehaviour
         //
         // -----------------------------------------------------
 
+        if (GachaManager.Instance != null)
+        {
+            GachaManager.Instance.BeginLevel();
+        }
+
         OnCaseStarted?.Invoke();
 
         return true;

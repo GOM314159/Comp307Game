@@ -1369,6 +1369,27 @@ public class GameFlowManager : MonoBehaviour
         SetStaminaBarVisible(false);
     }
 
+    public void StartGachaWin()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Cutscene);
+        }
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.Cutscene);
+        }
+
+        SetGameplayHUDVisible(false);
+
+        // No special video was assigned, so just let the player win.
+        OpenCredits();
+    }
+
+
     public void FinalCutsceneFinished()
     {
         GameStateManager.Instance.CompleteFinalCutscene();
@@ -1684,4 +1705,34 @@ public class GameFlowManager : MonoBehaviour
             "Player returned to the PlayerRespawnPoint."
         );
     }
+
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.F9))
+        {
+            Debug.Log("[GameFlowManager] F9 debug skip requested.");
+
+            ChairPlayController chairPlayController =
+                FindAnyObjectByType<ChairPlayController>();
+
+            if (chairPlayController != null)
+            {
+                TheaterManager theaterManager = TheaterManager.Instance;
+
+                if (theaterManager != null && theaterManager.IsPlayActive())
+                {
+                    Debug.Log(
+                        "[GameFlowManager] Active theater play detected. " +
+                        "Skipping play while preserving progression."
+                    );
+
+                    chairPlayController.SkipCurrentPlay();
+                    return;
+                }
+            }
+
+            SkipCurrentCutscene();
+        }
+    }
+
 }

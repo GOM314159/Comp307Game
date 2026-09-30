@@ -281,6 +281,17 @@ public class TeleportPortal : MonoBehaviour
 
 
         // =====================================================
+        // GACHA LEVEL REWARD
+        // =====================================================
+
+        if (teleportType == TeleportType.ReturnFromCase &&
+            GachaManager.Instance != null)
+        {
+            GachaManager.Instance.CompleteLevel();
+        }
+
+
+        // =====================================================
         // LEVEL PORTAL PROGRESSION
         // =====================================================
         // The entry portal is a one-use portal for the current level.
