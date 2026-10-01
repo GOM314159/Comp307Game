@@ -1609,6 +1609,11 @@ MonoBehaviour:
   player: {fileID: 1442830813}
   playerRespawnPoint: {fileID: 1991335636}
   transitionDelay: 0.25
+  day2ChangesRootName: Day2Changes
+  day3ChangesRootName: Day3Changes
+  day4ChangesRootName: Day4Changes
+  bossChangesRootName: BossChanges
+  debugLobbyChanges: 1
   debugFlow: 1
 --- !u!64 &137267921
 MeshCollider:
@@ -2935,16 +2940,16 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 284625983}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: -0.01745245, z: 0, w: 0.99984777}
-  m_LocalPosition: {x: -6.629, y: 0.48799992, z: -4.723}
-  m_LocalScale: {x: 6.9787517, y: 2.6862726, z: 1.6558995}
+  m_LocalRotation: {x: -0, y: -0.01745245, z: -0, w: 0.99984777}
+  m_LocalPosition: {x: -6.6289997, y: 0.48799992, z: -4.7229996}
+  m_LocalScale: {x: 6.9787526, y: 2.6862726, z: 1.6558998}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1783140346}
   - {fileID: 906868675}
   - {fileID: 858633865}
   - {fileID: 794199202}
-  m_Father: {fileID: 720594567}
+  m_Father: {fileID: 915045055}
   m_LocalEulerAnglesHint: {x: 0, y: -2, z: 0}
 --- !u!114 &284625985
 MonoBehaviour:
@@ -9771,7 +9776,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7239361314865794458, guid: 0af7958a0cdae2043b88741c48ab1657, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -7.416584
+      value: -7.359
       objectReference: {fileID: 0}
     - target: {fileID: 7239361314865794458, guid: 0af7958a0cdae2043b88741c48ab1657, type: 3}
       propertyPath: m_LocalPosition.y
@@ -9779,7 +9784,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7239361314865794458, guid: 0af7958a0cdae2043b88741c48ab1657, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -19.653126
+      value: -19.655
       objectReference: {fileID: 0}
     - target: {fileID: 7239361314865794458, guid: 0af7958a0cdae2043b88741c48ab1657, type: 3}
       propertyPath: m_LocalRotation.w
@@ -9864,8 +9869,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TeleportPortal
   destination: {fileID: 1991335635}
-  destinationSceneName: 
-  destinationID: 
+  destinationSceneName: Level3Scene
+  destinationID: Level3_Start
   teleportType: 1
   portalLevel: 3
   caseID: 2
@@ -11824,9 +11829,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 284625984}
-  m_Father: {fileID: 2123407157}
+  m_Children: []
+  m_Father: {fileID: 1957467538}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &723664104
 GameObject:
@@ -14382,6 +14386,38 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: e1c4815415e81a1448a0f3d7a0a73715, type: 3}
   m_PrefabInstance: {fileID: 452204258}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &915045054
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 915045055}
+  m_Layer: 0
+  m_Name: Jumpscares
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &915045055
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 915045054}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 284625984}
+  m_Father: {fileID: 2123407157}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &921588650
 GameObject:
   m_ObjectHideFlags: 0
@@ -16415,7 +16451,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2123407157}
+  m_Father: {fileID: 1957467538}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1055614822 stripped
 GameObject:
@@ -16826,6 +16862,37 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b0e0309846f0f94eb83a37fe89db026, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryItem
+--- !u!1 &1074505678
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1074505679}
+  m_Layer: 0
+  m_Name: BossChanges
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1074505679
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1074505678}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1957467538}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1075630661
 GameObject:
   m_ObjectHideFlags: 0
@@ -23582,7 +23649,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2123407157}
+  m_Father: {fileID: 1957467538}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1801804201
 GameObject:
@@ -24415,8 +24482,8 @@ MonoBehaviour:
     destinationID: PlayerSpawn
   f6Target:
     sameSceneDestination: {fileID: 0}
-    sceneName: 
-    destinationID: 
+    sceneName: Level3Scene
+    destinationID: Level3_Start
   f7Target:
     sameSceneDestination: {fileID: 0}
     sceneName: GamePlayTest
@@ -25203,6 +25270,7 @@ GameObject:
   - component: {fileID: 1951193189}
   - component: {fileID: 1951193188}
   - component: {fileID: 1951193187}
+  - component: {fileID: 1951193190}
   m_Layer: 0
   m_Name: Painting 1
   m_TagString: Untagged
@@ -25327,6 +25395,21 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
   m_BlendShapeWeights: []
+--- !u!114 &1951193190
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1951193185}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ffd2e2e1082c5584aadfa81696c2b721, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LobbyDayPainting
+  spriteRenderer: {fileID: 1951193189}
+  originalSprite: {fileID: 0}
+  day4Sprite: {fileID: 21300000, guid: 880bbabd9915d634ab8ba3ad3c093e45, type: 3}
 --- !u!1 &1953272857 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 9156954397234015292, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
@@ -25347,6 +25430,41 @@ MonoBehaviour:
   slotBackground: {fileID: 0}
   normalColour: {r: 1, g: 1, b: 1, a: 1}
   activeColour: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+--- !u!1 &1957467537
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1957467538}
+  m_Layer: 0
+  m_Name: Changes
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1957467538
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1957467537}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 720594567}
+  - {fileID: 1797321261}
+  - {fileID: 1053654017}
+  - {fileID: 1074505679}
+  m_Father: {fileID: 2123407157}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1975692035
 GameObject:
   m_ObjectHideFlags: 0
@@ -27245,9 +27363,8 @@ Transform:
   - {fileID: 1991335634}
   - {fileID: 1062233670}
   - {fileID: 1356867028}
-  - {fileID: 720594567}
-  - {fileID: 1797321261}
-  - {fileID: 1053654017}
+  - {fileID: 915045055}
+  - {fileID: 1957467538}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2125452017 stripped
