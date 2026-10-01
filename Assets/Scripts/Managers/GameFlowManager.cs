@@ -1708,31 +1708,31 @@ public class GameFlowManager : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.F9))
-        {
-            Debug.Log("[GameFlowManager] F9 debug skip requested.");
+        //if (Input.GetKeyDown(KeyCode.F9))
+        //{
+        //    Debug.Log("[GameFlowManager] F9 debug skip requested.");
 
-            ChairPlayController chairPlayController =
-                FindAnyObjectByType<ChairPlayController>();
+        //    ChairPlayController chairPlayController =
+        //        FindAnyObjectByType<ChairPlayController>();
 
-            if (chairPlayController != null)
-            {
-                TheaterManager theaterManager = TheaterManager.Instance;
+        //    if (chairPlayController != null)
+        //    {
+        //        TheaterManager theaterManager = TheaterManager.Instance;
 
-                if (theaterManager != null && theaterManager.IsPlayActive())
-                {
-                    Debug.Log(
-                        "[GameFlowManager] Active theater play detected. " +
-                        "Skipping play while preserving progression."
-                    );
+        //        if (theaterManager != null && theaterManager.IsPlayActive())
+        //        {
+        //            Debug.Log(
+        //                "[GameFlowManager] Active theater play detected. " +
+        //                "Skipping play while preserving progression."
+        //            );
 
-                    chairPlayController.SkipCurrentPlay();
-                    return;
-                }
-            }
+        //            chairPlayController.SkipCurrentPlay();
+        //            return;
+        //        }
+        //    }
 
-            SkipCurrentCutscene();
-        }
+        //    SkipCurrentCutscene();
+        //}
     }
 
 }
