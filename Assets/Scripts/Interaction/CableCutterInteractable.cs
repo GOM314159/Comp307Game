@@ -1,3 +1,4 @@
+using Unity.Behavior;
 using UnityEngine;
 
 public class CableCutterInteractable : WorldInteractable
@@ -20,6 +21,10 @@ public class CableCutterInteractable : WorldInteractable
     )]
     [SerializeField]
     private PlayerInventory playerInventory;
+
+    [Tooltip("The AI Behavior Agent.")]
+    [SerializeField]
+    private BehaviorGraphAgent agent;
 
 
     // =========================================================
@@ -193,6 +198,28 @@ public class CableCutterInteractable : WorldInteractable
         DebugCableCutter(
             "Cable Cutters picked up."
         );
+
+
+        // -----------------------------------------------------
+        // Update the behavior graph agent to reflect the new state
+        // -----------------------------------------------------
+
+        if (agent != null)
+        {
+            agent.SetVariableValue(
+                "HasCableCutter",
+                true
+            );
+            DebugCableCutter(
+                "Behavior graph agent updated."
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Cable Cutter] Behavior Graph Agent is not assigned."
+            );
+        }
 
 
         gameObject.SetActive(false);

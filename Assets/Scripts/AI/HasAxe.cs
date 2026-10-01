@@ -17,7 +17,7 @@ public partial class HasAxeCondition : Condition
 
     public override void OnStart()
     {
-        Debug.Log($"AxeInteracted: {AxeInteracted.Value}, True: {True.Value}");
+        Debug.Log($"AxeInteracted: {AxeInteracted.Value}, Flag: {True.Value}");
     }
 
     public override void OnEnd()
