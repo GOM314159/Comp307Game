@@ -252,6 +252,7 @@ public class PlayerMovement : MonoBehaviour
         // =====================================
         // MOVEMENT LOCK
         // =====================================
+        Animator animator = controller.GetComponent<Animator>();
 
         if (!stateManager.CanMove())
         {
@@ -266,6 +267,11 @@ public class PlayerMovement : MonoBehaviour
 
             // Sprinting must also stop.
             stamina.SetSprinting(false);
+
+            if (animator != null)
+            {
+                animator.SetTrigger("Walk");
+            }
 
             return;
         }
