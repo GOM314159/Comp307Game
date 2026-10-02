@@ -208,6 +208,12 @@ public class PauseMenu : MonoBehaviour
 
         ClearUISelection();
 
+        if (GameUICursorController.Instance != null &&
+            GameInputDevice.LastUsedDeviceIsGamepad())
+        {
+            GameUICursorController.Instance
+                .ResetControllerCursorForUI();
+        }
 
         Debug.Log(
             "[PauseMenu] Game paused. Time.timeScale = "
@@ -358,7 +364,9 @@ public class PauseMenu : MonoBehaviour
 
 #else
 
-        FindFirstObjectByType<AltF4ExitCutscene>().AllowNormalQuit();
+        // Normal UI quit intentionally bypasses the Alt+F4 cutscene.
+        // Alt+F4 is intercepted separately by AltF4ExitCutscene.
+        Application.Quit();
 
 #endif
     }

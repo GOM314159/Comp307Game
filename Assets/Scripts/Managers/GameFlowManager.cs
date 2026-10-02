@@ -886,10 +886,24 @@ public class GameFlowManager : MonoBehaviour
         // CURSOR
         // ---------------------------------------------------------
 
-        Cursor.lockState =
-            CursorLockMode.Locked;
+        // Force the persistent cursor controller into gameplay/cutscene
+        // mode as well as hiding Unity's native cursor.
+        // Otherwise its Update loop can restore Cursor.visible after this
+        // method runs.
+        GameUICursorController cursorController =
+            GameUICursorController.Instance;
 
-        Cursor.visible = false;
+        if (cursorController != null)
+        {
+            cursorController.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState =
+                CursorLockMode.Locked;
+
+            Cursor.visible = false;
+        }
 
 
         // ---------------------------------------------------------
@@ -1536,6 +1550,42 @@ public class GameFlowManager : MonoBehaviour
                 AudioManager.AmbienceType.Boss);
         }
     }
+
+    // =========================================================
+    // DEBUG - FINAL BOSS
+    // =========================================================
+
+    /// <summary>
+    /// Debug entry point for F10. Forces Day 4, marks the final
+    /// play as completed, enables BossChanges in the Lobby, and
+    /// starts the final boss state.
+    /// </summary>
+    public void DebugStartFinalBossFight()
+    {
+        EnsureInGamePlayTestScene(FinishDebugStartFinalBossFight);
+    }
+
+    private void FinishDebugStartFinalBossFight()
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Cannot start debug final boss: GameStateManager is missing."
+            );
+            return;
+        }
+
+        GameStateManager.Instance.SetDay(4);
+        GameStateManager.Instance.CompleteFinalPlay();
+
+        ApplyLobbyChangesToCurrentScene();
+        StartBossFight();
+
+        DebugFlow(
+            "DEBUG F10: Day 4 final play completed. BossChanges enabled and final boss started."
+        );
+    }
+
 
     public void FinalBossDefeated()
     {

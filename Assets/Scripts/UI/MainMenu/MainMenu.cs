@@ -163,6 +163,23 @@ public class MainMenu : MonoBehaviour
             " | Gender: " + selectedGender
         );
 
+        // Immediately hand cursor control back to gameplay.
+        // This is done before GameFlowManager starts the cutscene so the
+        // persistent GameUICursorController cannot leave the mouse cursor
+        // visible for a frame or two after Start is pressed.
+        GameUICursorController cursorController =
+            GameUICursorController.Instance;
+
+        if (cursorController != null)
+        {
+            cursorController.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
         //// Hide the menu immediately.
         //if (mainMenuGroup != null)
         //{
@@ -252,7 +269,9 @@ public class MainMenu : MonoBehaviour
 
 #else
 
-        FindFirstObjectByType<AltF4ExitCutscene>().AllowNormalQuit();
+        // Normal UI quit intentionally bypasses the Alt+F4 cutscene.
+        // Alt+F4 is intercepted separately by AltF4ExitCutscene.
+        Application.Quit();
 
 #endif
     }
