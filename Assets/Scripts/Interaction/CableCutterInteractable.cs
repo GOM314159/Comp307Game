@@ -26,6 +26,10 @@ public class CableCutterInteractable : WorldInteractable
     [SerializeField]
     private BehaviorGraphAgent agent;
 
+    [Tooltip("The Miniboss")]
+    [SerializeField]
+    private GameObject miniboss;
+
 
     // =========================================================
     // LEVEL 2 THEATER
@@ -198,6 +202,22 @@ public class CableCutterInteractable : WorldInteractable
         DebugCableCutter(
             "Cable Cutters picked up."
         );
+
+
+        //
+        // SET ACTIVE DOLL STATE ON
+        //
+
+        if (miniboss != null)
+        {
+            miniboss.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Cable Cutter] Miniboss is not assigned."
+            );
+        }
 
 
         // -----------------------------------------------------
