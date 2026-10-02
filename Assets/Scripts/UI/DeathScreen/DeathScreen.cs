@@ -151,6 +151,13 @@ public class DeathScreen : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        if (GameUICursorController.Instance != null &&
+            GameInputDevice.LastUsedDeviceIsGamepad())
+        {
+            GameUICursorController.Instance
+                .ResetControllerCursorForUI();
+        }
+
 
         // =========================================================
         // CLEAR UI SELECTION

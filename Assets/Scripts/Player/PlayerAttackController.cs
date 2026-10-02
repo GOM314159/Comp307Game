@@ -33,6 +33,12 @@ public class PlayerAttackController : MonoBehaviour
     [SerializeField]
     private PlayerStateManager playerStateManager;
 
+    [Header("Weapon Audio")]
+
+    [Tooltip("AudioSource used for weapon hit sounds. Leave empty to create/find one automatically on the player.")]
+    [SerializeField]
+    private AudioSource weaponAudioSource;
+
     [Header("Attack Origin")]
 
     [SerializeField]
@@ -104,6 +110,22 @@ public class PlayerAttackController : MonoBehaviour
             playerStateManager =
                 GetComponent<PlayerStateManager>();
         }
+
+        if (weaponAudioSource == null)
+        {
+            weaponAudioSource =
+                GetComponent<AudioSource>();
+        }
+
+        if (weaponAudioSource == null)
+        {
+            weaponAudioSource =
+                gameObject.AddComponent<AudioSource>();
+        }
+
+        weaponAudioSource.playOnAwake = false;
+        weaponAudioSource.loop = false;
+        weaponAudioSource.spatialBlend = 0f;
 
 
         // -----------------------------------------------------
@@ -297,18 +319,23 @@ public class PlayerAttackController : MonoBehaviour
     // MELEE HIT DETECTION
     // =========================================================
 
-    private void PerformMeleeHit(float damage, float range)
+    private void PerformMeleeHit(
+        float damage,
+        float range,
+        MeleeWeaponItem weapon)
     {
         PerformCloseRangeAttack(
-        damage,
-        range
+            damage,
+            range,
+            weapon
         );
     }
 
 
     private void PerformCloseRangeAttack(
-float damage,
-float range)
+        float damage,
+        float range,
+        MeleeWeaponItem meleeWeapon = null)
     {
         if (attackOrigin == null)
         {
@@ -346,6 +373,7 @@ float range)
             case AttackResultType.HitDamageable:
 
                 OnAttackHit?.Invoke();
+                meleeWeapon?.OnSuccessfulHit(weaponAudioSource);
                 Debug.Log(
                     "[Attack] Hit damageable target: "
                     + hit.collider.name
@@ -358,6 +386,7 @@ float range)
 
                 OnAttackHit?.Invoke();
                 OnTargetKilled?.Invoke();
+                meleeWeapon?.OnSuccessfulHit(weaponAudioSource);
                 Debug.Log(
                     "[Attack] Killed target: "
                     + hit.collider.name
@@ -386,7 +415,11 @@ float range)
             + weapon.itemName
         );
 
-        PerformMeleeHit(weapon.GetAttackDamage(), weapon.attackRange);
+        PerformMeleeHit(
+            weapon.GetAttackDamage(),
+            weapon.attackRange,
+            weapon
+        );
         isAttacking = false;
     }
 

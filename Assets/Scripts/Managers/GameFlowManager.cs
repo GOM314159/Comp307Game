@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.InputSystem;
 
 public class GameFlowManager : MonoBehaviour
 {
@@ -68,6 +69,25 @@ public class GameFlowManager : MonoBehaviour
 
     [SerializeField] private float transitionDelay = 0.25f;
 
+    // =========================================================
+    // LOBBY DAY / FINAL BOSS CHANGES
+    // =========================================================
+    //
+    // These are scene-local roots in GamePlayTest. The GameFlowManager
+    // itself is persistent, so it deliberately stores ONLY their names,
+    // not direct GameObject references. This keeps the system safe when
+    // teleportation or scene loading recreates the Lobby objects.
+    // Their Inspector Active state does not matter: the script always
+    // applies the correct state from persistent game progression.
+    //
+    [Header("Lobby Changes")]
+    [SerializeField] private string day2ChangesRootName = "Day2Changes";
+    [SerializeField] private string day3ChangesRootName = "Day3Changes";
+    [SerializeField] private string day4ChangesRootName = "Day4Changes";
+    [SerializeField] private string bossChangesRootName = "BossChanges";
+
+    [SerializeField] private bool debugLobbyChanges = true;
+
     private bool createDaySnapshotOnLobbyLoad = false;
 
     private Coroutine newGamePreparationCoroutine;
@@ -117,6 +137,16 @@ public class GameFlowManager : MonoBehaviour
         RefreshSceneReferences();
     }
 
+    private void Start()
+    {
+        // The initial scene does not fire SceneManager.sceneLoaded for the
+        // scene it started in. Start() runs after all manager Awake() calls,
+        // so the authoritative GameStateManager is available here.
+        // This also forces the Day/Boss roots into their correct state, so
+        // their initial Inspector Active state does not matter.
+        ApplyLobbyChangesToCurrentScene();
+    }
+
     private void OnDestroy()
     {
         if (Instance == this)
@@ -130,11 +160,12 @@ public class GameFlowManager : MonoBehaviour
     LoadSceneMode mode)
     {
         RefreshSceneReferences();
+        ApplyLobbyChangesToCurrentScene();
 
         DebugFlow(
             "Scene loaded: "
             + scene.name
-            + ". Scene references refreshed."
+            + ". Scene references and lobby changes refreshed."
         );
 
         // If EnsureInGamePlayTestScene() had to load GamePlayTest
@@ -236,6 +267,165 @@ public class GameFlowManager : MonoBehaviour
             "Scene-local GameFlow references refreshed."
         );
     }
+
+    // =========================================================
+    // LOBBY DAY / FINAL BOSS CHANGES
+    // =========================================================
+
+    /// <summary>
+    /// Applies the persistent day/final-play progression to the scene-local
+    /// Lobby change roots. No scene-local GameObject references are stored on
+    /// this persistent manager.
+    /// </summary>
+    public void ApplyLobbyChangesToCurrentScene()
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "[GameFlow] Cannot apply Lobby changes because GameStateManager is missing."
+            );
+            return;
+        }
+
+        Scene activeScene = SceneManager.GetActiveScene();
+
+        // These changes only belong to the GamePlayTest/Lobby scene.
+        if (activeScene.name != gamePlayTestScene)
+        {
+            return;
+        }
+
+        int day = GameStateManager.Instance.GetCurrentDay();
+        bool finalPlayComplete =
+            GameStateManager.Instance.IsFinalPlayComplete();
+
+        SetSceneRootActive(
+            activeScene,
+            day2ChangesRootName,
+            day >= 2
+        );
+
+        SetSceneRootActive(
+            activeScene,
+            day3ChangesRootName,
+            day >= 3
+        );
+
+        SetSceneRootActive(
+            activeScene,
+            day4ChangesRootName,
+            day >= 4
+        );
+
+        SetSceneRootActive(
+            activeScene,
+            bossChangesRootName,
+            finalPlayComplete
+        );
+
+        DebugLobbyChanges(
+            "Applied Lobby changes for Day "
+            + day
+            + ". Final play complete = "
+            + finalPlayComplete
+            + "."
+        );
+    }
+
+    private void SetSceneRootActive(
+        Scene scene,
+        string rootName,
+        bool shouldBeActive)
+    {
+        if (string.IsNullOrWhiteSpace(rootName))
+        {
+            return;
+        }
+
+        GameObject target = FindSceneObjectByName(scene, rootName);
+
+        if (target == null)
+        {
+            DebugLobbyChanges(
+                "Object '"
+                + rootName
+                + "' was not found in scene '"
+                + scene.name
+                + "'."
+            );
+
+            return;
+        }
+
+        // The script owns this state completely. The Inspector Active
+        // checkbox is only an initial scene-authoring value and does not
+        // need to be changed by hand.
+        if (target.activeSelf != shouldBeActive)
+        {
+            target.SetActive(shouldBeActive);
+        }
+    }
+
+    private GameObject FindSceneObjectByName(
+        Scene scene,
+        string objectName)
+    {
+        GameObject[] roots = scene.GetRootGameObjects();
+
+        foreach (GameObject root in roots)
+        {
+            if (root == null)
+            {
+                continue;
+            }
+
+            GameObject found = FindChildObjectByName(
+                root.transform,
+                objectName
+            );
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private GameObject FindChildObjectByName(
+        Transform parent,
+        string objectName)
+    {
+        if (parent.name == objectName)
+        {
+            return parent.gameObject;
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            GameObject found = FindChildObjectByName(
+                parent.GetChild(i),
+                objectName
+            );
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private void DebugLobbyChanges(string message)
+    {
+        if (debugLobbyChanges)
+        {
+            Debug.Log("[LobbyChanges] " + message);
+        }
+    }
+
     //private void Start()
     //{
     //    if (GameStateManager.Instance != null)
@@ -696,10 +886,24 @@ public class GameFlowManager : MonoBehaviour
         // CURSOR
         // ---------------------------------------------------------
 
-        Cursor.lockState =
-            CursorLockMode.Locked;
+        // Force the persistent cursor controller into gameplay/cutscene
+        // mode as well as hiding Unity's native cursor.
+        // Otherwise its Update loop can restore Cursor.visible after this
+        // method runs.
+        GameUICursorController cursorController =
+            GameUICursorController.Instance;
 
-        Cursor.visible = false;
+        if (cursorController != null)
+        {
+            cursorController.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState =
+                CursorLockMode.Locked;
+
+            Cursor.visible = false;
+        }
 
 
         // ---------------------------------------------------------
@@ -955,6 +1159,7 @@ public class GameFlowManager : MonoBehaviour
         // ---------------------------------------------------------
 
         GameStateManager.Instance.SetDay(day);
+        ApplyLobbyChangesToCurrentScene();
 
         // ---------------------------------------------------------
         // THEATER DAY
@@ -1319,6 +1524,11 @@ public class GameFlowManager : MonoBehaviour
 
     public void FinalPlayFinished()
     {
+        // CompleteFinalPlay() has already persisted the final-play state.
+        // Apply the Lobby change immediately so the Lobby is blocked as
+        // soon as the final theater play ends, even before another scene
+        // load occurs.
+        ApplyLobbyChangesToCurrentScene();
         StartBossFight();
     }
 
@@ -1340,6 +1550,42 @@ public class GameFlowManager : MonoBehaviour
                 AudioManager.AmbienceType.Boss);
         }
     }
+
+    // =========================================================
+    // DEBUG - FINAL BOSS
+    // =========================================================
+
+    /// <summary>
+    /// Debug entry point for F10. Forces Day 4, marks the final
+    /// play as completed, enables BossChanges in the Lobby, and
+    /// starts the final boss state.
+    /// </summary>
+    public void DebugStartFinalBossFight()
+    {
+        EnsureInGamePlayTestScene(FinishDebugStartFinalBossFight);
+    }
+
+    private void FinishDebugStartFinalBossFight()
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Cannot start debug final boss: GameStateManager is missing."
+            );
+            return;
+        }
+
+        GameStateManager.Instance.SetDay(4);
+        GameStateManager.Instance.CompleteFinalPlay();
+
+        ApplyLobbyChangesToCurrentScene();
+        StartBossFight();
+
+        DebugFlow(
+            "DEBUG F10: Day 4 final play completed. BossChanges enabled and final boss started."
+        );
+    }
+
 
     public void FinalBossDefeated()
     {
@@ -1708,31 +1954,53 @@ public class GameFlowManager : MonoBehaviour
 
     private void Update()
     {
-        //if (Input.GetKeyDown(KeyCode.F9))
-        //{
-        //    Debug.Log("[GameFlowManager] F9 debug skip requested.");
+        if (Keyboard.current == null)
+        {
+            return;
+        }
 
-        //    ChairPlayController chairPlayController =
-        //        FindAnyObjectByType<ChairPlayController>();
+        if (!Keyboard.current.f9Key.wasPressedThisFrame)
+        {
+            return;
+        }
 
-        //    if (chairPlayController != null)
-        //    {
-        //        TheaterManager theaterManager = TheaterManager.Instance;
+        Debug.Log(
+            "[GameFlowManager] F9 debug skip requested."
+        );
 
-        //        if (theaterManager != null && theaterManager.IsPlayActive())
-        //        {
-        //            Debug.Log(
-        //                "[GameFlowManager] Active theater play detected. " +
-        //                "Skipping play while preserving progression."
-        //            );
 
-        //            chairPlayController.SkipCurrentPlay();
-        //            return;
-        //        }
-        //    }
+        // =========================================================
+        // THEATER PLAY
+        // =========================================================
 
-        //    SkipCurrentCutscene();
-        //}
+        ChairPlayController chairPlayController =
+            FindAnyObjectByType<ChairPlayController>();
+
+        if (chairPlayController != null)
+        {
+            TheaterManager theaterManager =
+                TheaterManager.Instance;
+
+            if (theaterManager != null &&
+                theaterManager.IsPlayActive())
+            {
+                Debug.Log(
+                    "[GameFlowManager] Active theater play detected. " +
+                    "Skipping play while preserving progression."
+                );
+
+                chairPlayController.SkipCurrentPlay();
+
+                return;
+            }
+        }
+
+
+        // =========================================================
+        // OTHER CUTSCENES
+        // =========================================================
+
+        SkipCurrentCutscene();
     }
 
 }

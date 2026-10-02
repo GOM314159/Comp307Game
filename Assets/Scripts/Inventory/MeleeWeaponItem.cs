@@ -41,6 +41,21 @@ public class MeleeWeaponItem : WeaponItem
 
 
     // =========================================================
+    // SUCCESSFUL HIT
+    // =========================================================
+
+    /// <summary>
+    /// Called by PlayerAttackController after this melee weapon
+    /// successfully hits a damageable target. Specific weapons can
+    /// override this for hit effects such as sounds.
+    /// </summary>
+    public virtual void OnSuccessfulHit(AudioSource audioSource)
+    {
+        // Base melee weapons have no additional hit effect.
+    }
+
+
+    // =========================================================
     // RIGHT CLICK
     // =========================================================
 

@@ -315,6 +315,16 @@ public class PlayerInventory : MonoBehaviour
 
         inventoryOpen = true;
 
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        if (GameUICursorController.Instance != null &&
+            GameInputDevice.LastUsedDeviceIsGamepad())
+        {
+            GameUICursorController.Instance
+                .ResetControllerCursorForUI();
+        }
+
         Debug.Log(
             "[Inventory] Opened."
             + " Game State: "

@@ -89,6 +89,9 @@ public class TeleportManager : MonoBehaviour
     [SerializeField]
     private TeleportDestination f7LobbyDay4;
 
+    [SerializeField]
+    private TeleportDestination f10FinalBoss;
+
 
     [SerializeField]
     private DebugTarget f1Target = new DebugTarget();
@@ -110,6 +113,12 @@ public class TeleportManager : MonoBehaviour
 
     [SerializeField]
     private DebugTarget f7Target = new DebugTarget();
+
+    [SerializeField]
+    private DebugTarget f10Target = new DebugTarget();
+
+    // Set while F10 is waiting for its destination teleport to finish.
+    private bool pendingDebugFinalBoss;
 
 
     // =========================================================
@@ -995,6 +1004,10 @@ public class TeleportManager : MonoBehaviour
                     "[Teleport] ========================================"
                 );
 
+                if (pendingDebugFinalBoss)
+                {
+                    FinishPendingDebugFinalBoss();
+                }
 
                 // =================================================
                 // RESET
@@ -1684,6 +1697,121 @@ public class TeleportManager : MonoBehaviour
         {
             DebugTogglePortals();
         }
+
+
+        // =====================================================
+        // F10 - FINAL BOSS
+        // =====================================================
+
+        if (Keyboard.current.f10Key.wasPressedThisFrame)
+        {
+            DebugStartFinalBossTeleport();
+        }
+    }
+
+
+    // =========================================================
+    // F10 FINAL BOSS DEBUG TELEPORT
+    // =========================================================
+
+    private void DebugStartFinalBossTeleport()
+    {
+        SkipActiveCutscene();
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[Debug Teleport] GameStateManager is missing. " +
+                "F10 final boss could not be started."
+            );
+            return;
+        }
+
+        // Persist final-play completion BEFORE the scene transition so
+        // GameFlowManager can correctly rebuild BossChanges when the
+        // destination scene loads.
+        GameStateManager.Instance.SetDay(4);
+        GameStateManager.Instance.CompleteFinalPlay();
+
+        pendingDebugFinalBoss = true;
+
+        if (f10FinalBoss != null)
+        {
+            GameObject player =
+                GameObject.FindGameObjectWithTag("Player");
+
+            if (player == null)
+            {
+                Debug.LogError(
+                    "[Debug Teleport] Player not found for F10 final boss teleport."
+                );
+                pendingDebugFinalBoss = false;
+                return;
+            }
+
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Lobby
+            );
+
+            MovePlayerToDestination(
+                player,
+                f10FinalBoss
+            );
+
+            RestoreGameplayState();
+            FinishPendingDebugFinalBoss();
+            return;
+        }
+
+        if (f10Target != null &&
+            !string.IsNullOrWhiteSpace(f10Target.sceneName) &&
+            !string.IsNullOrWhiteSpace(f10Target.destinationID))
+        {
+            DebugTeleportCrossScene(
+                f10Target.sceneName,
+                f10Target.destinationID,
+                4,
+                false
+            );
+
+            return;
+        }
+
+        Debug.LogWarning(
+            "[Debug Teleport] F10 has no teleport destination configured. " +
+            "Assign either F10 Final Boss or the F10 cross-scene target. " +
+            "Starting the boss at the current location instead."
+        );
+
+        pendingDebugFinalBoss = false;
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.ApplyLobbyChangesToCurrentScene();
+            GameFlowManager.Instance.StartBossFight();
+        }
+    }
+
+    private void FinishPendingDebugFinalBoss()
+    {
+        if (!pendingDebugFinalBoss)
+        {
+            return;
+        }
+
+        pendingDebugFinalBoss = false;
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.ApplyLobbyChangesToCurrentScene();
+            GameFlowManager.Instance.StartBossFight();
+        }
+        else if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.BossFight
+            );
+        }
     }
 
 
@@ -1776,6 +1904,11 @@ public class TeleportManager : MonoBehaviour
                     ? GameStateManager.GameMode.Case
                     : GameStateManager.GameMode.Lobby
             );
+
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance.ApplyLobbyChangesToCurrentScene();
+            }
         }
 
 
@@ -1806,6 +1939,11 @@ public class TeleportManager : MonoBehaviour
         )
         {
             CaseManager.Instance.DeactivateCase();
+        }
+
+        if (pendingDebugFinalBoss)
+        {
+            FinishPendingDebugFinalBoss();
         }
     }
 
@@ -1905,6 +2043,11 @@ public class TeleportManager : MonoBehaviour
                     ? GameStateManager.GameMode.Case
                     : GameStateManager.GameMode.Lobby
             );
+
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance.ApplyLobbyChangesToCurrentScene();
+            }
         }
 
 
