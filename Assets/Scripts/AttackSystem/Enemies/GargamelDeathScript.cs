@@ -95,6 +95,11 @@ public class GargamelDeathScript : MonoBehaviour
 
         if (secretEnding)
         {
+            if (AchievementManager.Instance != null)
+            {
+                AchievementManager.Instance.UnlockSecretEnding1();
+            }
+
             PlayVideo(secretEndingVideo);
         }
         else

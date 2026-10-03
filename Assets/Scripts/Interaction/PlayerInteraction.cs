@@ -20,7 +20,7 @@ public class PlayerInteraction : MonoBehaviour
     [Header("Interaction Settings")]
 
     // Adjust interaction range here.
-    [SerializeField] private float interactionRange = 1.25f;
+    [SerializeField] private float interactionRange = 2f;
 
     // Which layers can contain interactable objects.
     [SerializeField] private LayerMask interactionMask;
@@ -111,23 +111,37 @@ public class PlayerInteraction : MonoBehaviour
         );
 
 
-        if (Physics.Raycast(
+        // First respect the configured interaction mask.
+        bool foundHit = Physics.Raycast(
             ray,
             out RaycastHit hit,
             interactionRange,
-            interactionMask))
+            interactionMask);
+
+        // If the layer is misconfigured, perform a fallback raycast against
+        // all layers. This prevents an otherwise valid piano/guitar/pill
+        // interactable from silently losing its prompt because of a layer
+        // assignment. The nearest collider still wins.
+        if (!foundHit)
+        {
+            foundHit = Physics.Raycast(
+                ray,
+                out hit,
+                interactionRange,
+                Physics.AllLayers,
+                QueryTriggerInteraction.Ignore);
+        }
+
+        if (foundHit)
         {
             IInteractable interactable =
                 hit.collider.GetComponent<IInteractable>();
 
-
-            // Child collider support
             if (interactable == null)
             {
                 interactable =
                     hit.collider.GetComponentInParent<IInteractable>();
             }
-
 
             if (interactable != null)
             {

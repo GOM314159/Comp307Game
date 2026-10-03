@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class MainMenu : MonoBehaviour
 {
@@ -93,6 +94,17 @@ public class MainMenu : MonoBehaviour
     {
         Debug.Log("[MainMenu] Play pressed.");
 
+        // If Play was reached with a controller, explicitly register that
+        // device. This prevents the persistent cursor controller from
+        // waiting for a mouse event before it knows a controller is active.
+        if (Gamepad.current != null &&
+            (Gamepad.current.buttonSouth.wasPressedThisFrame ||
+             Gamepad.current.buttonWest.wasPressedThisFrame ||
+             Gamepad.current.startButton.wasPressedThisFrame))
+        {
+            GameInputDevice.SetLastUsedDevice(Gamepad.current);
+        }
+
         if (mainMenuGroup != null)
         {
             mainMenuGroup.SetActive(false);
@@ -163,10 +175,21 @@ public class MainMenu : MonoBehaviour
             " | Gender: " + selectedGender
         );
 
+        // Explicitly register controller use before handing the cursor back
+        // to gameplay. This also covers the case where Unity's normal UI
+        // navigation invoked this method instead of our custom cursor click.
+        if (Gamepad.current != null &&
+            (Gamepad.current.buttonSouth.wasPressedThisFrame ||
+             Gamepad.current.buttonWest.wasPressedThisFrame ||
+             Gamepad.current.startButton.wasPressedThisFrame))
+        {
+            GameInputDevice.SetLastUsedDevice(Gamepad.current);
+        }
+
         // Immediately hand cursor control back to gameplay.
         // This is done before GameFlowManager starts the cutscene so the
         // persistent GameUICursorController cannot leave the mouse cursor
-        // visible for a frame or two after Start is pressed.
+        // visible after Start is pressed.
         GameUICursorController cursorController =
             GameUICursorController.Instance;
 

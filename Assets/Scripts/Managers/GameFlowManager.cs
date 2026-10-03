@@ -1207,6 +1207,11 @@ public class GameFlowManager : MonoBehaviour
                 .CompleteDay(completedDay);
         }
 
+        if (AchievementManager.Instance != null)
+        {
+            AchievementManager.Instance.UnlockDayCompletion(completedDay);
+        }
+
         if (GameStateManager.Instance.IsFinalDay())
         {
             StartFinalPlay();
@@ -1638,6 +1643,13 @@ public class GameFlowManager : MonoBehaviour
 
     public void FinalCutsceneFinished()
     {
+        if (AchievementManager.Instance != null &&
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.IsHardcore())
+        {
+            AchievementManager.Instance.UnlockHardcoreCompletion();
+        }
+
         GameStateManager.Instance.CompleteFinalCutscene();
 
         SetToolbarVisible(false);

@@ -38,6 +38,12 @@ public class GachaWinCutscene : MonoBehaviour
 
     public void Play()
     {
+        // This cutscene is the Gacha Dragon Ball secret ending.
+        if (AchievementManager.Instance != null)
+        {
+            AchievementManager.Instance.UnlockSecretEnding2();
+        }
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(

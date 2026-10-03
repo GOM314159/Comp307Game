@@ -28,12 +28,15 @@ public class GameUICursorController : MonoBehaviour
     private bool forcedHidden;
     private bool gameplayCursorLocked;
     private Coroutine cursorLockRoutine;
+    private float gameplayLockUntil;
 
     private Vector2 controllerCursorPosition;
 
     private PointerEventData pointerEventData;
     private EventSystem pointerEventSystem;
     private GameObject hoveredObject;
+    private bool eventSystemNavigationStateSaved;
+    private bool originalSendNavigationEvents = true;
 
     // Controller inventory drag state.
     private InventoryItem controllerDraggedItem;
@@ -95,6 +98,7 @@ public class GameUICursorController : MonoBehaviour
         HandleControllerInput();
         HandleMouseInput();
 
+        SyncEventSystemNavigation();
         SyncCursorVisibility();
 
         if (usingGamepad && IsCursorAllowedToBeVisible())
@@ -131,7 +135,21 @@ public class GameUICursorController : MonoBehaviour
         bool cancelPressed =
             gamepad.buttonEast.wasPressedThisFrame;
 
-        if (!moved && !selectPressed && !cancelPressed)
+        bool startPressed =
+            gamepad.startButton.wasPressedThisFrame;
+
+        bool gamepadActivity =
+            moved ||
+            selectPressed ||
+            cancelPressed ||
+            startPressed ||
+            gamepad.dpad.ReadValue().sqrMagnitude > 0.01f;
+
+        // Register controller use even when Unity's normal EventSystem is
+        // handling menu navigation. Previously, pressing a controller
+        // button in the main menu could leave this cursor controller in
+        // mouse mode until a mouse event occurred.
+        if (!gamepadActivity)
             return;
 
         SwitchToGamepad();
@@ -262,6 +280,12 @@ public class GameUICursorController : MonoBehaviour
             }
         }
 
+        // The custom controller cursor is the ONE controller UI input path.
+        // Disable EventSystem navigation so InputSystemUIInputModule cannot
+        // also submit the same South button. Without this, a controller press
+        // could execute a Button.onClick twice.
+        SyncEventSystemNavigation();
+
         ApplyCursorTexture();
         SyncCursorVisibility();
 
@@ -272,10 +296,6 @@ public class GameUICursorController : MonoBehaviour
 
     private void SwitchToMouse()
     {
-        // Mouse input is allowed to become the active input device, but it
-        // must NEVER release a cursor lock that belongs to gameplay/cutscene.
-        // This is important because tiny mouse deltas can still be reported
-        // while a controller is being used.
         if (!gameplayCursorLocked)
         {
             forcedHidden = false;
@@ -287,11 +307,37 @@ public class GameUICursorController : MonoBehaviour
             ApplyCursorTexture();
         }
 
+        SyncEventSystemNavigation();
         SyncCursorVisibility();
 
         GameInputDevice.SetLastUsedDevice(
             Mouse.current
         );
+    }
+
+    private void SyncEventSystemNavigation()
+    {
+        EventSystem eventSystem = EventSystem.current;
+
+        if (eventSystem == null)
+            return;
+
+        if (!eventSystemNavigationStateSaved)
+        {
+            originalSendNavigationEvents =
+                eventSystem.sendNavigationEvents;
+
+            eventSystemNavigationStateSaved = true;
+        }
+
+        bool customControllerUIActive =
+            usingGamepad &&
+            IsCursorAllowedToBeVisible();
+
+        eventSystem.sendNavigationEvents =
+            customControllerUIActive
+                ? false
+                : originalSendNavigationEvents;
     }
 
     private void OnDeviceChange(
@@ -376,20 +422,26 @@ public class GameUICursorController : MonoBehaviour
 
     private IEnumerator ReassertGameplayCursorLock()
     {
-        // The Start button is a UI click. Unity can change focus/selection at
-        // the end of that same frame, especially in the Editor. Re-assert the
-        // lock for a few frames after the transition so that UI cleanup cannot
-        // undo it.
-        for (int i = 0; i < 6; i++)
-        {
-            yield return null;
+        float endTime =
+            Time.unscaledTime + 1.0f;
 
+        while (Time.unscaledTime < endTime)
+        {
             if (!gameplayCursorLocked)
             {
                 cursorLockRoutine = null;
                 yield break;
             }
 
+            ForceCursorHiddenAndLocked();
+
+            yield return null;
+        }
+
+        // Leave the gameplay lock itself active. The coroutine only exists
+        // to survive the menu/button/focus transition.
+        if (gameplayCursorLocked)
+        {
             ForceCursorHiddenAndLocked();
         }
 
@@ -431,7 +483,9 @@ public class GameUICursorController : MonoBehaviour
                 GameStateManager.GameMode.Cutscene
             );
 
-        if (gameplayCursorLocked || cutsceneActive)
+        if (gameplayCursorLocked ||
+            cutsceneActive ||
+            Time.unscaledTime < gameplayLockUntil)
         {
             ForceCursorHiddenAndLocked();
         }
@@ -462,6 +516,7 @@ public class GameUICursorController : MonoBehaviour
     {
         gameplayCursorLocked = false;
         forcedHidden = false;
+        gameplayLockUntil = 0f;
 
         if (cursorLockRoutine != null)
         {
@@ -469,6 +524,7 @@ public class GameUICursorController : MonoBehaviour
             cursorLockRoutine = null;
         }
 
+        SyncEventSystemNavigation();
         ApplyCursorTexture();
         SyncCursorVisibility();
     }
@@ -477,6 +533,7 @@ public class GameUICursorController : MonoBehaviour
     {
         gameplayCursorLocked = false;
         forcedHidden = false;
+        gameplayLockUntil = 0f;
 
         if (cursorLockRoutine != null)
         {
@@ -484,6 +541,7 @@ public class GameUICursorController : MonoBehaviour
             cursorLockRoutine = null;
         }
 
+        SyncEventSystemNavigation();
         ApplyCursorTexture();
         SyncCursorVisibility();
     }
@@ -495,7 +553,14 @@ public class GameUICursorController : MonoBehaviour
         gameplayCursorLocked = true;
         forcedHidden = true;
 
+        // Keep the lock authoritative while the UI button that started the
+        // game finishes its EventSystem processing. This is especially
+        // important when the game is started with a controller and no mouse
+        // click ever focuses the Game view.
+        gameplayLockUntil = Time.unscaledTime + 1.0f;
+
         ClearHover();
+        SyncEventSystemNavigation();
         ForceCursorHiddenAndLocked();
 
         if (cursorLockRoutine != null)
@@ -507,8 +572,10 @@ public class GameUICursorController : MonoBehaviour
             StartCoroutine(ReassertGameplayCursorLock());
 
 #if UNITY_EDITOR
-        // A controller does not necessarily focus Unity's Game view the way a
-        // mouse click does. Queue the focus until after the UI button event.
+        // Controller input can reach Play Mode without the Game view being
+        // the focused editor window. A mouse click normally fixes that, which
+        // is why the old behaviour looked as if the cursor only disappeared
+        // after mouse input. Explicitly focus the Game view instead.
         UnityEditor.EditorApplication.delayCall +=
             FocusGameViewForControllerTesting;
 #endif
@@ -520,6 +587,7 @@ public class GameUICursorController : MonoBehaviour
 
         gameplayCursorLocked = false;
         forcedHidden = false;
+        gameplayLockUntil = 0f;
 
         if (cursorLockRoutine != null)
         {
@@ -536,6 +604,7 @@ public class GameUICursorController : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        SyncEventSystemNavigation();
         ApplyCursorTexture();
         SyncCursorVisibility();
     }
@@ -576,6 +645,7 @@ public class GameUICursorController : MonoBehaviour
                 new PointerEventData(current);
 
             hoveredObject = null;
+            eventSystemNavigationStateSaved = false;
         }
     }
 
@@ -752,23 +822,36 @@ public class GameUICursorController : MonoBehaviour
 
         pointerEventData.clickCount = 1;
 
-        ExecuteEvents.Execute(
-            target,
-            pointerEventData,
-            ExecuteEvents.pointerDownHandler
-        );
+        // RaycastUI returns the Selectable's GameObject, so when the target
+        // is a Button we can invoke its actual onClick event directly. This
+        // prevents controller selection from only moving the UI cursor while
+        // failing to execute actions such as PauseMenu.ContinueButton().
+        Button button = target.GetComponent<Button>();
 
-        ExecuteEvents.Execute(
-            target,
-            pointerEventData,
-            ExecuteEvents.pointerUpHandler
-        );
+        if (button != null && button.interactable)
+        {
+            button.onClick.Invoke();
+        }
+        else
+        {
+            ExecuteEvents.Execute(
+                target,
+                pointerEventData,
+                ExecuteEvents.pointerDownHandler
+            );
 
-        ExecuteEvents.Execute(
-            target,
-            pointerEventData,
-            ExecuteEvents.pointerClickHandler
-        );
+            ExecuteEvents.Execute(
+                target,
+                pointerEventData,
+                ExecuteEvents.pointerUpHandler
+            );
+
+            ExecuteEvents.Execute(
+                target,
+                pointerEventData,
+                ExecuteEvents.pointerClickHandler
+            );
+        }
 
         if (EventSystem.current != null)
         {
