@@ -1,3 +1,4 @@
+using Unity.AppUI.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -71,10 +72,13 @@ public class PlayerMovement : MonoBehaviour
     private PlayerStateManager stateManager;
     private bool mainMenuPositionApplied = false;
 
+    [Tooltip("Animator component for handling player animations.")]
+    [SerializeField]
+    private Animator animator;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
-
         controls = new PlayerControls();
 
         controls.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
@@ -213,7 +217,17 @@ public class PlayerMovement : MonoBehaviour
             Debug.Log(
                 "[Player] Sprinting is currently disabled.");
 
-            isSprinting = false;
+            isSprinting = false; 
+            
+            if (animator != null)
+            {
+                animator.SetTrigger("Walk");
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[PlayerMovement] Animator component is missing. Walk animation will not play.");
+            }
 
             return;
         }
@@ -221,8 +235,17 @@ public class PlayerMovement : MonoBehaviour
         // =====================================
         // START SPRINT
         // =====================================
-
         isSprinting = true;
+
+        if (animator != null)
+        {
+            animator.SetTrigger("Run");
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[PlayerMovement] Animator component is missing. Sprint animation will not play.");
+        }
     }
 
     private void ToggleCrouch()
@@ -239,7 +262,16 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        isCrouching = !isCrouching;
+        if (isCrouching)
+        {
+            animator.SetTrigger("Stand");
+        }
+        else
+        {
+            animator.SetTrigger("Crouch");
+        }
+
+            isCrouching = !isCrouching;
     }
 
     private void StopSprint()
@@ -252,7 +284,6 @@ public class PlayerMovement : MonoBehaviour
         // =====================================
         // MOVEMENT LOCK
         // =====================================
-        Animator animator = controller.GetComponent<Animator>();
 
         if (!stateManager.CanMove())
         {
@@ -270,7 +301,7 @@ public class PlayerMovement : MonoBehaviour
 
             if (animator != null)
             {
-                animator.SetTrigger("Walk");
+                animator.SetTrigger("Idle");
             }
 
             return;
@@ -286,7 +317,6 @@ public class PlayerMovement : MonoBehaviour
                                stateManager.CanSprint();
 
         stamina.SetSprinting(canPlayerSprint);
-
 
         // =====================================
         // MOVEMENT SPEED
@@ -312,6 +342,28 @@ public class PlayerMovement : MonoBehaviour
 
         controller.Move(
             direction * speed * Time.deltaTime);
+
+        if (animator != null)
+        {
+            if (isCrouching)
+            {
+                animator.SetTrigger("Crouch");
+            }
+            else if (canPlayerSprint)
+            {
+                animator.SetTrigger("Run");
+            }
+            else if (IsMoving())
+            {
+                animator.SetTrigger("Walk");
+            }
+            else
+            {
+                animator.SetTrigger("Idle");
+            }
+        }
+
+
     }
 
     private void CheckGround()
