@@ -154,8 +154,14 @@ public class GameUICursorController : MonoBehaviour
 
         SwitchToGamepad();
 
+        // Start is handled by PauseMenu / MainMenu. Once gameplay has
+        // claimed the cursor, keep it locked instead of treating Start as
+        // UI cursor input.
         if (!IsCursorAllowedToBeVisible())
+        {
+            ForceCursorHiddenAndLocked();
             return;
+        }
 
         if (moved)
         {
@@ -487,6 +493,15 @@ public class GameUICursorController : MonoBehaviour
             cutsceneActive ||
             Time.unscaledTime < gameplayLockUntil)
         {
+#if UNITY_EDITOR
+            // Only re-focus during the short lock-recovery window after
+            // Start / Escape. Doing this every gameplay frame would steal
+            // Editor focus from the Inspector.
+            if (Time.unscaledTime < gameplayLockUntil)
+            {
+                FocusGameViewForControllerTesting();
+            }
+#endif
             ForceCursorHiddenAndLocked();
         }
     }
@@ -1139,7 +1154,19 @@ public class GameUICursorController : MonoBehaviour
         if (!usingGamepad)
             yield break;
 
-        // If gameplay/cutscene has locked the cursor, hide it immediately.
+        // Starting the game / cutscene already claimed the cursor. Do not
+        // re-evaluate leftover main-menu UI under the stick cursor — that
+        // was re-showing the mouse until a real mouse click focused the
+        // Game view.
+        if (gameplayCursorLocked ||
+            IsCutsceneModeActive())
+        {
+            forcedHidden = true;
+            ClearHover();
+            ForceCursorHiddenAndLocked();
+            yield break;
+        }
+
         if (Cursor.lockState ==
             CursorLockMode.Locked)
         {
@@ -1149,8 +1176,6 @@ public class GameUICursorController : MonoBehaviour
             yield break;
         }
 
-        // Check the UI again after the selected button has finished
-        // opening/closing screens or starting the game.
         GameObject uiUnderCursor =
             RaycastUI(
                 controllerCursorPosition
@@ -1161,8 +1186,6 @@ public class GameUICursorController : MonoBehaviour
                 ? EventSystem.current.currentSelectedGameObject
                 : null;
 
-        // If there is no longer any selectable UI, the menu that the
-        // controller was operating has closed. Hide the SAME native cursor.
         if (uiUnderCursor == null &&
             selected == null)
         {
@@ -1276,6 +1299,15 @@ public class GameUICursorController : MonoBehaviour
         if (!usingGamepad)
             yield break;
 
+        if (gameplayCursorLocked ||
+            IsCutsceneModeActive())
+        {
+            forcedHidden = true;
+            ClearHover();
+            ForceCursorHiddenAndLocked();
+            yield break;
+        }
+
         if (Cursor.lockState ==
             CursorLockMode.Locked)
         {
@@ -1308,5 +1340,13 @@ public class GameUICursorController : MonoBehaviour
             ApplyCursorTexture();
             SyncCursorVisibility();
         }
+    }
+
+    private bool IsCutsceneModeActive()
+    {
+        return GameStateManager.Instance != null &&
+               GameStateManager.Instance.IsGameMode(
+                   GameStateManager.GameMode.Cutscene
+               );
     }
 }

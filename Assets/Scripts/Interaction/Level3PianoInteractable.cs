@@ -18,33 +18,22 @@ public class Level3PianoInteractable : WorldInteractable
 
 
     // =========================================================
-    // INTERACTION COLLIDER
+    // INTERACTION VOLUME
     // =========================================================
 
-    [Header("Interaction Collider")]
+    [Header("Interaction Volume")]
 
     [Tooltip(
-        "A manually positioned BoxCollider used specifically " +
-        "for interacting with the piano. Create a child object " +
-        "called 'Interaction Collider' and assign its BoxCollider here."
+        "Invisible BoxCollider used for looking/interacting. " +
+        "Place and size this cube around the piano in the Scene view. " +
+        "Create a child named 'Interaction Collider' if unassigned."
     )]
     [SerializeField]
     private BoxCollider interactionCollider;
 
-
-    [Tooltip(
-        "Automatically finds a child named 'Interaction Collider' " +
-        "if the collider has not been assigned."
-    )]
     [SerializeField]
     private bool automaticallyFindInteractionCollider = true;
 
-
-    [Tooltip(
-        "Shows the interaction collider in the Scene view while " +
-        "the piano is selected. The actual BoxCollider gizmo is " +
-        "also visible whenever the collider object is selected."
-    )]
     [SerializeField]
     private bool showColliderDebug = true;
 
@@ -55,17 +44,9 @@ public class Level3PianoInteractable : WorldInteractable
 
     [Header("Painting Changes")]
 
-    [Tooltip(
-        "Paintings that should change when the piano is opened."
-    )]
     [SerializeField]
     private Level3Painting[] paintings;
 
-
-    [Tooltip(
-        "If enabled, automatically finds all Level3Painting " +
-        "components in the current scene when the list above is empty."
-    )]
     [SerializeField]
     private bool findPaintingsAutomatically = true;
 
@@ -80,16 +61,8 @@ public class Level3PianoInteractable : WorldInteractable
     private string pianoPrompt = "Open Piano";
 
 
-    // =========================================================
-    // STATE
-    // =========================================================
-
     private bool pianoOpened;
 
-
-    // =========================================================
-    // AWAKE
-    // =========================================================
 
     protected override void Awake()
     {
@@ -105,62 +78,45 @@ public class Level3PianoInteractable : WorldInteractable
     }
 
 
-    // =========================================================
-    // FIND INTERACTION COLLIDER
-    // =========================================================
-
     private void ResolveInteractionCollider()
     {
-        if (interactionCollider != null)
+        if (interactionCollider == null &&
+            automaticallyFindInteractionCollider)
         {
-            PrepareInteractionCollider();
-            return;
+            Transform child =
+                transform.Find("Interaction Collider");
+
+            if (child != null)
+            {
+                interactionCollider =
+                    child.GetComponent<BoxCollider>();
+            }
         }
 
-
-        if (!automaticallyFindInteractionCollider)
+        if (interactionCollider == null)
         {
-            Debug.LogError(
-                "[Level3PianoInteractable] No Interaction Collider " +
-                "has been assigned on "
-                + gameObject.name
-                + "."
-            );
-
-            return;
-        }
-
-
-        Transform child =
-            transform.Find("Interaction Collider");
-
-
-        if (child != null)
-        {
+            // Prefer a BoxCollider on this object so you can just drop an
+            // invisible cube collider on the piano root if you want.
             interactionCollider =
-                child.GetComponent<BoxCollider>();
+                GetComponent<BoxCollider>();
         }
-
 
         if (interactionCollider == null)
         {
             Debug.LogError(
-                "[Level3PianoInteractable] Could not find a " +
-                "BoxCollider on the child named 'Interaction Collider'. " +
-                "Create one and assign it in the Inspector."
+                "[Level3PianoInteractable] No interaction BoxCollider " +
+                "found on "
+                + gameObject.name
+                + ". Add a child named 'Interaction Collider' with a " +
+                "BoxCollider, or assign one in the Inspector."
             );
 
             return;
         }
 
-
         PrepareInteractionCollider();
     }
 
-
-    // =========================================================
-    // PREPARE COLLIDER
-    // =========================================================
 
     private void PrepareInteractionCollider()
     {
@@ -169,43 +125,29 @@ public class Level3PianoInteractable : WorldInteractable
             return;
         }
 
-
-        // This collider is for interaction only.
-        // It should never physically block the player.
+        // Interaction-only volume: never physically blocks the player.
         interactionCollider.isTrigger = true;
-
         interactionCollider.enabled = true;
 
+        // Keep the collider on the Interaction layer so PlayerInteraction
+        // can see it through the interaction mask.
+        int interactionLayer =
+            LayerMask.NameToLayer("Interaction");
 
-        Debug.Log(
-            "[Level3PianoInteractable] Interaction Collider assigned: "
-            + interactionCollider.gameObject.name
-        );
+        if (interactionLayer >= 0)
+        {
+            interactionCollider.gameObject.layer =
+                interactionLayer;
+        }
     }
 
 
-    // =========================================================
-    // INTERACTION
-    // =========================================================
-
     public override void Interact()
     {
-        if (pianoOpened)
+        if (pianoOpened || !CanInteract())
         {
             return;
         }
-
-
-        if (!CanInteract())
-        {
-            return;
-        }
-
-
-        Debug.Log(
-            "[Level3PianoInteractable] Interaction received."
-        );
-
 
         base.Interact();
 
@@ -219,10 +161,6 @@ public class Level3PianoInteractable : WorldInteractable
     }
 
 
-    // =========================================================
-    // OPEN PIANO
-    // =========================================================
-
     private void OpenPiano()
     {
         if (pianoOpened)
@@ -230,26 +168,13 @@ public class Level3PianoInteractable : WorldInteractable
             return;
         }
 
-
         pianoOpened = true;
 
-
         SetPianoModelsOpen();
-
         DisableInteractionCollider();
-
         TriggerPaintings();
-
-
-        Debug.Log(
-            "[Level3PianoInteractable] Piano opened."
-        );
     }
 
-
-    // =========================================================
-    // CLOSED STATE
-    // =========================================================
 
     private void SetPianoModelsClosed()
     {
@@ -258,17 +183,12 @@ public class Level3PianoInteractable : WorldInteractable
             closedPiano.SetActive(true);
         }
 
-
         if (openPiano != null)
         {
             openPiano.SetActive(false);
         }
     }
 
-
-    // =========================================================
-    // OPEN STATE
-    // =========================================================
 
     private void SetPianoModelsOpen()
     {
@@ -277,7 +197,6 @@ public class Level3PianoInteractable : WorldInteractable
             closedPiano.SetActive(false);
         }
 
-
         if (openPiano != null)
         {
             openPiano.SetActive(true);
@@ -285,49 +204,31 @@ public class Level3PianoInteractable : WorldInteractable
     }
 
 
-    // =========================================================
-    // INTERACTION COLLIDER ENABLE / DISABLE
-    // =========================================================
-
     private void EnableInteractionCollider()
     {
-        if (interactionCollider == null)
+        if (interactionCollider != null)
         {
-            return;
+            interactionCollider.enabled = true;
         }
-
-
-        interactionCollider.enabled = true;
     }
 
 
     private void DisableInteractionCollider()
     {
-        if (interactionCollider == null)
+        if (interactionCollider != null)
         {
-            return;
+            interactionCollider.enabled = false;
         }
-
-
-        interactionCollider.enabled = false;
     }
 
 
-    // =========================================================
-    // PAINTINGS
-    // =========================================================
-
     private void TriggerPaintings()
     {
-        Level3Painting[] paintingsToChange =
-            paintings;
+        Level3Painting[] paintingsToChange = paintings;
 
-
-        if (
-            (paintingsToChange == null ||
+        if ((paintingsToChange == null ||
              paintingsToChange.Length == 0) &&
-            findPaintingsAutomatically
-        )
+            findPaintingsAutomatically)
         {
             paintingsToChange =
                 FindObjectsByType<Level3Painting>(
@@ -336,84 +237,45 @@ public class Level3PianoInteractable : WorldInteractable
                 );
         }
 
-
-        if (
-            paintingsToChange == null ||
-            paintingsToChange.Length == 0
-        )
+        if (paintingsToChange == null ||
+            paintingsToChange.Length == 0)
         {
             Debug.LogWarning(
                 "[Level3PianoInteractable] " +
                 "No Level3Painting components were found."
             );
-
             return;
         }
 
-
-        for (
-            int i = 0;
-            i < paintingsToChange.Length;
-            i++
-        )
+        for (int i = 0; i < paintingsToChange.Length; i++)
         {
             if (paintingsToChange[i] != null)
             {
-                paintingsToChange[i]
-                    .ChangeToSecondImage();
+                paintingsToChange[i].ChangeToSecondImage();
             }
         }
     }
 
 
-    // =========================================================
-    // RESET
-    // =========================================================
-    //
-    // GameResetManager already calls:
-    //
-    //     interactable.ResetInteraction();
-    //
-    // Because this class overrides ResetInteraction(), the piano
-    // will now correctly reset when the day/game is reset.
-    //
-    // =========================================================
-
     public override void ResetInteraction()
     {
-        // Let WorldInteractable restore its normal state first.
         base.ResetInteraction();
-
 
         pianoOpened = false;
 
-
         SetPianoModelsClosed();
-
-
         EnableInteractionCollider();
-
-
         ResetPaintings();
-
-
-        Debug.Log(
-            "[Level3PianoInteractable] Piano reset."
-        );
     }
 
 
     private void ResetPaintings()
     {
-        Level3Painting[] paintingsToReset =
-            paintings;
+        Level3Painting[] paintingsToReset = paintings;
 
-
-        if (
-            (paintingsToReset == null ||
+        if ((paintingsToReset == null ||
              paintingsToReset.Length == 0) &&
-            findPaintingsAutomatically
-        )
+            findPaintingsAutomatically)
         {
             paintingsToReset =
                 FindObjectsByType<Level3Painting>(
@@ -422,18 +284,12 @@ public class Level3PianoInteractable : WorldInteractable
                 );
         }
 
-
         if (paintingsToReset == null)
         {
             return;
         }
 
-
-        for (
-            int i = 0;
-            i < paintingsToReset.Length;
-            i++
-        )
+        for (int i = 0; i < paintingsToReset.Length; i++)
         {
             if (paintingsToReset[i] != null)
             {
@@ -443,49 +299,30 @@ public class Level3PianoInteractable : WorldInteractable
     }
 
 
-    // =========================================================
-    // PUBLIC STATE
-    // =========================================================
-
     public bool IsPianoOpened()
     {
         return pianoOpened;
     }
 
 
-    // =========================================================
-    // EDITOR DEBUG GIZMO
-    // =========================================================
-
 #if UNITY_EDITOR
-
     private void OnDrawGizmosSelected()
     {
-        if (!showColliderDebug)
+        if (!showColliderDebug || interactionCollider == null)
         {
             return;
         }
 
-
-        if (interactionCollider == null)
-        {
-            return;
-        }
-
-
+        Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.85f);
         Gizmos.matrix =
             interactionCollider.transform.localToWorldMatrix;
-
 
         Gizmos.DrawWireCube(
             interactionCollider.center,
             interactionCollider.size
         );
 
-
-        Gizmos.matrix =
-            Matrix4x4.identity;
+        Gizmos.matrix = Matrix4x4.identity;
     }
-
 #endif
 }

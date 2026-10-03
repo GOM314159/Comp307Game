@@ -111,17 +111,16 @@ public class PlayerInteraction : MonoBehaviour
         );
 
 
-        // First respect the configured interaction mask.
+        // Hit trigger volumes too (piano / other invisible interaction cubes).
         bool foundHit = Physics.Raycast(
             ray,
             out RaycastHit hit,
             interactionRange,
-            interactionMask);
+            interactionMask,
+            QueryTriggerInteraction.Collide);
 
         // If the layer is misconfigured, perform a fallback raycast against
-        // all layers. This prevents an otherwise valid piano/guitar/pill
-        // interactable from silently losing its prompt because of a layer
-        // assignment. The nearest collider still wins.
+        // all layers. Keep Collide so trigger interaction cubes still work.
         if (!foundHit)
         {
             foundHit = Physics.Raycast(
@@ -129,7 +128,7 @@ public class PlayerInteraction : MonoBehaviour
                 out hit,
                 interactionRange,
                 Physics.AllLayers,
-                QueryTriggerInteraction.Ignore);
+                QueryTriggerInteraction.Collide);
         }
 
         if (foundHit)

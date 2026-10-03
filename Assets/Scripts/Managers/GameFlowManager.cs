@@ -633,8 +633,15 @@ public class GameFlowManager : MonoBehaviour
             gameModeSelectionScreen.SetActive(false);
         }
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.ShowCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
     }
 
     private void SetToolbarVisible(bool visible)
@@ -871,16 +878,9 @@ public class GameFlowManager : MonoBehaviour
         // HIDE MENU
         // ---------------------------------------------------------
 
-        //if (mainMenuGroup != null)
-        //{
-        //    mainMenuGroup.SetActive(false);
-        //}
-
-        //if (gameModeSelectionScreen != null)
-        //{
-        //    gameModeSelectionScreen.SetActive(false);
-        //}
-
+        // Do NOT hide GameModeSelectionScreen here. Its full-screen
+        // background is the black hold between Continue and the first
+        // intro video frame. IntroVideoFirstFrameReady hides it.
 
         // ---------------------------------------------------------
         // CURSOR

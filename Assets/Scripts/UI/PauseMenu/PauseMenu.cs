@@ -28,10 +28,8 @@ public class PauseMenu : MonoBehaviour
 
     private PlayerStateManager.PlayerState previousPlayerState;
 
-    // Prevent the same Escape/Start press from being processed twice during
-    // the pause -> resume transition. This is especially important in the
-    // Unity Editor, where Escape also changes Game View focus.
-    private bool pauseTransitionInProgress;
+    // Short debounce only — must NOT last for the whole cursor-reassert
+    // window, or Escape presses after resume get eaten.
     private float ignorePauseInputUntil;
     private Coroutine cursorRestoreRoutine;
 
@@ -43,6 +41,7 @@ public class PauseMenu : MonoBehaviour
             playerInventory =
                 FindFirstObjectByType<PlayerInventory>();
         }
+
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -58,7 +57,6 @@ public class PauseMenu : MonoBehaviour
         Time.timeScale = 1f;
 
         isPaused = false;
-        pauseTransitionInProgress = false;
         ignorePauseInputUntil = 0f;
 
         if (container != null)
@@ -70,36 +68,28 @@ public class PauseMenu : MonoBehaviour
 
     private void Update()
     {
-        if (pauseTransitionInProgress ||
-            Time.unscaledTime < ignorePauseInputUntil)
+        if (Time.unscaledTime < ignorePauseInputUntil)
         {
             return;
         }
 
         bool pausePressed = false;
 
-
-        // =====================================================
-        // KEYBOARD
-        // =====================================================
-
         if (Keyboard.current != null)
         {
             if (Keyboard.current.escapeKey.wasPressedThisFrame ||
                 Keyboard.current.pauseKey.wasPressedThisFrame)
             {
+                GameInputDevice.SetLastUsedDevice(
+                    Keyboard.current
+                );
+
                 pausePressed = true;
             }
         }
 
-
-        // =====================================================
-        // GAMEPAD
-        // =====================================================
-
         if (Gamepad.current != null)
         {
-            // Start / Options button
             if (Gamepad.current.startButton.wasPressedThisFrame)
             {
                 GameInputDevice.SetLastUsedDevice(
@@ -110,16 +100,10 @@ public class PauseMenu : MonoBehaviour
             }
         }
 
-
         if (!pausePressed)
         {
             return;
         }
-
-
-        // =====================================================
-        // PAUSE / RESUME
-        // =====================================================
 
         if (isPaused)
         {
@@ -127,18 +111,15 @@ public class PauseMenu : MonoBehaviour
             return;
         }
 
-
         if (PlayerStateManager.Instance == null)
         {
             return;
         }
 
-
         if (!PlayerStateManager.Instance.CanPause())
         {
             return;
         }
-
 
         PauseGame();
     }
@@ -146,52 +127,46 @@ public class PauseMenu : MonoBehaviour
 
     public void PauseGame()
     {
-        if (isPaused || pauseTransitionInProgress)
+        if (isPaused)
         {
             return;
         }
 
         if (PlayerStateManager.Instance == null)
         {
-            Debug.LogWarning("[PauseMenu] PlayerStateManager.Instance is missing.");
+            Debug.LogWarning(
+                "[PauseMenu] PlayerStateManager.Instance is missing."
+            );
             return;
         }
 
-
-        // Close inventory if it is open
-        if (playerInventory != null)
+        if (playerInventory != null &&
+            playerInventory.IsInventoryOpen())
         {
-            if (playerInventory.IsInventoryOpen())
-            {
-                playerInventory.CloseInventory();
-            }
+            playerInventory.CloseInventory();
         }
 
-
-        // Save current GameMode
         if (GameStateManager.Instance != null)
         {
-            previousGameMode = GameStateManager.Instance.GetGameMode();
+            previousGameMode =
+                GameStateManager.Instance.GetGameMode();
         }
 
+        previousPlayerState =
+            PlayerStateManager.Instance.GetCurrentState();
 
-        // Save current PlayerState
-        previousPlayerState = PlayerStateManager.Instance.GetCurrentState();
-
-
-        // Save toolbar state and hide it
         if (toolbar != null)
         {
             toolbarWasActive = toolbar.activeSelf;
             toolbar.SetActive(false);
         }
 
-
-        // Mark the game as paused
         isPaused = true;
 
+        // Ignore the same Escape/Start that opened the menu so it cannot
+        // immediately close it on a held/repeat edge.
+        ignorePauseInputUntil = Time.unscaledTime + 0.2f;
 
-        // Set GameMode to Paused
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
@@ -199,36 +174,36 @@ public class PauseMenu : MonoBehaviour
             );
         }
 
-
-        // Set PlayerState to PauseMenu
         PlayerStateManager.Instance.SetState(
             PlayerStateManager.PlayerState.PauseMenu
         );
 
-
-        // Actually pause Unity's game time
         Time.timeScale = 0f;
 
-
-        // Show pause menu
         if (container != null)
         {
             container.SetActive(true);
         }
 
-
-        // Unlock cursor
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-
         ClearUISelection();
 
-        if (GameUICursorController.Instance != null &&
-            GameInputDevice.LastUsedDeviceIsGamepad())
+        if (GameUICursorController.Instance != null)
         {
-            GameUICursorController.Instance
-                .ResetControllerCursorForUI();
+            if (GameInputDevice.LastUsedDeviceIsGamepad())
+            {
+                GameUICursorController.Instance
+                    .ResetControllerCursorForUI();
+            }
+            else
+            {
+                GameUICursorController.Instance
+                    .ShowCursorForUI();
+            }
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
         Debug.Log(
@@ -240,34 +215,31 @@ public class PauseMenu : MonoBehaviour
 
     public void ContinueButton()
     {
-        if (!isPaused || pauseTransitionInProgress)
+        if (!isPaused)
         {
             return;
         }
 
-        pauseTransitionInProgress = true;
+        // Debounce only — do not block Escape for a full second.
         ignorePauseInputUntil = Time.unscaledTime + 0.25f;
 
+        bool resumedWithEscape =
+            Keyboard.current != null &&
+            (Keyboard.current.escapeKey.wasPressedThisFrame ||
+             Keyboard.current.escapeKey.isPressed);
 
-        // Hide pause menu
         if (container != null)
         {
             container.SetActive(false);
         }
 
-
-        // Restore toolbar
         if (toolbar != null)
         {
             toolbar.SetActive(toolbarWasActive);
         }
 
-
-        // Resume Unity's game time
         Time.timeScale = 1f;
 
-
-        // Restore previous GameMode
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
@@ -275,8 +247,6 @@ public class PauseMenu : MonoBehaviour
             );
         }
 
-
-        // Restore previous PlayerState
         if (PlayerStateManager.Instance != null)
         {
             PlayerStateManager.Instance.SetState(
@@ -284,25 +254,20 @@ public class PauseMenu : MonoBehaviour
             );
         }
 
-
-        // Mark game as unpaused
         isPaused = false;
 
-
-        // Lock the cursor again through the persistent cursor controller so
-        // controller users do not depend on a mouse event to finish the
-        // pause -> gameplay transition.
         ClearUISelection();
 
+        // Claim gameplay cursor ownership IMMEDIATELY so
+        // GameUICursorController.SyncCursorVisibility stops forcing the
+        // mouse visible while we wait out Escape's Editor unlock.
         if (GameUICursorController.Instance != null)
         {
             GameUICursorController.Instance.HideCursorForGameplay();
         }
-        else
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
 
         if (cursorRestoreRoutine != null)
         {
@@ -310,15 +275,9 @@ public class PauseMenu : MonoBehaviour
         }
 
         cursorRestoreRoutine =
-            StartCoroutine(ReassertGameplayCursorAfterResume());
-
-#if UNITY_EDITOR
-        // Escape can release the Unity Editor Game View focus after the
-        // button/callback has already completed. Focus it again after the
-        // event has finished so the locked gameplay cursor is authoritative.
-        UnityEditor.EditorApplication.delayCall += FocusGameViewAfterResume;
-#endif
-
+            StartCoroutine(
+                HideCursorAfterEscapeResume(resumedWithEscape)
+            );
 
         Debug.Log(
             "[PauseMenu] Game resumed. Time.timeScale = "
@@ -331,16 +290,27 @@ public class PauseMenu : MonoBehaviour
     private void FocusGameViewAfterResume()
     {
         if (isPaused)
+        {
             return;
+        }
 
         System.Type gameViewType =
-            System.Type.GetType("UnityEditor.GameView,UnityEditor");
+            System.Type.GetType(
+                "UnityEditor.GameView,UnityEditor"
+            );
 
         if (gameViewType == null)
+        {
             return;
+        }
 
         UnityEditor.EditorWindow gameView =
-            UnityEditor.EditorWindow.GetWindow(gameViewType);
+            UnityEditor.EditorWindow.GetWindow(
+                gameViewType,
+                false,
+                null,
+                true
+            );
 
         if (gameView != null)
         {
@@ -351,28 +321,63 @@ public class PauseMenu : MonoBehaviour
     }
 #endif
 
-    private IEnumerator ReassertGameplayCursorAfterResume()
+
+    private IEnumerator HideCursorAfterEscapeResume(
+        bool resumedWithEscape)
     {
-        // Escape can make Unity Editor/Game View release the hardware cursor
-        // after our ContinueButton has already run. Re-apply the gameplay
-        // cursor state for several frames so no mouse movement is required.
+        if (resumedWithEscape)
+        {
+            // Escape unlocks the cursor in the Editor while held. Keep the
+            // gameplay lock flag set, wait for release, then force-hide again.
+            while (Keyboard.current != null &&
+                   Keyboard.current.escapeKey.isPressed)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                yield return null;
+            }
+
+            yield return null;
+            yield return new WaitForEndOfFrame();
+        }
+
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.HideCursorForGameplay();
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+#if UNITY_EDITOR
+        FocusGameViewAfterResume();
+        UnityEditor.EditorApplication.delayCall +=
+            FocusGameViewAfterResume;
+#endif
+
+        // Keep hammering the lock for a short window after Escape.
         float endTime = Time.unscaledTime + 1.0f;
 
         while (Time.unscaledTime < endTime)
         {
-            if (!isPaused)
+            if (isPaused)
             {
-                // Do not call HideCursorForGameplay every frame here; that
-                // method intentionally starts its own focus-recovery routine.
-                // Repeating it would constantly restart that routine.
-                Cursor.lockState = CursorLockMode.Locked;
-                Cursor.visible = false;
+                break;
             }
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
+#if UNITY_EDITOR
+            if (Time.unscaledTime < endTime - 0.5f)
+            {
+                FocusGameViewAfterResume();
+            }
+#endif
 
             yield return null;
         }
 
-        pauseTransitionInProgress = false;
         cursorRestoreRoutine = null;
     }
 
@@ -403,12 +408,9 @@ public class PauseMenu : MonoBehaviour
     {
         Debug.Log("[PauseMenu] Returning to Main Menu.");
 
-
-        // Make absolutely sure time is restored
         Time.timeScale = 1f;
 
         isPaused = false;
-        pauseTransitionInProgress = false;
         ignorePauseInputUntil = 0f;
 
         if (cursorRestoreRoutine != null)
@@ -417,15 +419,11 @@ public class PauseMenu : MonoBehaviour
             cursorRestoreRoutine = null;
         }
 
-
-        // Hide pause menu
         if (container != null)
         {
             container.SetActive(false);
         }
 
-
-        // Set player state to MainMenu
         if (PlayerStateManager.Instance != null)
         {
             PlayerStateManager.Instance.SetState(
@@ -433,8 +431,6 @@ public class PauseMenu : MonoBehaviour
             );
         }
 
-
-        // Open main menu
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance.OpenMainMenu();
@@ -453,7 +449,6 @@ public class PauseMenu : MonoBehaviour
         Time.timeScale = 1f;
 
         isPaused = false;
-        pauseTransitionInProgress = false;
         ignorePauseInputUntil = 0f;
 
         if (cursorRestoreRoutine != null)
@@ -462,20 +457,12 @@ public class PauseMenu : MonoBehaviour
             cursorRestoreRoutine = null;
         }
 
-
         Debug.Log("[PauseMenu] Exiting game.");
 
-
 #if UNITY_EDITOR
-
         UnityEditor.EditorApplication.isPlaying = false;
-
 #else
-
-        // Normal UI quit intentionally bypasses the Alt+F4 cutscene.
-        // Alt+F4 is intercepted separately by AltF4ExitCutscene.
         Application.Quit();
-
 #endif
     }
 

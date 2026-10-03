@@ -175,21 +175,26 @@ public class MainMenu : MonoBehaviour
             " | Gender: " + selectedGender
         );
 
-        // Explicitly register controller use before handing the cursor back
-        // to gameplay. This also covers the case where Unity's normal UI
-        // navigation invoked this method instead of our custom cursor click.
+        // Prefer the cursor controller's gamepad state over wasPressedThisFrame.
+        // SelectAtCursor can invoke this after the press frame, and Start /
+        // South / EventSystem submit must all count as controller start.
         if (Gamepad.current != null &&
-            (Gamepad.current.buttonSouth.wasPressedThisFrame ||
+            (GameInputDevice.LastUsedDeviceIsGamepad() ||
+             (GameUICursorController.Instance != null &&
+              GameUICursorController.Instance.IsUsingGamepad()) ||
+             Gamepad.current.buttonSouth.wasPressedThisFrame ||
              Gamepad.current.buttonWest.wasPressedThisFrame ||
              Gamepad.current.startButton.wasPressedThisFrame))
         {
             GameInputDevice.SetLastUsedDevice(Gamepad.current);
         }
 
-        // Immediately hand cursor control back to gameplay.
-        // This is done before GameFlowManager starts the cutscene so the
-        // persistent GameUICursorController cannot leave the mouse cursor
-        // visible after Start is pressed.
+        ClearUISelection();
+
+        // Hide the cursor immediately, but KEEP the game-mode selection
+        // screen active. Its full-screen background acts as the black
+        // hold until IntroCutscene reports the first video frame, then
+        // GameFlowManager.HideMenuAfterVideoFrame removes it.
         GameUICursorController cursorController =
             GameUICursorController.Instance;
 
@@ -203,18 +208,6 @@ public class MainMenu : MonoBehaviour
             Cursor.visible = false;
         }
 
-        //// Hide the menu immediately.
-        //if (mainMenuGroup != null)
-        //{
-        //    mainMenuGroup.SetActive(false);
-        //}
-
-        //if (gameModeSelectionScreen != null)
-        //{
-        //    gameModeSelectionScreen.SetActive(false);
-        //}
-
-        // Start the actual game.
         if (GameFlowManager.Instance == null)
         {
             Debug.LogError(
