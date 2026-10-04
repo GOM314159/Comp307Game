@@ -1,3 +1,4 @@
+using System.Threading;
 using Unity.AppUI.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -360,7 +361,11 @@ public class PlayerMovement : MonoBehaviour
             {
                 animator.SetTrigger("Run");
             }
-            else if (IsMoving())
+            else if (IsMoving() && isCrouching)
+            {
+                animator.SetTrigger("CrouchWalk");
+            }
+            else if (IsMoving() && !isCrouching)
             {
                 animator.SetTrigger("Walk");
             }
@@ -407,7 +412,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     private void Jump()
-{
+    {
     // =====================================
     // JUMP PERMISSION
     // =====================================
@@ -422,19 +427,27 @@ public class PlayerMovement : MonoBehaviour
     // GROUND CHECK
     // =====================================
 
-    if (!isGrounded)
-    {
-        return;
+        if (!isGrounded)
+        {
+            return;
+        }
+
+
+        // =====================================
+        // JUMP
+        // =====================================
+        animator.SetTrigger("Jump");
+
+        // wait 0.1s second for animation before jumping
+        Timer jumpDelayTimer = new Timer((state) =>
+        {
+            // Apply jump velocity
+            velocity.y = Mathf.Sqrt(
+                jumpHeight * -2f * gravity);
+
+        }, null, 100, Timeout.Infinite);
+
     }
-
-
-    // =====================================
-    // JUMP
-    // =====================================
-
-    velocity.y = Mathf.Sqrt(
-        jumpHeight * -2f * gravity);
-}
 
     private void HandleCrouch()
     {
