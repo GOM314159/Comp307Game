@@ -25,6 +25,24 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     [SerializeField] private AudioClip phase2Dialogue;
     [SerializeField] private AudioClip phase3Dialogue;
 
+    [Tooltip(
+        "AudioSource used for phase dialogue. Leave empty to find/create one " +
+        "on this object. AudioManager.PlayVoice is also used when available."
+    )]
+    [SerializeField] private AudioSource dialogueAudioSource;
+
+    [SerializeField] [Range(0f, 1f)] private float dialogueVolume = 1f;
+
+    [Header("Hitbox")]
+    [Tooltip(
+        "If Gargamel has no collider, create a BoxCollider so player " +
+        "attack raycasts on the Damage layer can land hits."
+    )]
+    [SerializeField] private bool autoCreateHitboxIfMissing = true;
+
+    [SerializeField] private Vector3 hitboxCenter = new Vector3(0f, 1.0f, 0f);
+    [SerializeField] private Vector3 hitboxSize = new Vector3(1.2f, 2.2f, 1.2f);
+
     [Header("Final Death")]
     [Tooltip("Leave disabled. GargamelDeathScript handles the death sequence.")]
     [SerializeField] private bool destroyOnDeath = false;
@@ -41,7 +59,15 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
     private void Awake()
     {
+        EnsureDialogueAudioSource();
+        EnsureDamageHitbox();
         ResetBossHealth();
+    }
+
+    private void OnEnable()
+    {
+        EnsureDialogueAudioSource();
+        EnsureDamageHitbox();
     }
 
     public bool TakeDamage(float damage)
@@ -108,21 +134,71 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         if (dialogue == null)
         {
             Debug.LogWarning(
-                "[FinalBossHealth] No dialogue assigned for Phase " + phase + "."
+                "[FinalBossHealth] No dialogue AudioClip assigned for Phase " +
+                phase +
+                ". Assign Phase 2/3 Dialogue on Gargamel's FinalBossHealth.",
+                this
             );
             return;
+        }
+
+        EnsureDialogueAudioSource();
+
+        bool played = false;
+
+        // Prefer the local source so dialogue is heard even if AudioManager
+        // voice volume/routing is muted or not ready.
+        if (dialogueAudioSource != null)
+        {
+            dialogueAudioSource.Stop();
+            dialogueAudioSource.clip = dialogue;
+            dialogueAudioSource.volume = dialogueVolume;
+            dialogueAudioSource.Play();
+            played = true;
         }
 
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayVoice(dialogue);
+            played = true;
         }
-        else
+
+        if (!played)
         {
-            Debug.LogWarning(
-                "[FinalBossHealth] AudioManager is missing."
+            AudioSource.PlayClipAtPoint(
+                dialogue,
+                transform.position,
+                dialogueVolume
             );
         }
+
+        DebugHealth(
+            "Playing Phase " + phase + " dialogue: " + dialogue.name
+        );
+    }
+
+    private void EnsureDialogueAudioSource()
+    {
+        if (dialogueAudioSource != null)
+        {
+            dialogueAudioSource.playOnAwake = false;
+            dialogueAudioSource.loop = false;
+            dialogueAudioSource.spatialBlend = 0f;
+            return;
+        }
+
+        dialogueAudioSource = GetComponent<AudioSource>();
+
+        if (dialogueAudioSource == null)
+        {
+            dialogueAudioSource =
+                gameObject.AddComponent<AudioSource>();
+        }
+
+        dialogueAudioSource.playOnAwake = false;
+        dialogueAudioSource.loop = false;
+        dialogueAudioSource.spatialBlend = 0f;
+        dialogueAudioSource.volume = dialogueVolume;
     }
 
     private void Die()
@@ -215,6 +291,60 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         }
 
         return baseHealth;
+    }
+
+    private void EnsureDamageHitbox()
+    {
+        int damageLayer = LayerMask.NameToLayer("Damage");
+
+        Collider existing = GetComponent<Collider>();
+
+        if (existing == null)
+        {
+            existing = GetComponentInChildren<Collider>(true);
+        }
+
+        if (existing != null)
+        {
+            existing.enabled = true;
+            existing.isTrigger = false;
+
+            if (damageLayer >= 0 &&
+                existing.gameObject.layer != damageLayer)
+            {
+                existing.gameObject.layer = damageLayer;
+            }
+
+            return;
+        }
+
+        if (!autoCreateHitboxIfMissing)
+        {
+            Debug.LogWarning(
+                "[FinalBossHealth] No collider found on " +
+                gameObject.name +
+                ". Player attacks cannot hit Gargamel.",
+                this
+            );
+            return;
+        }
+
+        BoxCollider hitbox = gameObject.AddComponent<BoxCollider>();
+        hitbox.center = hitboxCenter;
+        hitbox.size = hitboxSize;
+        hitbox.isTrigger = false;
+        hitbox.enabled = true;
+
+        if (damageLayer >= 0)
+        {
+            gameObject.layer = damageLayer;
+        }
+
+        DebugHealth(
+            "Auto-created Damage hitbox on " +
+            gameObject.name +
+            " (size " + hitboxSize + ", center " + hitboxCenter + ")."
+        );
     }
 
     private void DebugHealth(string message)

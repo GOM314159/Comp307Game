@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Video;
 
 /// <summary>
@@ -9,7 +10,7 @@ using UnityEngine.Video;
 public class GargamelDeathScript : MonoBehaviour
 {
     [Header("Boss")]
-    [Tooltip("Automatically uses the FinalBossHealth on Gargamel.")]
+    [Tooltip("Automatically finds FinalBossHealth on this object, children, parents, or in the scene.")]
     [SerializeField] private FinalBossHealth bossHealth;
 
     [Header("Normal Ending")]
@@ -19,7 +20,14 @@ public class GargamelDeathScript : MonoBehaviour
     [SerializeField] private VideoPlayer secretEndingVideo;
 
     [Header("Final Game Screen")]
+    [Tooltip("Optional direct reference. Leave empty to find by object name.")]
     [SerializeField] private GameObject finalGameScreen;
+
+    [Tooltip(
+        "Exact GameObject name of the final end screen UI in the loaded scene " +
+        "(e.g. EndScreen). Used when the direct reference is missing."
+    )]
+    [SerializeField] private string finalGameScreenObjectName = "EndScreen";
 
     [Header("Settings")]
     [SerializeField] private bool playOnDeath = true;
@@ -28,14 +36,13 @@ public class GargamelDeathScript : MonoBehaviour
     [SerializeField] private bool debugDeath = true;
 
     private bool endingStarted;
+    private bool subscribedToHealth;
     private VideoPlayer activeVideo;
 
     private void Awake()
     {
-        if (bossHealth == null)
-        {
-            bossHealth = GetComponent<FinalBossHealth>();
-        }
+        ResolveBossHealth();
+        ResolveFinalGameScreen();
 
         SetupVideo(normalEndingVideo);
         SetupVideo(secretEndingVideo);
@@ -48,26 +55,215 @@ public class GargamelDeathScript : MonoBehaviour
 
     private void OnEnable()
     {
-        if (bossHealth == null)
-        {
-            bossHealth = GetComponent<FinalBossHealth>();
-        }
+        ResolveBossHealth();
+        ResolveFinalGameScreen();
+        SubscribeToBossHealth();
+    }
 
-        if (bossHealth != null)
-        {
-            bossHealth.OnDied += HandleBossDeath;
-        }
+    private void Start()
+    {
+        // Late bind in case FinalBossHealth / EndScreen are added later.
+        ResolveBossHealth();
+        ResolveFinalGameScreen();
+        SubscribeToBossHealth();
     }
 
     private void OnDisable()
     {
-        if (bossHealth != null)
-        {
-            bossHealth.OnDied -= HandleBossDeath;
-        }
+        UnsubscribeFromBossHealth();
 
         UnsubscribeFromVideo(normalEndingVideo);
         UnsubscribeFromVideo(secretEndingVideo);
+    }
+
+    private void ResolveBossHealth()
+    {
+        if (bossHealth != null)
+        {
+            return;
+        }
+
+        bossHealth = GetComponent<FinalBossHealth>();
+
+        if (bossHealth == null)
+        {
+            bossHealth = GetComponentInChildren<FinalBossHealth>(true);
+        }
+
+        if (bossHealth == null)
+        {
+            bossHealth = GetComponentInParent<FinalBossHealth>();
+        }
+
+        if (bossHealth == null)
+        {
+            bossHealth = FindAnyObjectByType<FinalBossHealth>(
+                FindObjectsInactive.Include
+            );
+        }
+
+        if (bossHealth == null)
+        {
+            Debug.LogError(
+                "[GargamelDeathScript] FinalBossHealth could not be found " +
+                "on " + gameObject.name +
+                " or in the scene. Death cutscene will not trigger.",
+                this
+            );
+            return;
+        }
+
+        if (debugDeath)
+        {
+            Debug.Log(
+                "[GargamelDeathScript] Bound to FinalBossHealth on " +
+                bossHealth.gameObject.name +
+                ".",
+                this
+            );
+        }
+    }
+
+    private void ResolveFinalGameScreen()
+    {
+        if (finalGameScreen != null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(finalGameScreenObjectName))
+        {
+            return;
+        }
+
+        string targetName = finalGameScreenObjectName.Trim();
+
+        finalGameScreen =
+            FindSceneObjectByNameAcrossLoadedScenes(targetName);
+
+        if (finalGameScreen == null)
+        {
+            // Also catch inactive UI objects that name search can miss.
+            GameObject[] allObjects =
+                Resources.FindObjectsOfTypeAll<GameObject>();
+
+            for (int i = 0; i < allObjects.Length; i++)
+            {
+                GameObject candidate = allObjects[i];
+
+                if (candidate == null ||
+                    candidate.name != targetName ||
+                    !candidate.scene.IsValid() ||
+                    !candidate.scene.isLoaded)
+                {
+                    continue;
+                }
+
+                finalGameScreen = candidate;
+                break;
+            }
+        }
+
+        if (finalGameScreen == null)
+        {
+            Debug.LogWarning(
+                "[GargamelDeathScript] Final game screen '" +
+                targetName +
+                "' was not found in any loaded scene.",
+                this
+            );
+            return;
+        }
+
+        if (debugDeath)
+        {
+            Debug.Log(
+                "[GargamelDeathScript] Bound final game screen '" +
+                finalGameScreen.name +
+                "'.",
+                this
+            );
+        }
+    }
+
+    private GameObject FindSceneObjectByNameAcrossLoadedScenes(
+        string objectName)
+    {
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                continue;
+            }
+
+            GameObject[] roots = scene.GetRootGameObjects();
+
+            for (int r = 0; r < roots.Length; r++)
+            {
+                GameObject found =
+                    FindChildObjectByName(roots[r].transform, objectName);
+
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private GameObject FindChildObjectByName(
+        Transform parent,
+        string objectName)
+    {
+        if (parent.name == objectName)
+        {
+            return parent.gameObject;
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            GameObject found =
+                FindChildObjectByName(parent.GetChild(i), objectName);
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private void SubscribeToBossHealth()
+    {
+        if (bossHealth == null || subscribedToHealth)
+        {
+            return;
+        }
+
+        bossHealth.OnDied += HandleBossDeath;
+        subscribedToHealth = true;
+
+        // If the boss already died before we subscribed, fire immediately.
+        if (bossHealth.IsDead())
+        {
+            HandleBossDeath();
+        }
+    }
+
+    private void UnsubscribeFromBossHealth()
+    {
+        if (bossHealth == null || !subscribedToHealth)
+        {
+            return;
+        }
+
+        bossHealth.OnDied -= HandleBossDeath;
+        subscribedToHealth = false;
     }
 
     private void HandleBossDeath()
@@ -86,6 +282,14 @@ public class GargamelDeathScript : MonoBehaviour
         }
 
         endingStarted = true;
+
+        if (debugDeath)
+        {
+            Debug.Log(
+                "[GargamelDeathScript] Final boss death sequence started.",
+                this
+            );
+        }
 
         if (GameStateManager.Instance != null)
         {
@@ -179,9 +383,22 @@ public class GargamelDeathScript : MonoBehaviour
 
     private void FinishEndingVideo()
     {
+        ResolveFinalGameScreen();
+
         if (finalGameScreen != null)
         {
             finalGameScreen.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[GargamelDeathScript] Ending finished, but no final game " +
+                "screen could be shown. Assign Final Game Screen or set " +
+                "Final Game Screen Object Name (currently '" +
+                finalGameScreenObjectName +
+                "').",
+                this
+            );
         }
 
         // GameFlowManager owns the persistent end-of-game transition.
@@ -260,9 +477,22 @@ public class GargamelDeathScript : MonoBehaviour
             secretEndingVideo.Stop();
         }
 
+        ResolveFinalGameScreen();
+
         if (finalGameScreen != null)
         {
             finalGameScreen.SetActive(false);
         }
+
+        if (bossHealth != null)
+        {
+            bossHealth.ResetBossHealth();
+        }
+    }
+
+    public FinalBossHealth GetBossHealth()
+    {
+        ResolveBossHealth();
+        return bossHealth;
     }
 }

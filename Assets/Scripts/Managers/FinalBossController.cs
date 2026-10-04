@@ -23,16 +23,20 @@ public class FinalBossController : MonoBehaviour
 
     private void Awake()
     {
-        if (finalBoss == null)
-        {
-            FinalBossHealth health = FindAnyObjectByType<FinalBossHealth>();
-            if (health != null)
-            {
-                finalBoss = health.gameObject;
-            }
-        }
+        ResolveFinalBossReference();
 
         if (finalBoss != null)
+        {
+            finalBoss.SetActive(false);
+        }
+    }
+
+    public void SetFinalBoss(GameObject boss)
+    {
+        finalBoss = boss;
+        ResolveFinalBossReference();
+
+        if (finalBoss != null && !sequenceStarted)
         {
             finalBoss.SetActive(false);
         }
@@ -47,14 +51,7 @@ public class FinalBossController : MonoBehaviour
 
         sequenceStarted = true;
 
-        if (finalBoss == null)
-        {
-            FinalBossHealth health = FindAnyObjectByType<FinalBossHealth>();
-            if (health != null)
-            {
-                finalBoss = health.gameObject;
-            }
-        }
+        ResolveFinalBossReference();
 
         if (finalBoss == null)
         {
@@ -77,6 +74,24 @@ public class FinalBossController : MonoBehaviour
         }
 
         StartCoroutine(SpawnBossAfterDelay(delay));
+    }
+
+    private void ResolveFinalBossReference()
+    {
+        if (finalBoss != null)
+        {
+            return;
+        }
+
+        FinalBossHealth health =
+            FindAnyObjectByType<FinalBossHealth>(
+                FindObjectsInactive.Include
+            );
+
+        if (health != null)
+        {
+            finalBoss = health.gameObject;
+        }
     }
 
     private IEnumerator SpawnBossAfterDelay(float delay)
