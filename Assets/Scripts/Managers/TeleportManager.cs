@@ -1578,6 +1578,12 @@ public class TeleportManager : MonoBehaviour
 
     private void HandleDebugFKeys()
     {
+        if (GameFlowManager.Instance != null &&
+            !GameFlowManager.Instance.AreDebugHotkeysEnabled())
+        {
+            return;
+        }
+
         if (Keyboard.current == null)
         {
             return;

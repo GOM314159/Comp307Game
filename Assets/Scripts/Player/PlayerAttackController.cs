@@ -356,13 +356,24 @@ public class PlayerAttackController : MonoBehaviour
                 out hit,
                 range,
                 damageableLayers,
-                QueryTriggerInteraction.Ignore))
+                QueryTriggerInteraction.Collide))
         {
-            Debug.Log(
-                "[Attack] Close-range attack missed."
-            );
+            // Fallback: layer mask can miss scene-authored bosses. Still
+            // allow a close-range hit against any IDamageable in range.
+            if (!Physics.Raycast(
+                    attackOrigin.position,
+                    attackOrigin.forward,
+                    out hit,
+                    range,
+                    Physics.AllLayers,
+                    QueryTriggerInteraction.Collide))
+            {
+                Debug.Log(
+                    "[Attack] Close-range attack missed."
+                );
 
-            return;
+                return;
+            }
         }
 
 
@@ -485,13 +496,22 @@ public class PlayerAttackController : MonoBehaviour
                 out hit,
                 range,
                 damageableLayers,
-                QueryTriggerInteraction.Ignore))
+                QueryTriggerInteraction.Collide))
         {
-            Debug.Log(
-                "[Attack] Ranged attack missed."
-            );
+            if (!Physics.Raycast(
+                    attackOrigin.position,
+                    attackOrigin.forward,
+                    out hit,
+                    range,
+                    Physics.AllLayers,
+                    QueryTriggerInteraction.Collide))
+            {
+                Debug.Log(
+                    "[Attack] Ranged attack missed."
+                );
 
-            return;
+                return;
+            }
         }
 
         AttackResult result =

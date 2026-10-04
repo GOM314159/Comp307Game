@@ -86,6 +86,22 @@ public class GameFlowManager : MonoBehaviour
     [SerializeField] private string day4ChangesRootName = "Day4Changes";
     [SerializeField] private string bossChangesRootName = "BossChanges";
 
+    [Header("Final Boss")]
+    [Tooltip(
+        "Exact GameObject name of the FinalBossController host in the " +
+        "loaded scene. GameFlowManager is persistent, so this is a typed " +
+        "name lookup instead of a direct scene reference."
+    )]
+    [SerializeField]
+    private string finalBossControllerObjectName = "FinalBossController";
+
+    [Tooltip(
+        "Exact GameObject name of the boss (e.g. Gargamel). Used when the " +
+        "controller object is missing so one can be created and bound at runtime."
+    )]
+    [SerializeField]
+    private string finalBossObjectName = "Gargamel";
+
     [SerializeField] private bool debugLobbyChanges = true;
 
     private bool createDaySnapshotOnLobbyLoad = false;
@@ -98,9 +114,23 @@ public class GameFlowManager : MonoBehaviour
     // EnsureInGamePlayTestScene().
     private System.Action pendingGamePlayTestAction;
 
+    [Header("Final Ending")]
+
+    [Tooltip("How long the Credits game mode remains active before returning to the Main Menu.")]
+    [Min(0f)]
+    [SerializeField] private float finalCreditsDuration = 10f;
+
     [Header("Debug")]
 
+    [Tooltip("Enable or disable all F-key debug hotkeys.")]
+    [SerializeField] private bool enableDebugHotkeys = true;
+
     [SerializeField] private bool debugFlow = true;
+
+    public bool AreDebugHotkeysEnabled()
+    {
+        return enableDebugHotkeys;
+    }
 
     // =========================================================
     // UNITY
@@ -1582,8 +1612,11 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartBossFight()
     {
-        GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.BossFight);
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.BossFight);
+        }
 
         if (AudioManager.Instance != null)
         {
@@ -1593,6 +1626,180 @@ public class GameFlowManager : MonoBehaviour
             AudioManager.Instance.PlayAmbience(
                 AudioManager.AmbienceType.Boss);
         }
+
+        FinalBossController bossController =
+            ResolveFinalBossController();
+
+        if (bossController != null)
+        {
+            bossController.BeginBossSpawnSequence();
+        }
+        else
+        {
+            Debug.LogError(
+                "[GameFlow] FinalBossController could not be resolved. " +
+                "Set Final Boss Controller Object Name / Final Boss Object Name " +
+                "in the GameFlowManager Inspector (current values: '"
+                + finalBossControllerObjectName
+                + "' / '"
+                + finalBossObjectName
+                + "')."
+            );
+        }
+    }
+
+
+    private FinalBossController ResolveFinalBossController()
+    {
+        // 1) Typed Inspector name for the controller host object.
+        FinalBossController byControllerName =
+            FindFinalBossControllerByObjectName(
+                finalBossControllerObjectName
+            );
+
+        if (byControllerName != null)
+        {
+            return byControllerName;
+        }
+
+        // 2) Any existing controller in loaded scenes, including inactive.
+        FinalBossController existing =
+            FindAnyObjectByType<FinalBossController>(
+                FindObjectsInactive.Include
+            );
+
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        // 3) Find the boss by typed name / FinalBossHealth and create a
+        //    lightweight controller host so teleport/debug paths still work
+        //    even when no FinalBossController was placed in the scene.
+        GameObject bossObject =
+            FindSceneObjectByNameAcrossLoadedScenes(
+                finalBossObjectName
+            );
+
+        if (bossObject == null)
+        {
+            FinalBossHealth health =
+                FindAnyObjectByType<FinalBossHealth>(
+                    FindObjectsInactive.Include
+                );
+
+            if (health != null)
+            {
+                bossObject = health.gameObject;
+            }
+        }
+
+        if (bossObject == null)
+        {
+            return null;
+        }
+
+        string hostName =
+            string.IsNullOrWhiteSpace(finalBossControllerObjectName)
+                ? "FinalBossController"
+                : finalBossControllerObjectName.Trim();
+
+        GameObject host = new GameObject(hostName);
+        SceneManager.MoveGameObjectToScene(
+            host,
+            bossObject.scene
+        );
+
+        FinalBossController created =
+            host.AddComponent<FinalBossController>();
+
+        created.SetFinalBoss(bossObject);
+
+        DebugFlow(
+            "Created FinalBossController host '"
+            + hostName
+            + "' bound to boss '"
+            + bossObject.name
+            + "'."
+        );
+
+        return created;
+    }
+
+
+    private FinalBossController FindFinalBossControllerByObjectName(
+        string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return null;
+        }
+
+        GameObject host =
+            FindSceneObjectByNameAcrossLoadedScenes(
+                objectName.Trim()
+            );
+
+        if (host == null)
+        {
+            return null;
+        }
+
+        FinalBossController controller =
+            host.GetComponent<FinalBossController>();
+
+        if (controller == null)
+        {
+            controller =
+                host.GetComponentInChildren<FinalBossController>(true);
+        }
+
+        if (controller != null)
+        {
+            return controller;
+        }
+
+        // Never put the controller on the boss body itself — Awake disables
+        // the boss and would disable this component with it.
+        if (host.GetComponent<FinalBossHealth>() != null ||
+            host.GetComponentInParent<FinalBossHealth>() != null)
+        {
+            return null;
+        }
+
+        return host.AddComponent<FinalBossController>();
+    }
+
+
+    private GameObject FindSceneObjectByNameAcrossLoadedScenes(
+        string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return null;
+        }
+
+        string trimmedName = objectName.Trim();
+
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                continue;
+            }
+
+            GameObject found =
+                FindSceneObjectByName(scene, trimmedName);
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     // =========================================================
@@ -1633,7 +1840,10 @@ public class GameFlowManager : MonoBehaviour
 
     public void FinalBossDefeated()
     {
-        GameStateManager.Instance.DefeatFinalBoss();
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.DefeatFinalBoss();
+        }
 
         StartFinalCutscene();
     }
@@ -1689,13 +1899,27 @@ public class GameFlowManager : MonoBehaviour
             AchievementManager.Instance.UnlockHardcoreCompletion();
         }
 
-        GameStateManager.Instance.CompleteFinalCutscene();
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.CompleteFinalCutscene();
+        }
 
         SetToolbarVisible(false);
         SetHealthBarVisible(false);
         SetStaminaBarVisible(false);
 
         OpenCredits();
+        StartCoroutine(ReturnToMainMenuAfterFinalCredits());
+    }
+
+    private IEnumerator ReturnToMainMenuAfterFinalCredits()
+    {
+        if (finalCreditsDuration > 0f)
+        {
+            yield return new WaitForSecondsRealtime(finalCreditsDuration);
+        }
+
+        OpenMainMenu();
     }
 
     // =========================================================
@@ -2005,8 +2229,28 @@ public class GameFlowManager : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current == null)
+        if (!enableDebugHotkeys || Keyboard.current == null)
         {
+            return;
+        }
+
+        // F11 - reset achievements.
+        if (Keyboard.current.f11Key.wasPressedThisFrame)
+        {
+            if (AchievementManager.Instance != null)
+            {
+                AchievementManager.Instance.ResetAchievements();
+                Debug.Log(
+                    "[GameFlowManager] F11 pressed. Achievements reset."
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[GameFlowManager] F11 pressed, but AchievementManager is missing."
+                );
+            }
+
             return;
         }
 
@@ -2018,11 +2262,6 @@ public class GameFlowManager : MonoBehaviour
         Debug.Log(
             "[GameFlowManager] F9 debug skip requested."
         );
-
-
-        // =========================================================
-        // THEATER PLAY
-        // =========================================================
 
         ChairPlayController chairPlayController =
             FindAnyObjectByType<ChairPlayController>();
@@ -2041,17 +2280,12 @@ public class GameFlowManager : MonoBehaviour
                 );
 
                 chairPlayController.SkipCurrentPlay();
-
                 return;
             }
         }
 
-
-        // =========================================================
-        // OTHER CUTSCENES
-        // =========================================================
-
         SkipCurrentCutscene();
     }
+
 
 }

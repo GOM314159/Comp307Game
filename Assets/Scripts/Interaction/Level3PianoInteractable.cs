@@ -2,10 +2,6 @@ using UnityEngine;
 
 public class Level3PianoInteractable : WorldInteractable
 {
-    // =========================================================
-    // PIANO MODELS
-    // =========================================================
-
     [Header("Piano Models")]
 
     [Tooltip("The CLOSED piano model.")]
@@ -15,11 +11,6 @@ public class Level3PianoInteractable : WorldInteractable
     [Tooltip("The OPEN piano model.")]
     [SerializeField]
     private GameObject openPiano;
-
-
-    // =========================================================
-    // INTERACTION VOLUME
-    // =========================================================
 
     [Header("Interaction Volume")]
 
@@ -37,10 +28,36 @@ public class Level3PianoInteractable : WorldInteractable
     [SerializeField]
     private bool showColliderDebug = true;
 
+    [Header("Ambient Music")]
 
-    // =========================================================
-    // PAINTINGS
-    // =========================================================
+    [Tooltip("Music that plays before the piano is opened.")]
+    [SerializeField]
+    private AudioClip ambientMusic;
+
+    [Tooltip(
+        "One-shot sting played immediately when the ambient music stops, " +
+        "for an abrupt cut-off ending."
+    )]
+    [SerializeField]
+    private AudioClip abruptEndingClip;
+
+    [Tooltip(
+        "AudioSource used for the ambient piano music. Leave empty to " +
+        "find/create one automatically."
+    )]
+    [SerializeField]
+    private AudioSource ambientAudioSource;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float ambientVolume = 0.6f;
+
+    [SerializeField]
+    [Range(0f, 1f)]
+    private float abruptEndingVolume = 1f;
+
+    [SerializeField]
+    private bool playAmbientOnStart = true;
 
     [Header("Painting Changes")]
 
@@ -50,33 +67,33 @@ public class Level3PianoInteractable : WorldInteractable
     [SerializeField]
     private bool findPaintingsAutomatically = true;
 
-
-    // =========================================================
-    // INTERACTION
-    // =========================================================
-
     [Header("Interaction")]
 
     [SerializeField]
     private string pianoPrompt = "Open Piano";
 
-
     private bool pianoOpened;
-
 
     protected override void Awake()
     {
         base.Awake();
 
         ResolveInteractionCollider();
+        EnsureAmbientAudioSource();
 
         pianoOpened = false;
 
         SetPianoModelsClosed();
-
         EnableInteractionCollider();
     }
 
+    private void Start()
+    {
+        if (playAmbientOnStart && !pianoOpened)
+        {
+            StartAmbientMusic();
+        }
+    }
 
     private void ResolveInteractionCollider()
     {
@@ -95,8 +112,6 @@ public class Level3PianoInteractable : WorldInteractable
 
         if (interactionCollider == null)
         {
-            // Prefer a BoxCollider on this object so you can just drop an
-            // invisible cube collider on the piano root if you want.
             interactionCollider =
                 GetComponent<BoxCollider>();
         }
@@ -110,13 +125,11 @@ public class Level3PianoInteractable : WorldInteractable
                 + ". Add a child named 'Interaction Collider' with a " +
                 "BoxCollider, or assign one in the Inspector."
             );
-
             return;
         }
 
         PrepareInteractionCollider();
     }
-
 
     private void PrepareInteractionCollider()
     {
@@ -125,12 +138,9 @@ public class Level3PianoInteractable : WorldInteractable
             return;
         }
 
-        // Interaction-only volume: never physically blocks the player.
         interactionCollider.isTrigger = true;
         interactionCollider.enabled = true;
 
-        // Keep the collider on the Interaction layer so PlayerInteraction
-        // can see it through the interaction mask.
         int interactionLayer =
             LayerMask.NameToLayer("Interaction");
 
@@ -141,6 +151,83 @@ public class Level3PianoInteractable : WorldInteractable
         }
     }
 
+    private void EnsureAmbientAudioSource()
+    {
+        if (ambientAudioSource == null)
+        {
+            ambientAudioSource = GetComponent<AudioSource>();
+        }
+
+        if (ambientAudioSource == null)
+        {
+            ambientAudioSource =
+                gameObject.AddComponent<AudioSource>();
+        }
+
+        ambientAudioSource.playOnAwake = false;
+        ambientAudioSource.loop = true;
+        ambientAudioSource.spatialBlend = 0f;
+        ambientAudioSource.volume = ambientVolume;
+    }
+
+    private void StartAmbientMusic()
+    {
+        EnsureAmbientAudioSource();
+
+        if (ambientMusic == null)
+        {
+            Debug.LogWarning(
+                "[Level3PianoInteractable] Ambient Music clip is not " +
+                "assigned on " + gameObject.name + ".",
+                this
+            );
+            return;
+        }
+
+        if (ambientAudioSource.isPlaying &&
+            ambientAudioSource.clip == ambientMusic)
+        {
+            return;
+        }
+
+        ambientAudioSource.clip = ambientMusic;
+        ambientAudioSource.volume = ambientVolume;
+        ambientAudioSource.loop = true;
+        ambientAudioSource.Play();
+    }
+
+    private void StopAmbientMusic()
+    {
+        if (ambientAudioSource == null)
+        {
+            return;
+        }
+
+        ambientAudioSource.Stop();
+        ambientAudioSource.clip = null;
+        ambientAudioSource.loop = false;
+
+        PlayAbruptEnding();
+    }
+
+    private void PlayAbruptEnding()
+    {
+        if (abruptEndingClip == null)
+        {
+            return;
+        }
+
+        EnsureAmbientAudioSource();
+
+        ambientAudioSource.loop = false;
+        ambientAudioSource.volume = abruptEndingVolume;
+
+        // One-shot so the ambient loop source can still be reused on reset.
+        ambientAudioSource.PlayOneShot(
+            abruptEndingClip,
+            abruptEndingVolume
+        );
+    }
 
     public override void Interact()
     {
@@ -150,16 +237,13 @@ public class Level3PianoInteractable : WorldInteractable
         }
 
         base.Interact();
-
         OpenPiano();
     }
-
 
     public override string GetInteractionPrompt()
     {
         return pianoPrompt;
     }
-
 
     private void OpenPiano()
     {
@@ -170,11 +254,11 @@ public class Level3PianoInteractable : WorldInteractable
 
         pianoOpened = true;
 
+        StopAmbientMusic();
         SetPianoModelsOpen();
         DisableInteractionCollider();
         TriggerPaintings();
     }
-
 
     private void SetPianoModelsClosed()
     {
@@ -189,7 +273,6 @@ public class Level3PianoInteractable : WorldInteractable
         }
     }
 
-
     private void SetPianoModelsOpen()
     {
         if (closedPiano != null)
@@ -203,7 +286,6 @@ public class Level3PianoInteractable : WorldInteractable
         }
     }
 
-
     private void EnableInteractionCollider()
     {
         if (interactionCollider != null)
@@ -212,7 +294,6 @@ public class Level3PianoInteractable : WorldInteractable
         }
     }
 
-
     private void DisableInteractionCollider()
     {
         if (interactionCollider != null)
@@ -220,7 +301,6 @@ public class Level3PianoInteractable : WorldInteractable
             interactionCollider.enabled = false;
         }
     }
-
 
     private void TriggerPaintings()
     {
@@ -256,7 +336,6 @@ public class Level3PianoInteractable : WorldInteractable
         }
     }
 
-
     public override void ResetInteraction()
     {
         base.ResetInteraction();
@@ -266,8 +345,12 @@ public class Level3PianoInteractable : WorldInteractable
         SetPianoModelsClosed();
         EnableInteractionCollider();
         ResetPaintings();
-    }
 
+        if (playAmbientOnStart)
+        {
+            StartAmbientMusic();
+        }
+    }
 
     private void ResetPaintings()
     {
@@ -298,12 +381,10 @@ public class Level3PianoInteractable : WorldInteractable
         }
     }
 
-
     public bool IsPianoOpened()
     {
         return pianoOpened;
     }
-
 
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()
