@@ -633,8 +633,15 @@ public class GameFlowManager : MonoBehaviour
             gameModeSelectionScreen.SetActive(false);
         }
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.ShowCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
     }
 
     private void SetToolbarVisible(bool visible)
@@ -790,6 +797,10 @@ public class GameFlowManager : MonoBehaviour
 
         GameStateManager.Instance.SetPlayerGender(gender);
 
+        setPlayerAnimator();
+
+
+
         // ---------------------------------------------------------
         // GIVE PLAYER THEIR GENDER-SPECIFIC LETTER
         // ---------------------------------------------------------
@@ -824,6 +835,41 @@ public class GameFlowManager : MonoBehaviour
             StartCoroutine(StartNewGameAfterPlayerReset());
 
 
+    }
+    // set the player animator to the correct gender animator in the PlayerMovement script
+    public void setPlayerAnimator()
+    {
+        PlayerMovement playerMovement = player.GetComponent<PlayerMovement>();
+
+        if (playerMovement != null)
+        {
+            if (GameStateManager.Instance != null)
+            {
+                if (GameStateManager.Instance.GetPlayerGender() == GameStateManager.PlayerGender.Male)
+                {
+                    Animator nephewAnim = GameObject.Find("Nephew").GetComponent<Animator>();
+                    playerMovement.setAnimator(nephewAnim);
+                }
+                else
+                {
+                    Animator nieceAnim = GameObject.Find("Niece").GetComponent<Animator>();
+                    playerMovement.setAnimator(nieceAnim);
+                }
+
+            }
+            else
+            {
+                Debug.LogError(
+                    "[GameFlow] GameStateManager.Instance is missing."
+                );
+            }
+        }
+        else
+        {
+            Debug.LogError(
+                "[GameFlow] PlayerMovement component is missing on the player."
+            );
+        }
     }
 
     public void StartFirstGameSequence()
@@ -871,16 +917,9 @@ public class GameFlowManager : MonoBehaviour
         // HIDE MENU
         // ---------------------------------------------------------
 
-        //if (mainMenuGroup != null)
-        //{
-        //    mainMenuGroup.SetActive(false);
-        //}
-
-        //if (gameModeSelectionScreen != null)
-        //{
-        //    gameModeSelectionScreen.SetActive(false);
-        //}
-
+        // Do NOT hide GameModeSelectionScreen here. Its full-screen
+        // background is the black hold between Continue and the first
+        // intro video frame. IntroVideoFirstFrameReady hides it.
 
         // ---------------------------------------------------------
         // CURSOR
@@ -1205,6 +1244,11 @@ public class GameFlowManager : MonoBehaviour
         {
             PortalProgressionManager.Instance
                 .CompleteDay(completedDay);
+        }
+
+        if (AchievementManager.Instance != null)
+        {
+            AchievementManager.Instance.UnlockDayCompletion(completedDay);
         }
 
         if (GameStateManager.Instance.IsFinalDay())
@@ -1638,6 +1682,13 @@ public class GameFlowManager : MonoBehaviour
 
     public void FinalCutsceneFinished()
     {
+        if (AchievementManager.Instance != null &&
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.IsHardcore())
+        {
+            AchievementManager.Instance.UnlockHardcoreCompletion();
+        }
+
         GameStateManager.Instance.CompleteFinalCutscene();
 
         SetToolbarVisible(false);

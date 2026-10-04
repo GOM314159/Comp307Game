@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class MainMenu : MonoBehaviour
 {
@@ -93,6 +94,17 @@ public class MainMenu : MonoBehaviour
     {
         Debug.Log("[MainMenu] Play pressed.");
 
+        // If Play was reached with a controller, explicitly register that
+        // device. This prevents the persistent cursor controller from
+        // waiting for a mouse event before it knows a controller is active.
+        if (Gamepad.current != null &&
+            (Gamepad.current.buttonSouth.wasPressedThisFrame ||
+             Gamepad.current.buttonWest.wasPressedThisFrame ||
+             Gamepad.current.startButton.wasPressedThisFrame))
+        {
+            GameInputDevice.SetLastUsedDevice(Gamepad.current);
+        }
+
         if (mainMenuGroup != null)
         {
             mainMenuGroup.SetActive(false);
@@ -163,10 +175,26 @@ public class MainMenu : MonoBehaviour
             " | Gender: " + selectedGender
         );
 
-        // Immediately hand cursor control back to gameplay.
-        // This is done before GameFlowManager starts the cutscene so the
-        // persistent GameUICursorController cannot leave the mouse cursor
-        // visible for a frame or two after Start is pressed.
+        // Prefer the cursor controller's gamepad state over wasPressedThisFrame.
+        // SelectAtCursor can invoke this after the press frame, and Start /
+        // South / EventSystem submit must all count as controller start.
+        if (Gamepad.current != null &&
+            (GameInputDevice.LastUsedDeviceIsGamepad() ||
+             (GameUICursorController.Instance != null &&
+              GameUICursorController.Instance.IsUsingGamepad()) ||
+             Gamepad.current.buttonSouth.wasPressedThisFrame ||
+             Gamepad.current.buttonWest.wasPressedThisFrame ||
+             Gamepad.current.startButton.wasPressedThisFrame))
+        {
+            GameInputDevice.SetLastUsedDevice(Gamepad.current);
+        }
+
+        ClearUISelection();
+
+        // Hide the cursor immediately, but KEEP the game-mode selection
+        // screen active. Its full-screen background acts as the black
+        // hold until IntroCutscene reports the first video frame, then
+        // GameFlowManager.HideMenuAfterVideoFrame removes it.
         GameUICursorController cursorController =
             GameUICursorController.Instance;
 
@@ -180,18 +208,6 @@ public class MainMenu : MonoBehaviour
             Cursor.visible = false;
         }
 
-        //// Hide the menu immediately.
-        //if (mainMenuGroup != null)
-        //{
-        //    mainMenuGroup.SetActive(false);
-        //}
-
-        //if (gameModeSelectionScreen != null)
-        //{
-        //    gameModeSelectionScreen.SetActive(false);
-        //}
-
-        // Start the actual game.
         if (GameFlowManager.Instance == null)
         {
             Debug.LogError(

@@ -383,7 +383,30 @@ public class GameStateManager : MonoBehaviour
     {
         playerGender = newGender;
 
+        HideOtherGender();
+
         OnPlayerGenderChanged?.Invoke(playerGender);
+    }
+
+    private void HideOtherGender()
+    {
+        if (GetPlayerGender() == PlayerGender.Male)
+        {
+            GameObject niece = GameObject.Find("Niece");
+            if (niece != null)
+            {
+                niece.SetActive(false);
+            }
+        }
+        else
+        {
+            GameObject newphew = GameObject.Find("Nephew");
+            if (newphew != null)
+            {
+                newphew.SetActive(false);
+            }
+
+        }
     }
 
 

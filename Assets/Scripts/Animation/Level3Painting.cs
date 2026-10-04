@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Level3Painting : MonoBehaviour
 {
@@ -6,6 +7,13 @@ public class Level3Painting : MonoBehaviour
     [Tooltip("The SpriteRenderer displaying this painting.")]
     [SerializeField]
     private SpriteRenderer spriteRenderer;
+
+    [Tooltip(
+        "Optional UI Image on the same object. Kept in sync with the " +
+        "SpriteRenderer so both use the same art without resizing the frame."
+    )]
+    [SerializeField]
+    private Image uiImage;
 
     [Header("Images")]
     [Tooltip("The image/sprite shown before the piano is opened.")]
@@ -21,12 +29,14 @@ public class Level3Painting : MonoBehaviour
     [SerializeField]
     private bool applyOriginalSpriteOnStart = true;
 
-    private bool hasChanged = false;
+    private bool hasChanged;
 
+    // Locked display size from the original painting setup.
+    private Vector3 lockedLocalScale;
+    private Vector2 lockedSpriteLocalSize;
+    private Vector2 lockedUiSizeDelta;
+    private bool hasLockedSize;
 
-    // =========================================================
-    // UNITY
-    // =========================================================
 
     private void Awake()
     {
@@ -35,39 +45,44 @@ public class Level3Painting : MonoBehaviour
             spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
-        if (spriteRenderer == null)
+        if (uiImage == null)
+        {
+            uiImage = GetComponent<Image>();
+        }
+
+        if (spriteRenderer == null && uiImage == null)
         {
             Debug.LogError(
-                "[Level3Painting] No SpriteRenderer found on " +
+                "[Level3Painting] No SpriteRenderer or UI Image found on " +
                 gameObject.name +
                 ". Assign one in the Inspector."
             );
-
             return;
         }
 
-        // If no original sprite was manually assigned, remember
-        // whatever sprite the painting already has in the scene.
         if (originalSprite == null)
         {
-            originalSprite = spriteRenderer.sprite;
+            if (spriteRenderer != null && spriteRenderer.sprite != null)
+            {
+                originalSprite = spriteRenderer.sprite;
+            }
+            else if (uiImage != null && uiImage.sprite != null)
+            {
+                originalSprite = uiImage.sprite;
+            }
         }
 
         if (applyOriginalSpriteOnStart)
         {
-            ApplyOriginalSprite();
+            ApplySprite(originalSprite, unlockSize: true);
+        }
+        else
+        {
+            CaptureLockedSize(originalSprite);
         }
     }
 
 
-    // =========================================================
-    // PAINTING CHANGE
-    // =========================================================
-
-    /// <summary>
-    /// Changes this painting to its second image.
-    /// Called by Level3PianoInteractable when the piano is opened.
-    /// </summary>
     public void ChangeToSecondImage()
     {
         if (hasChanged)
@@ -75,76 +90,133 @@ public class Level3Painting : MonoBehaviour
             return;
         }
 
-        if (spriteRenderer == null)
-        {
-            Debug.LogError(
-                "[Level3Painting] Cannot change painting because " +
-                "SpriteRenderer is missing on " +
-                gameObject.name
-            );
-
-            return;
-        }
-
         if (secondSprite == null)
         {
             Debug.LogError(
-                "[Level3Painting] Second Sprite has not been assigned " +
-                "on " +
+                "[Level3Painting] Second Sprite has not been assigned on " +
                 gameObject.name +
                 "."
             );
-
             return;
         }
 
-        spriteRenderer.sprite = secondSprite;
+        ApplySprite(secondSprite, unlockSize: false);
         hasChanged = true;
-
-        Debug.Log(
-            "[Level3Painting] " +
-            gameObject.name +
-            " changed to its second image."
-        );
     }
 
 
-    /// <summary>
-    /// Restores the original image.
-    /// Useful if the level/world is reset.
-    /// </summary>
     public void ResetPainting()
     {
         hasChanged = false;
-        ApplyOriginalSprite();
+        ApplySprite(originalSprite, unlockSize: false);
     }
 
 
     private void ApplyOriginalSprite()
     {
-        if (spriteRenderer == null)
-        {
-            return;
-        }
-
-        if (originalSprite == null)
-        {
-            Debug.LogWarning(
-                "[Level3Painting] Original Sprite is missing on " +
-                gameObject.name +
-                "."
-            );
-
-            return;
-        }
-
-        spriteRenderer.sprite = originalSprite;
+        ApplySprite(originalSprite, unlockSize: false);
     }
 
 
-    // =========================================================
-    // STATUS
-    // =========================================================
+    private void ApplySprite(Sprite sprite, bool unlockSize)
+    {
+        if (sprite == null)
+        {
+            Debug.LogWarning(
+                "[Level3Painting] Sprite is missing on " +
+                gameObject.name +
+                "."
+            );
+            return;
+        }
+
+        if (unlockSize || !hasLockedSize)
+        {
+            // Apply first, then lock the resulting frame size.
+            SetSpriteSources(sprite);
+            CaptureLockedSize(sprite);
+            return;
+        }
+
+        SetSpriteSources(sprite);
+        FitToLockedSize(sprite);
+    }
+
+
+    private void SetSpriteSources(Sprite sprite)
+    {
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.sprite = sprite;
+        }
+
+        if (uiImage != null)
+        {
+            // Keep the RectTransform size; stretch the new art into it.
+            uiImage.preserveAspect = false;
+            uiImage.sprite = sprite;
+        }
+    }
+
+
+    private void CaptureLockedSize(Sprite sprite)
+    {
+        lockedLocalScale = transform.localScale;
+
+        if (sprite != null)
+        {
+            lockedSpriteLocalSize = sprite.bounds.size;
+        }
+        else if (spriteRenderer != null && spriteRenderer.sprite != null)
+        {
+            lockedSpriteLocalSize = spriteRenderer.sprite.bounds.size;
+        }
+        else
+        {
+            lockedSpriteLocalSize = Vector2.one;
+        }
+
+        if (transform is RectTransform rectTransform)
+        {
+            lockedUiSizeDelta = rectTransform.sizeDelta;
+        }
+
+        hasLockedSize = lockedSpriteLocalSize.x > 0.0001f &&
+                        lockedSpriteLocalSize.y > 0.0001f;
+    }
+
+
+    private void FitToLockedSize(Sprite sprite)
+    {
+        if (!hasLockedSize || sprite == null)
+        {
+            return;
+        }
+
+        // Keep the UI frame size stable when an Image is present.
+        if (transform is RectTransform rectTransform)
+        {
+            rectTransform.sizeDelta = lockedUiSizeDelta;
+        }
+
+        Vector2 newSpriteSize = sprite.bounds.size;
+
+        if (newSpriteSize.x <= 0.0001f || newSpriteSize.y <= 0.0001f)
+        {
+            return;
+        }
+
+        // Rescale so the SpriteRenderer occupies the same local frame as
+        // the original painting, regardless of the new sprite's pixel size.
+        transform.localScale = new Vector3(
+            lockedLocalScale.x *
+                (lockedSpriteLocalSize.x / newSpriteSize.x),
+            lockedLocalScale.y *
+                (lockedSpriteLocalSize.y / newSpriteSize.y),
+            lockedLocalScale.z
+        );
+    }
+
 
     public bool HasChanged()
     {
