@@ -1,27 +1,31 @@
 using UnityEngine;
 using UnityEngine.Video;
 
+/// <summary>
+/// Gargamel's final death/cutscene controller.
+/// IMPORTANT: Gargamel uses FinalBossHealth, not the normal Health component.
+/// Player and manager references are discovered at runtime where required.
+/// </summary>
 public class GargamelDeathScript : MonoBehaviour
 {
     [Header("Boss")]
-    [SerializeField]
-    private Health bossHealth;
+    [Tooltip("Automatically uses the FinalBossHealth on Gargamel.")]
+    [SerializeField] private FinalBossHealth bossHealth;
 
     [Header("Normal Ending")]
-    [SerializeField]
-    private VideoPlayer normalEndingVideo;
+    [SerializeField] private VideoPlayer normalEndingVideo;
 
     [Header("Secret Ending")]
-    [SerializeField]
-    private VideoPlayer secretEndingVideo;
+    [SerializeField] private VideoPlayer secretEndingVideo;
 
     [Header("Final Game Screen")]
-    [SerializeField]
-    private GameObject finalGameScreen;
+    [SerializeField] private GameObject finalGameScreen;
 
     [Header("Settings")]
-    [SerializeField]
-    private bool playOnDeath = true;
+    [SerializeField] private bool playOnDeath = true;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugDeath = true;
 
     private bool endingStarted;
     private VideoPlayer activeVideo;
@@ -30,7 +34,7 @@ public class GargamelDeathScript : MonoBehaviour
     {
         if (bossHealth == null)
         {
-            bossHealth = GetComponent<Health>();
+            bossHealth = GetComponent<FinalBossHealth>();
         }
 
         SetupVideo(normalEndingVideo);
@@ -44,6 +48,11 @@ public class GargamelDeathScript : MonoBehaviour
 
     private void OnEnable()
     {
+        if (bossHealth == null)
+        {
+            bossHealth = GetComponent<FinalBossHealth>();
+        }
+
         if (bossHealth != null)
         {
             bossHealth.OnDied += HandleBossDeath;
@@ -62,6 +71,14 @@ public class GargamelDeathScript : MonoBehaviour
     }
 
     private void HandleBossDeath()
+    {
+        TriggerDeathSequence();
+    }
+
+    /// <summary>
+    /// Can also be called manually by another final-boss system.
+    /// </summary>
+    public void TriggerDeathSequence()
     {
         if (endingStarted || !playOnDeath)
         {
@@ -112,14 +129,12 @@ public class GargamelDeathScript : MonoBehaviour
     {
         if (video == null)
         {
-            ShowFinalGameScreen();
+            FinishEndingVideo();
             return;
         }
 
         activeVideo = video;
-
         SubscribeToVideo(video);
-
         video.Stop();
         video.Prepare();
     }
@@ -142,16 +157,11 @@ public class GargamelDeathScript : MonoBehaviour
         }
 
         UnsubscribeFromVideo(player);
-
         activeVideo = null;
-
-        ShowFinalGameScreen();
+        FinishEndingVideo();
     }
 
-    private void OnVideoError(
-        VideoPlayer player,
-        string message
-    )
+    private void OnVideoError(VideoPlayer player, string message)
     {
         if (player != activeVideo)
         {
@@ -159,24 +169,27 @@ public class GargamelDeathScript : MonoBehaviour
         }
 
         Debug.LogError(
-            "[GargamelDeathScript] Video error: "
-            + message
+            "[GargamelDeathScript] Video error: " + message
         );
 
         UnsubscribeFromVideo(player);
-
         activeVideo = null;
-
-        ShowFinalGameScreen();
+        FinishEndingVideo();
     }
 
-    private void ShowFinalGameScreen()
+    private void FinishEndingVideo()
     {
-        // Final game screen to be added later
-
         if (finalGameScreen != null)
         {
             finalGameScreen.SetActive(true);
+        }
+
+        // GameFlowManager owns the persistent end-of-game transition.
+        // It will open Credits and then return to MainMenu.
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.FinalCutsceneFinished();
+            return;
         }
 
         if (GameStateManager.Instance != null)
@@ -201,12 +214,8 @@ public class GargamelDeathScript : MonoBehaviour
 
         if (Camera.main != null)
         {
-            video.renderMode =
-                VideoRenderMode.CameraNearPlane;
-
-            video.targetCamera =
-                Camera.main;
-
+            video.renderMode = VideoRenderMode.CameraNearPlane;
+            video.targetCamera = Camera.main;
             video.targetCameraAlpha = 1f;
         }
     }

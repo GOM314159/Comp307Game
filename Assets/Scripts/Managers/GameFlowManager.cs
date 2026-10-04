@@ -98,7 +98,16 @@ public class GameFlowManager : MonoBehaviour
     // EnsureInGamePlayTestScene().
     private System.Action pendingGamePlayTestAction;
 
+    [Header("Final Ending")]
+
+    [Tooltip("How long the Credits game mode remains active before returning to the Main Menu.")]
+    [Min(0f)]
+    [SerializeField] private float finalCreditsDuration = 10f;
+
     [Header("Debug")]
+
+    [Tooltip("Enable or disable all F-key debug hotkeys.")]
+    [SerializeField] private bool enableDebugHotkeys = true;
 
     [SerializeField] private bool debugFlow = true;
 
@@ -1582,8 +1591,11 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartBossFight()
     {
-        GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.BossFight);
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.BossFight);
+        }
 
         if (AudioManager.Instance != null)
         {
@@ -1592,6 +1604,22 @@ public class GameFlowManager : MonoBehaviour
 
             AudioManager.Instance.PlayAmbience(
                 AudioManager.AmbienceType.Boss);
+        }
+
+        // GameFlowManager is persistent, while the final boss controller is
+        // scene-local. Never store the scene object in this manager's Inspector.
+        FinalBossController bossController =
+            FindAnyObjectByType<FinalBossController>();
+
+        if (bossController != null)
+        {
+            bossController.BeginBossSpawnSequence();
+        }
+        else
+        {
+            Debug.LogError(
+                "[GameFlow] FinalBossController was not found in the loaded scene."
+            );
         }
     }
 
@@ -1633,7 +1661,10 @@ public class GameFlowManager : MonoBehaviour
 
     public void FinalBossDefeated()
     {
-        GameStateManager.Instance.DefeatFinalBoss();
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.DefeatFinalBoss();
+        }
 
         StartFinalCutscene();
     }
@@ -1689,13 +1720,27 @@ public class GameFlowManager : MonoBehaviour
             AchievementManager.Instance.UnlockHardcoreCompletion();
         }
 
-        GameStateManager.Instance.CompleteFinalCutscene();
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.CompleteFinalCutscene();
+        }
 
         SetToolbarVisible(false);
         SetHealthBarVisible(false);
         SetStaminaBarVisible(false);
 
         OpenCredits();
+        StartCoroutine(ReturnToMainMenuAfterFinalCredits());
+    }
+
+    private IEnumerator ReturnToMainMenuAfterFinalCredits()
+    {
+        if (finalCreditsDuration > 0f)
+        {
+            yield return new WaitForSecondsRealtime(finalCreditsDuration);
+        }
+
+        OpenMainMenu();
     }
 
     // =========================================================
@@ -2005,8 +2050,28 @@ public class GameFlowManager : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current == null)
+        if (!enableDebugHotkeys || Keyboard.current == null)
         {
+            return;
+        }
+
+        // F11 - reset achievements.
+        if (Keyboard.current.f11Key.wasPressedThisFrame)
+        {
+            if (AchievementManager.Instance != null)
+            {
+                AchievementManager.Instance.ResetAchievements();
+                Debug.Log(
+                    "[GameFlowManager] F11 pressed. Achievements reset."
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[GameFlowManager] F11 pressed, but AchievementManager is missing."
+                );
+            }
+
             return;
         }
 
@@ -2018,11 +2083,6 @@ public class GameFlowManager : MonoBehaviour
         Debug.Log(
             "[GameFlowManager] F9 debug skip requested."
         );
-
-
-        // =========================================================
-        // THEATER PLAY
-        // =========================================================
 
         ChairPlayController chairPlayController =
             FindAnyObjectByType<ChairPlayController>();
@@ -2041,17 +2101,12 @@ public class GameFlowManager : MonoBehaviour
                 );
 
                 chairPlayController.SkipCurrentPlay();
-
                 return;
             }
         }
 
-
-        // =========================================================
-        // OTHER CUTSCENES
-        // =========================================================
-
         SkipCurrentCutscene();
     }
+
 
 }
