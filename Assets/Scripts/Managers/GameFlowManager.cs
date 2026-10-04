@@ -797,6 +797,10 @@ public class GameFlowManager : MonoBehaviour
 
         GameStateManager.Instance.SetPlayerGender(gender);
 
+        setPlayerAnimator();
+
+
+
         // ---------------------------------------------------------
         // GIVE PLAYER THEIR GENDER-SPECIFIC LETTER
         // ---------------------------------------------------------
@@ -831,6 +835,41 @@ public class GameFlowManager : MonoBehaviour
             StartCoroutine(StartNewGameAfterPlayerReset());
 
 
+    }
+    // set the player animator to the correct gender animator in the PlayerMovement script
+    public void setPlayerAnimator()
+    {
+        PlayerMovement playerMovement = player.GetComponent<PlayerMovement>();
+
+        if (playerMovement != null)
+        {
+            if (GameStateManager.Instance != null)
+            {
+                if (GameStateManager.Instance.GetPlayerGender() == GameStateManager.PlayerGender.Male)
+                {
+                    Animator nephewAnim = GameObject.Find("Nephew").GetComponent<Animator>();
+                    playerMovement.setAnimator(nephewAnim);
+                }
+                else
+                {
+                    Animator nieceAnim = GameObject.Find("Niece").GetComponent<Animator>();
+                    playerMovement.setAnimator(nieceAnim);
+                }
+
+            }
+            else
+            {
+                Debug.LogError(
+                    "[GameFlow] GameStateManager.Instance is missing."
+                );
+            }
+        }
+        else
+        {
+            Debug.LogError(
+                "[GameFlow] PlayerMovement component is missing on the player."
+            );
+        }
     }
 
     public void StartFirstGameSequence()

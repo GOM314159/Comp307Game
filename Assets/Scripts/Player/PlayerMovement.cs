@@ -108,6 +108,13 @@ public class PlayerMovement : MonoBehaviour
         controls.Disable();
     }
 
+    public void setAnimator(Animator genderAnimator)
+    {
+
+        animator = genderAnimator;
+
+    }
+
     private void Update()
     {
         // The player object persists across scenes, including the Main Menu.
