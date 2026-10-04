@@ -353,17 +353,17 @@ public class PlayerMovement : MonoBehaviour
 
         if (animator != null)
         {
-            if (isCrouching)
+            if (IsMoving() && isCrouching)
+            {
+                animator.SetTrigger("CrouchWalk");
+            }
+            else if (isCrouching)
             {
                 animator.SetTrigger("Crouch");
             }
             else if (canPlayerSprint)
             {
                 animator.SetTrigger("Run");
-            }
-            else if (IsMoving() && isCrouching)
-            {
-                animator.SetTrigger("CrouchWalk");
             }
             else if (IsMoving() && !isCrouching)
             {
