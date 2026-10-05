@@ -403,10 +403,23 @@ public class TeleportManager : MonoBehaviour
             // LOAD THE EXACT REQUESTED SCENE
             // -------------------------------------------------
 
+            // For EnterCase portals, start/rebind the case after the
+            // destination scene has loaded. Same-scene EnterCase still
+            // starts immediately in HandleCaseState().
+            int caseIDAfterLoad = 0;
+
+            if (pendingTeleportType ==
+                    TeleportPortal.TeleportType.EnterCase &&
+                pendingPortal != null)
+            {
+                caseIDAfterLoad = pendingPortal.GetCaseID();
+            }
+
             yield return LoadSceneAndFinishTeleport(
                 pendingSceneName,
                 pendingDestinationID,
-                pendingTeleportType
+                pendingTeleportType,
+                caseIDAfterLoad
             );
 
             yield break;
@@ -461,7 +474,8 @@ public class TeleportManager : MonoBehaviour
     private IEnumerator LoadSceneAndFinishTeleport(
     string sceneName,
     string destinationID,
-    TeleportPortal.TeleportType teleportType)
+    TeleportPortal.TeleportType teleportType,
+    int debugCaseID = 0)
     {
         // =========================================================
         // VALIDATE SCENE
@@ -870,6 +884,26 @@ public class TeleportManager : MonoBehaviour
 
 
                 // =================================================
+                // START THE DEBUG CASE
+                // =================================================
+                // Normal level portals start the CaseManager after the
+                // destination scene has loaded. Debug F2/F4/F6 must also
+                // initialise the case, otherwise Level 1/2/3 music will
+                // not start when entering through a debug key.
+                if (teleportType == TeleportPortal.TeleportType.EnterCase &&
+                    debugCaseID > 0 &&
+                    CaseManager.Instance != null)
+                {
+                    CaseManager.Instance.RefreshSceneReferences();
+                    CaseManager.Instance.StartCase(debugCaseID);
+
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.PlayLevelMusic(debugCaseID);
+                    }
+                }
+
+                // =================================================
                 // CASE / LOBBY STATE
                 // =================================================
 
@@ -1235,6 +1269,15 @@ public class TeleportManager : MonoBehaviour
             == TeleportPortal.TeleportType.EnterCase
         )
         {
+            // Cross-scene EnterCase starts CaseManager after the
+            // destination scene finishes loading inside
+            // LoadSceneAndFinishTeleport. Starting it here would bind
+            // against the old scene and break level progression.
+            if (portal.HasCrossSceneDestination())
+            {
+                return;
+            }
+
             int caseID =
                 portal.GetCaseID();
 
@@ -1919,6 +1962,23 @@ public class TeleportManager : MonoBehaviour
 
 
         // -----------------------------------------------------
+        // START THE DEBUG CASE
+        // -----------------------------------------------------
+        // Normal level portals start the CaseManager as part of the
+        // level-entry flow. Debug F2/F4/F6 must do the same thing;
+        // otherwise the level music owned by CaseManager never starts.
+        if (level && CaseManager.Instance != null)
+        {
+            CaseManager.Instance.RefreshSceneReferences();
+            CaseManager.Instance.StartCase(day);
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayLevelMusic(day);
+            }
+        }
+
+        // -----------------------------------------------------
         // MOVE PLAYER
         // -----------------------------------------------------
 
@@ -2168,7 +2228,8 @@ public class TeleportManager : MonoBehaviour
             LoadSceneAndFinishTeleport(
                 sceneName,
                 destinationID,
-                pendingTeleportType
+                pendingTeleportType,
+                level ? day : 0
             )
         );
     }

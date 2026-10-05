@@ -19,7 +19,12 @@ public class AudioManager : MonoBehaviour
         Theater,
         Case,
         Boss,
-        Credits
+        Credits,
+        Level1,
+        Level2BeforeCable,
+        Level2AfterCable,
+        Level3BeforePiano,
+        Level3AfterPiano
     }
 
 
@@ -77,6 +82,28 @@ public class AudioManager : MonoBehaviour
 
     [SerializeField]
     private AudioClip creditsMusic;
+
+    [Header("Level Music")]
+
+    [Tooltip("Music used throughout Level 1 until the player leaves the case.")]
+    [SerializeField]
+    private AudioClip level1Music;
+
+    [Tooltip("Music used in Level 2 from spawn until the Cable Cutters are picked up.")]
+    [SerializeField]
+    private AudioClip level2BeforeCableMusic;
+
+    [Tooltip("Music used in Level 2 after the Cable Cutters are picked up, until the cable is cut.")]
+    [SerializeField]
+    private AudioClip level2AfterCableMusic;
+
+    [Tooltip("Music used in Level 3 from spawn until the piano is opened.")]
+    [SerializeField]
+    private AudioClip level3BeforePianoMusic;
+
+    [Tooltip("Music used in Level 3 after the piano is opened, until the boss is defeated.")]
+    [SerializeField]
+    private AudioClip level3AfterPianoMusic;
 
 
     // =========================================================
@@ -153,6 +180,7 @@ public class AudioManager : MonoBehaviour
 
     private Coroutine musicTransition;
     private Coroutine ambienceTransition;
+    private bool musicPaused = false;
 
 
     // =========================================================
@@ -275,6 +303,54 @@ public class AudioManager : MonoBehaviour
         }
 
         currentMusic = musicType;
+        musicPaused = false;
+
+        if (musicTransition != null)
+        {
+            StopCoroutine(musicTransition);
+            musicTransition = null;
+        }
+
+        // The main-menu cue should be audible immediately. The previous
+        // crossfade could leave the music source fading from zero volume,
+        // making the menu feel like it had a delayed audio start.
+        if (musicType == MusicType.MainMenu)
+        {
+            musicSource.Stop();
+            musicSource.clip = newClip;
+            musicSource.loop = true;
+            musicSource.volume = musicVolume * masterVolume;
+            musicSource.Play();
+            return;
+        }
+
+        musicTransition = StartCoroutine(
+            CrossfadeMusic(newClip)
+        );
+    }
+
+
+    /// <summary>
+    /// Plays a clip through the persistent music source. This is useful for
+    /// scene-local music that is already assigned to an interactable while
+    /// still keeping pause/resume and looping under AudioManager's control.
+    /// </summary>
+    public void PlayCustomMusic(AudioClip clip)
+    {
+        if (clip == null)
+        {
+            return;
+        }
+
+        if (musicSource != null &&
+            musicSource.clip == clip &&
+            musicSource.isPlaying)
+        {
+            return;
+        }
+
+        currentMusic = MusicType.None;
+        musicPaused = false;
 
         if (musicTransition != null)
         {
@@ -282,8 +358,17 @@ public class AudioManager : MonoBehaviour
         }
 
         musicTransition = StartCoroutine(
-            CrossfadeMusic(newClip)
+            CrossfadeMusic(clip)
         );
+    }
+
+
+    public bool IsPlayingClip(AudioClip clip)
+    {
+        return clip != null &&
+               musicSource != null &&
+               musicSource.clip == clip &&
+               musicSource.isPlaying;
     }
 
 
@@ -299,6 +384,87 @@ public class AudioManager : MonoBehaviour
         );
 
         currentMusic = MusicType.None;
+        musicPaused = false;
+    }
+
+
+    /// <summary>Immediately stops the current music without a fade.</summary>
+    public void StopMusicImmediate()
+    {
+        if (musicTransition != null)
+        {
+            StopCoroutine(musicTransition);
+            musicTransition = null;
+        }
+
+        if (musicSource != null)
+        {
+            musicSource.Stop();
+            musicSource.clip = null;
+            musicSource.loop = true;
+            musicSource.volume = musicVolume * masterVolume;
+        }
+
+        currentMusic = MusicType.None;
+        musicPaused = false;
+    }
+
+
+    /// <summary>Pauses the music source without resetting its position.</summary>
+    public void PauseMusic()
+    {
+        if (musicSource == null || !musicSource.isPlaying)
+        {
+            return;
+        }
+
+        musicSource.Pause();
+        musicPaused = true;
+    }
+
+
+    /// <summary>Resumes the music from the exact position where it was paused.</summary>
+    public void ResumeMusic()
+    {
+        if (musicSource == null || !musicPaused)
+        {
+            return;
+        }
+
+        musicSource.UnPause();
+        musicPaused = false;
+    }
+
+
+    public bool IsMusicPaused()
+    {
+        return musicPaused;
+    }
+
+
+    /// <summary>Starts the correct music for a numbered level/case.</summary>
+    public void PlayLevelMusic(int caseID)
+    {
+        switch (caseID)
+        {
+            case 1:
+                PlayMusic(MusicType.Level1);
+                break;
+
+            case 2:
+                PlayMusic(MusicType.Level2BeforeCable);
+                break;
+
+            case 3:
+                PlayMusic(MusicType.Level3BeforePiano);
+                break;
+
+            default:
+                Debug.LogWarning(
+                    "[Audio] No level music mapping exists for Case ID " + caseID
+                );
+                break;
+        }
     }
 
 
@@ -387,6 +553,21 @@ public class AudioManager : MonoBehaviour
 
             case MusicType.Credits:
                 return creditsMusic;
+
+            case MusicType.Level1:
+                return level1Music;
+
+            case MusicType.Level2BeforeCable:
+                return level2BeforeCableMusic;
+
+            case MusicType.Level2AfterCable:
+                return level2AfterCableMusic;
+
+            case MusicType.Level3BeforePiano:
+                return level3BeforePianoMusic;
+
+            case MusicType.Level3AfterPiano:
+                return level3AfterPianoMusic;
 
             default:
                 return null;

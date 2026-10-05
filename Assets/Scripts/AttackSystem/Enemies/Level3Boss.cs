@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 /// <summary>
 /// Level 3 boss completion. The exit portal is hidden at the start and only
@@ -16,6 +17,9 @@ public class Level3Boss : MonoBehaviour
     [SerializeField] private bool debugBoss = true;
 
     private bool deathHandled;
+
+    /// <summary>Raised when this Level 3 boss is actually defeated.</summary>
+    public event Action OnBossDefeated;
 
     private void Awake()
     {
@@ -81,6 +85,10 @@ public class Level3Boss : MonoBehaviour
                 "[Level3Boss] Exit portal is not assigned."
             );
         }
+
+        // Let systems such as the Level 3 music controller react to the
+        // actual boss death without having to poll for health every frame.
+        OnBossDefeated?.Invoke();
     }
 
     public void ResetBossState()

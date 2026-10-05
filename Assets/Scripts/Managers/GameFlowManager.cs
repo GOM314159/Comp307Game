@@ -644,6 +644,14 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
+        // Re-entering the main menu should restore its looping music cue.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.MainMenu
+            );
+        }
+
         if (PlayerStateManager.Instance != null)
         {
             PlayerStateManager.Instance.SetState(
