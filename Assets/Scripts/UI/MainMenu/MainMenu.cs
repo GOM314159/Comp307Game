@@ -44,6 +44,19 @@ public class MainMenu : MonoBehaviour
         Time.timeScale = 1f;
 
         // ---------------------------------------------------------
+        // MAIN MENU MUSIC
+        // ---------------------------------------------------------
+
+        // The same music cue continues into the Game Mode / Gender
+        // selection screen. It is only stopped when Continue is pressed.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.MainMenu
+            );
+        }
+
+        // ---------------------------------------------------------
         // GAME STATE
         // ---------------------------------------------------------
 
@@ -190,6 +203,13 @@ public class MainMenu : MonoBehaviour
         }
 
         ClearUISelection();
+
+        // The Main Menu cue ends exactly when the player confirms the
+        // Game Mode / Gender selection.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusicImmediate();
+        }
 
         // Hide the cursor immediately, but KEEP the game-mode selection
         // screen active. Its full-screen background acts as the black

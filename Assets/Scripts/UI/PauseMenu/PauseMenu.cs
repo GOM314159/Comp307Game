@@ -178,6 +178,13 @@ public class PauseMenu : MonoBehaviour
             PlayerStateManager.PlayerState.PauseMenu
         );
 
+        // AudioSource playback is independent of Time.timeScale, so pause
+        // the music explicitly rather than relying on the game freeze.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PauseMusic();
+        }
+
         Time.timeScale = 0f;
 
         if (container != null)
@@ -239,6 +246,11 @@ public class PauseMenu : MonoBehaviour
         }
 
         Time.timeScale = 1f;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ResumeMusic();
+        }
 
         if (GameStateManager.Instance != null)
         {
@@ -409,6 +421,11 @@ public class PauseMenu : MonoBehaviour
         Debug.Log("[PauseMenu] Returning to Main Menu.");
 
         Time.timeScale = 1f;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusicImmediate();
+        }
 
         isPaused = false;
         ignorePauseInputUntil = 0f;

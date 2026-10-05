@@ -153,6 +153,20 @@ public class CableCutterInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
+        // CHANGE LEVEL 2 MUSIC
+        // -----------------------------------------------------
+
+        // The moment the Cable Cutters are successfully collected,
+        // switch to the second Level 2 music cue.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Level2AfterCable
+            );
+        }
+
+
+        // -----------------------------------------------------
         // COMPLETE INTERACTION
         // -----------------------------------------------------
 
@@ -256,6 +270,16 @@ public class CableCutterInteractable : WorldInteractable
 
 
         RestoreTheaterInitialState();
+
+        // If the level is restarted/reset, return to the pre-Cable-Cutter
+        // music cue. CaseManager will also set this when the case starts.
+        if (AudioManager.Instance != null &&
+            CaseManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Level2BeforeCable
+            );
+        }
 
 
         DebugCableCutter(

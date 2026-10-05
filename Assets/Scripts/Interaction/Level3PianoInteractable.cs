@@ -28,36 +28,33 @@ public class Level3PianoInteractable : WorldInteractable
     [SerializeField]
     private bool showColliderDebug = true;
 
-    [Header("Ambient Music")]
+    [Header("Level 3 Music")]
 
-    [Tooltip("Music that plays before the piano is opened.")]
+    [Tooltip(
+        "Optional fallback clip for the music that already plays when " +
+        "Level 3 starts. If assigned, it is routed through AudioManager " +
+        "so pause/resume works correctly."
+    )]
     [SerializeField]
     private AudioClip ambientMusic;
 
     [Tooltip(
-        "One-shot sting played immediately when the ambient music stops, " +
-        "for an abrupt cut-off ending."
+        "If true, the assigned ambientMusic clip is started when this piano " +
+        "is loaded. CaseManager can also start Level3BeforePiano music."
     )]
-    [SerializeField]
-    private AudioClip abruptEndingClip;
-
-    [Tooltip(
-        "AudioSource used for the ambient piano music. Leave empty to " +
-        "find/create one automatically."
-    )]
-    [SerializeField]
-    private AudioSource ambientAudioSource;
-
-    [SerializeField]
-    [Range(0f, 1f)]
-    private float ambientVolume = 0.6f;
-
-    [SerializeField]
-    [Range(0f, 1f)]
-    private float abruptEndingVolume = 1f;
-
     [SerializeField]
     private bool playAmbientOnStart = true;
+
+    [Tooltip(
+        "Level 3 boss to watch. When this boss dies, the post-piano music " +
+        "is stopped. Leave empty to auto-detect a Level3Boss in the scene. " +
+        "If no boss is found, the music simply keeps playing."
+    )]
+    [SerializeField]
+    private Level3Boss bossToWatchFor;
+
+    [SerializeField]
+    private bool automaticallyFindBoss = true;
 
     [Header("Painting Changes")]
 
@@ -73,13 +70,13 @@ public class Level3PianoInteractable : WorldInteractable
     private string pianoPrompt = "Open Piano";
 
     private bool pianoOpened;
+    private bool bossEventSubscribed;
 
     protected override void Awake()
     {
         base.Awake();
 
         ResolveInteractionCollider();
-        EnsureAmbientAudioSource();
 
         pianoOpened = false;
 
@@ -89,10 +86,23 @@ public class Level3PianoInteractable : WorldInteractable
 
     private void Start()
     {
+        ResolveBossReference();
+        SubscribeToBoss();
+
         if (playAmbientOnStart && !pianoOpened)
         {
-            StartAmbientMusic();
+            StartLevel3StartingMusic();
         }
+    }
+
+    private void OnEnable()
+    {
+        SubscribeToBoss();
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromBoss();
     }
 
     private void ResolveInteractionCollider()
@@ -120,10 +130,9 @@ public class Level3PianoInteractable : WorldInteractable
         {
             Debug.LogError(
                 "[Level3PianoInteractable] No interaction BoxCollider " +
-                "found on "
-                + gameObject.name
-                + ". Add a child named 'Interaction Collider' with a " +
-                "BoxCollider, or assign one in the Inspector."
+                "found on " + gameObject.name + ". Add a child named " +
+                "'Interaction Collider' with a BoxCollider, or assign one " +
+                "in the Inspector."
             );
             return;
         }
@@ -151,82 +160,91 @@ public class Level3PianoInteractable : WorldInteractable
         }
     }
 
-    private void EnsureAmbientAudioSource()
+    private void ResolveBossReference()
     {
-        if (ambientAudioSource == null)
+        if (bossToWatchFor != null || !automaticallyFindBoss)
         {
-            ambientAudioSource = GetComponent<AudioSource>();
+            return;
         }
 
-        if (ambientAudioSource == null)
-        {
-            ambientAudioSource =
-                gameObject.AddComponent<AudioSource>();
-        }
+        bossToWatchFor =
+            FindFirstObjectByType<Level3Boss>(
+                FindObjectsInactive.Include
+            );
 
-        ambientAudioSource.playOnAwake = false;
-        ambientAudioSource.loop = true;
-        ambientAudioSource.spatialBlend = 0f;
-        ambientAudioSource.volume = ambientVolume;
+        if (bossToWatchFor == null)
+        {
+            Debug.Log(
+                "[Level3PianoInteractable] No Level3Boss was found. " +
+                "Post-piano music will continue indefinitely.",
+                this
+            );
+        }
     }
 
-    private void StartAmbientMusic()
+    private void SubscribeToBoss()
     {
-        EnsureAmbientAudioSource();
+        if (bossEventSubscribed || bossToWatchFor == null)
+        {
+            return;
+        }
 
-        if (ambientMusic == null)
+        bossToWatchFor.OnBossDefeated += HandleBossDefeated;
+        bossEventSubscribed = true;
+    }
+
+    private void UnsubscribeFromBoss()
+    {
+        if (!bossEventSubscribed || bossToWatchFor == null)
+        {
+            return;
+        }
+
+        bossToWatchFor.OnBossDefeated -= HandleBossDefeated;
+        bossEventSubscribed = false;
+    }
+
+    private void HandleBossDefeated()
+    {
+        if (!pianoOpened)
+        {
+            return;
+        }
+
+        // The post-piano music is allowed to continue until the boss dies.
+        // If no boss was found/assigned, this callback simply never occurs.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusicImmediate();
+        }
+    }
+
+    private void StartLevel3StartingMusic()
+    {
+        if (AudioManager.Instance == null)
         {
             Debug.LogWarning(
-                "[Level3PianoInteractable] Ambient Music clip is not " +
-                "assigned on " + gameObject.name + ".",
+                "[Level3PianoInteractable] AudioManager.Instance is missing.",
                 this
             );
             return;
         }
 
-        if (ambientAudioSource.isPlaying &&
-            ambientAudioSource.clip == ambientMusic)
+        // If the existing Piano.mp3 assignment is present, use it directly.
+        // Otherwise CaseManager's Level3BeforePiano assignment is used.
+        if (ambientMusic != null)
         {
-            return;
+            if (!AudioManager.Instance.IsPlayingClip(ambientMusic))
+            {
+                AudioManager.Instance.PlayCustomMusic(ambientMusic);
+            }
         }
-
-        ambientAudioSource.clip = ambientMusic;
-        ambientAudioSource.volume = ambientVolume;
-        ambientAudioSource.loop = true;
-        ambientAudioSource.Play();
-    }
-
-    private void StopAmbientMusic()
-    {
-        if (ambientAudioSource == null)
+        else
         {
-            return;
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Level3BeforePiano
+            );
         }
-
-        ambientAudioSource.Stop();
-        ambientAudioSource.clip = null;
-        ambientAudioSource.loop = false;
-
-        PlayAbruptEnding();
-    }
-
-    private void PlayAbruptEnding()
-    {
-        if (abruptEndingClip == null)
-        {
-            return;
-        }
-
-        EnsureAmbientAudioSource();
-
-        ambientAudioSource.loop = false;
-        ambientAudioSource.volume = abruptEndingVolume;
-
-        // One-shot so the ambient loop source can still be reused on reset.
-        ambientAudioSource.PlayOneShot(
-            abruptEndingClip,
-            abruptEndingVolume
-        );
     }
 
     public override void Interact()
@@ -254,7 +272,17 @@ public class Level3PianoInteractable : WorldInteractable
 
         pianoOpened = true;
 
-        StopAmbientMusic();
+        // Piano interaction changes the music immediately.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Level3AfterPiano
+            );
+        }
+
+        ResolveBossReference();
+        SubscribeToBoss();
+
         SetPianoModelsOpen();
         DisableInteractionCollider();
         TriggerPaintings();
@@ -321,8 +349,8 @@ public class Level3PianoInteractable : WorldInteractable
             paintingsToChange.Length == 0)
         {
             Debug.LogWarning(
-                "[Level3PianoInteractable] " +
-                "No Level3Painting components were found."
+                "[Level3PianoInteractable] No Level3Painting components were found.",
+                this
             );
             return;
         }
@@ -348,7 +376,7 @@ public class Level3PianoInteractable : WorldInteractable
 
         if (playAmbientOnStart)
         {
-            StartAmbientMusic();
+            StartLevel3StartingMusic();
         }
     }
 
@@ -381,29 +409,19 @@ public class Level3PianoInteractable : WorldInteractable
         }
     }
 
-    public bool IsPianoOpened()
-    {
-        return pianoOpened;
-    }
-
 #if UNITY_EDITOR
-    private void OnDrawGizmosSelected()
+    private void OnDrawGizmos()
     {
         if (!showColliderDebug || interactionCollider == null)
         {
             return;
         }
 
-        Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.85f);
-        Gizmos.matrix =
-            interactionCollider.transform.localToWorldMatrix;
-
+        Gizmos.matrix = interactionCollider.transform.localToWorldMatrix;
         Gizmos.DrawWireCube(
             interactionCollider.center,
             interactionCollider.size
         );
-
-        Gizmos.matrix = Matrix4x4.identity;
     }
 #endif
 }

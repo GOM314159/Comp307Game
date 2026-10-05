@@ -328,6 +328,14 @@ public class CableInteractable : WorldInteractable
             "Cable has been cut."
         );
 
+        // Stop the Level 2 music immediately when the cable is cut.
+        // The following cutscene therefore begins in silence unless it
+        // has its own audio/video audio track.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusicImmediate();
+        }
+
 
         // -----------------------------------------------------
         // REGISTER NORMAL INTERACTION
