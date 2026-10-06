@@ -359,7 +359,7 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     // STATE
     // =========================================================
 
-    public bool CanInteract()
+    public virtual bool CanInteract()
     {
         if (!canInteract)
         {

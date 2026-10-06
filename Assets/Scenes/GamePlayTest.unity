@@ -13545,16 +13545,18 @@ MonoBehaviour:
   sfxSource: {fileID: 929882289}
   voiceSource: {fileID: 742635725}
   mainMenuMusic: {fileID: 8300000, guid: 507c2416145ceb441a671256ea33e2d3, type: 3}
-  lobbyMusic: {fileID: 0}
+  lobbyMusic: {fileID: 8300000, guid: 6e571cd4bc66f484c9f60c9f0acc8c04, type: 3}
   theaterMusic: {fileID: 0}
   caseMusic: {fileID: 0}
-  bossMusic: {fileID: 0}
+  bossMusic: {fileID: 8300000, guid: c8fc09e11ca1d7c43bf18c9521f458ab, type: 3}
+  bossHardcoreMusic: {fileID: 8300000, guid: 86d2933b03c627044819056cebd349ce, type: 3}
   creditsMusic: {fileID: 8300000, guid: 18e16ad63e7f6a646bcf4f9dd8755d0a, type: 3}
   level1Music: {fileID: 8300000, guid: 47864c27295bfee4ca55aa6d2566fbf4, type: 3}
   level2BeforeCableMusic: {fileID: 8300000, guid: 8711dad6b65f96940b85e091e8154e06, type: 3}
   level2AfterCableMusic: {fileID: 8300000, guid: 6c29c327717b13949bcadf68bd024f72, type: 3}
   level3BeforePianoMusic: {fileID: 8300000, guid: fae56c6c9c523534c8dd20e2ac9af1ff, type: 3}
-  level3AfterPianoMusic: {fileID: 8300000, guid: f3329f454eb98154ebb0b9dd8482254a, type: 3}
+  level3AfterPianoMusic: {fileID: 8300000, guid: 870becb4f053681428140b7bdd072303, type: 3}
+  level3AfterPianoHardcoreMusic: {fileID: 8300000, guid: f3329f454eb98154ebb0b9dd8482254a, type: 3}
   lobbyAmbience: {fileID: 0}
   theaterAmbience: {fileID: 0}
   caseAmbience: {fileID: 0}
@@ -23079,6 +23081,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1388177406}
+  - component: {fileID: 1388177407}
   m_Layer: 5
   m_Name: ObjectiveAndDayOverlay
   m_TagString: Untagged
@@ -23107,6 +23110,27 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1388177407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1388177405}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3d4e5f6478901a2b0c1d2e3f4a50603, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ObjectiveAndDayOverlay
+  dayText: {fileID: 622314314}
+  objectiveText: {fileID: 1181738908}
+  dayTextObjectName: DayText
+  objectiveTextObjectName: ObjectiveText
+  dayFormat: DAY {0}
+  findObjectFormat: Find the {0}
+  defeatBossFormat: Defeat the {0}
+  returnFormat: Return to the lobby
+  hideWhilePaused: 1
 --- !u!1 &1397830425
 GameObject:
   m_ObjectHideFlags: 0
@@ -30229,7 +30253,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CaseManager
   cases:
-  - caseID: 0
+  - caseID: 1
     caseName: The Marionette Child
     description: Axe and Puppet
     hasTimer: 1
@@ -30239,7 +30263,7 @@ MonoBehaviour:
     hasSideQuest: 1
     sideQuestName: White Powder
     requiredForDayCompletion: 1
-  - caseID: 1
+  - caseID: 2
     caseName: The Actor
     description: Wire Cutters and Puppet
     hasTimer: 0
@@ -30249,7 +30273,7 @@ MonoBehaviour:
     hasSideQuest: 1
     sideQuestName: White Tablet
     requiredForDayCompletion: 1
-  - caseID: 2
+  - caseID: 3
     caseName: The Composer
     description: Gun and Puppets and Henchman
     hasTimer: 0

@@ -148,14 +148,18 @@ public class DeathScreen : MonoBehaviour
         // UNLOCK CURSOR
         // =========================================================
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        if (GameUICursorController.Instance != null &&
-            GameInputDevice.LastUsedDeviceIsGamepad())
+        // The gameplay cursor controller may still own a locked cursor even
+        // when the last input device was the mouse. Reset it unconditionally
+        // so it cannot re-lock/hide the mouse on the next Update() frame.
+        if (GameUICursorController.Instance != null)
         {
             GameUICursorController.Instance
                 .ResetControllerCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
 
@@ -258,8 +262,15 @@ public class DeathScreen : MonoBehaviour
         // CURSOR
         // ---------------------------------------------------------
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
 
         ClearUISelection();
 
@@ -298,8 +309,15 @@ public class DeathScreen : MonoBehaviour
         // CURSOR
         // =========================================================
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.ShowCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
 
 
         // =========================================================

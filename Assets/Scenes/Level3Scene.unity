@@ -352,7 +352,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CaseSceneBinding
   caseID: 2
   requiredObject: {fileID: 1214225176}
-  sideQuestItem: {fileID: 0}
+  sideQuestItem: {fileID: 2124007444}
 --- !u!64 &183184623
 MeshCollider:
   m_ObjectHideFlags: 0
@@ -1086,11 +1086,9 @@ MonoBehaviour:
   automaticallyFindInteractionCollider: 1
   showColliderDebug: 1
   ambientMusic: {fileID: 8300000, guid: fae56c6c9c523534c8dd20e2ac9af1ff, type: 3}
-  abruptEndingClip: {fileID: 0}
-  ambientAudioSource: {fileID: 1145692339}
-  ambientVolume: 1
-  abruptEndingVolume: 1
   playAmbientOnStart: 1
+  bossToWatchFor: {fileID: 0}
+  automaticallyFindBoss: 1
   paintings:
   - {fileID: 327679640}
   - {fileID: 999013940}
@@ -6146,6 +6144,17 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.5, y: 1.5, z: 1.5}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2124007444 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3192543971656270011, guid: 0545612712b8e2c4ca68cd28b03c1e05, type: 3}
+  m_PrefabInstance: {fileID: 2124007440}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2124007442}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 97b6ebee641624441b9ea679e2f98c02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WhiteTabletInteractable
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

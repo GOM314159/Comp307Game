@@ -133,6 +133,22 @@ public class LobbyNPC : WorldInteractable
         gameObject.SetActive(true);
     }
 
+    public override bool CanInteract()
+    {
+        if (!base.CanInteract())
+        {
+            return false;
+        }
+
+        // Block re-interaction while a voiceline is still playing.
+        if (audioSource != null && audioSource.isPlaying)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
     public override void Interact()
     {
         if (!CanInteract()) return;
