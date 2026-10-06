@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using System;
 using Unity.Behavior;
 using UnityEngine.SceneManagement;
@@ -126,6 +127,12 @@ public class GameStateManager : MonoBehaviour
     [SerializeField]
     private int currentPlay = -1;
 
+    [Header("Portal Progression")]
+
+    [Tooltip("The level portal unlocked by the most recently completed theater play. -1 means none.")]
+    [SerializeField]
+    private int revealedPortalDay = -1;
+
 
     // =========================================================
     // CASE
@@ -232,8 +239,14 @@ public class GameStateManager : MonoBehaviour
 
     [Header("Gacha")]
 
+    [SerializeField, Min(0)]
+    private int startingGachaCurrency = 100;
+
     [SerializeField]
-    private int gachaCurrency = 0;
+    private int gachaCurrency = 100;
+
+    [SerializeField]
+    private List<string> collectedGachaRewardIDs = new List<string>();
 
 
     // =========================================================
@@ -251,6 +264,10 @@ public class GameStateManager : MonoBehaviour
     [Header("Behaviour Tree")]
     [SerializeField]
     private BehaviorGraphAgent behaviourAgent;
+
+    [Header("Persistent Manager Transform")]
+    [Tooltip("GameStateManager is a logic-only persistent manager. Keep its transform at the origin so it cannot accidentally be moved/fall with a scene object.")]
+    [SerializeField] private bool keepTransformAtOrigin = true;
 
 
     // =========================================================
@@ -310,9 +327,35 @@ public class GameStateManager : MonoBehaviour
 
         Instance = this;
 
+        // Managers should never be positioned inside the playable world.
+        // If this object was accidentally placed at a world position in the
+        // scene, normalize it before making it persistent.
+        if (transform.parent != null)
+        {
+            transform.SetParent(null, true);
+        }
+
+        if (keepTransformAtOrigin)
+        {
+            transform.position = Vector3.zero;
+            transform.rotation = Quaternion.identity;
+        }
+
         DontDestroyOnLoad(gameObject);
 
         SceneManager.sceneLoaded += OnSceneLoaded;
+    }
+
+    private void LateUpdate()
+    {
+        if (keepTransformAtOrigin)
+        {
+            if (transform.position != Vector3.zero)
+                transform.position = Vector3.zero;
+
+            if (transform.rotation != Quaternion.identity)
+                transform.rotation = Quaternion.identity;
+        }
     }
 
     private void OnDestroy()
@@ -340,7 +383,30 @@ public class GameStateManager : MonoBehaviour
     {
         playerGender = newGender;
 
+        HideOtherGender();
+
         OnPlayerGenderChanged?.Invoke(playerGender);
+    }
+
+    private void HideOtherGender()
+    {
+        if (GetPlayerGender() == PlayerGender.Male)
+        {
+            GameObject niece = GameObject.Find("Niece");
+            if (niece != null)
+            {
+                niece.SetActive(false);
+            }
+        }
+        else
+        {
+            GameObject newphew = GameObject.Find("Nephew");
+            if (newphew != null)
+            {
+                newphew.SetActive(false);
+            }
+
+        }
     }
 
 
@@ -469,6 +535,35 @@ public class GameStateManager : MonoBehaviour
     public bool IsFinalDay()
     {
         return currentDay == maximumDay;
+    }
+
+
+    // =========================================================
+    // PORTAL PROGRESSION
+    // =========================================================
+
+    public void SetRevealedPortalDay(int day)
+    {
+        if (day < -1)
+        {
+            day = -1;
+        }
+        else if (day > maximumDay)
+        {
+            day = maximumDay;
+        }
+
+        revealedPortalDay = day;
+    }
+
+    public int GetRevealedPortalDay()
+    {
+        return revealedPortalDay;
+    }
+
+    public void ClearRevealedPortalDay()
+    {
+        revealedPortalDay = -1;
     }
 
     public int GetMaximumDay()
@@ -881,6 +976,51 @@ public class GameStateManager : MonoBehaviour
     }
 
 
+    public bool HasGachaRewardBeenCollected(string rewardID)
+    {
+        if (string.IsNullOrEmpty(rewardID))
+        {
+            return false;
+        }
+
+        return collectedGachaRewardIDs.Contains(rewardID);
+    }
+
+
+    public void MarkGachaRewardCollected(string rewardID)
+    {
+        if (string.IsNullOrEmpty(rewardID))
+        {
+            return;
+        }
+
+        if (!collectedGachaRewardIDs.Contains(rewardID))
+        {
+            collectedGachaRewardIDs.Add(rewardID);
+        }
+    }
+
+
+    public void ClearGachaRewards()
+    {
+        collectedGachaRewardIDs.Clear();
+    }
+
+
+    public bool HasAllDragonBalls()
+    {
+        for (int i = 1; i <= 7; i++)
+        {
+            if (!HasGachaRewardBeenCollected("DragonBall" + i))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+
     public int GetGachaCurrency()
     {
         return gachaCurrency;
@@ -984,6 +1124,11 @@ public class GameStateManager : MonoBehaviour
     {
         currentPlay = -1;
 
+        // IMPORTANT: resetting a day after death must NOT clear the
+        // theater portal that was already unlocked for this day.
+        // Portal progression is cleared only by CompleteDay() or a
+        // full-game reset.
+
         currentCase = -1;
 
         ResetCaseProgress();
@@ -1020,6 +1165,8 @@ public class GameStateManager : MonoBehaviour
 
         currentPlay = -1;
 
+        revealedPortalDay = -1;
+
         currentCase = -1;
 
         ResetCaseProgress();
@@ -1030,7 +1177,8 @@ public class GameStateManager : MonoBehaviour
 
         finalCutsceneComplete = false;
 
-        gachaCurrency = 0;
+        gachaCurrency = Mathf.Max(0, startingGachaCurrency);
+        collectedGachaRewardIDs.Clear();
 
         gameOver = false;
 

@@ -3,7 +3,7 @@ using Unity.Behavior;
 using UnityEngine;
 
 [Serializable, Unity.Properties.GeneratePropertyBag]
-[Condition(name: "DollAlive", story: "[Doll] is alive = [true]", category: "Conditions", id: "270a2758a73b5e4c121517d37208b6c2")]
+[Condition(name: "DollAlive", story: "[Doll] is alive = [True]", category: "Conditions", id: "270a2758a73b5e4c121517d37208b6c2")]
 public partial class DollAliveCondition : Condition
 {
     [SerializeReference] public BlackboardVariable<GameObject> Doll;

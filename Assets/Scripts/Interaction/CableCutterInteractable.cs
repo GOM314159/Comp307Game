@@ -1,3 +1,4 @@
+using Unity.Behavior;
 using UnityEngine;
 
 public class CableCutterInteractable : WorldInteractable
@@ -20,6 +21,14 @@ public class CableCutterInteractable : WorldInteractable
     )]
     [SerializeField]
     private PlayerInventory playerInventory;
+
+    [Tooltip("The AI Behavior Agent.")]
+    [SerializeField]
+    private BehaviorGraphAgent agent;
+
+    [Tooltip("The Miniboss")]
+    [SerializeField]
+    private GameObject miniboss;
 
 
     // =========================================================
@@ -144,6 +153,20 @@ public class CableCutterInteractable : WorldInteractable
 
 
         // -----------------------------------------------------
+        // CHANGE LEVEL 2 MUSIC
+        // -----------------------------------------------------
+
+        // The moment the Cable Cutters are successfully collected,
+        // switch to the second Level 2 music cue.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Level2AfterCable
+            );
+        }
+
+
+        // -----------------------------------------------------
         // COMPLETE INTERACTION
         // -----------------------------------------------------
 
@@ -195,6 +218,44 @@ public class CableCutterInteractable : WorldInteractable
         );
 
 
+        //
+        // SET ACTIVE DOLL STATE ON
+        //
+
+        if (miniboss != null)
+        {
+            miniboss.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Cable Cutter] Miniboss is not assigned."
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // Update the behavior graph agent to reflect the new state
+        // -----------------------------------------------------
+
+        if (agent != null)
+        {
+            agent.SetVariableValue(
+                "HasCableCutter",
+                true
+            );
+            DebugCableCutter(
+                "Behavior graph agent updated."
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Cable Cutter] Behavior Graph Agent is not assigned."
+            );
+        }
+
+
         gameObject.SetActive(false);
     }
 
@@ -209,6 +270,16 @@ public class CableCutterInteractable : WorldInteractable
 
 
         RestoreTheaterInitialState();
+
+        // If the level is restarted/reset, return to the pre-Cable-Cutter
+        // music cue. CaseManager will also set this when the case starts.
+        if (AudioManager.Instance != null &&
+            CaseManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Level2BeforeCable
+            );
+        }
 
 
         DebugCableCutter(

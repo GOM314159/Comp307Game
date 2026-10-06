@@ -502,6 +502,17 @@ public class CaseManager : MonoBehaviour
             GameStateManager.Instance.StartCase();
         }
 
+        // -----------------------------------------------------
+        // LEVEL MUSIC
+        // -----------------------------------------------------
+
+        // Case IDs 1/2/3 correspond to Levels 1/2/3. The AudioManager
+        // owns the looping music source so the track survives scene loads.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayLevelMusic(caseID);
+        }
+
 
         // -----------------------------------------------------
         // DEBUG
@@ -539,6 +550,11 @@ public class CaseManager : MonoBehaviour
         // calls RefreshSceneReferences().
         //
         // -----------------------------------------------------
+
+        if (GachaManager.Instance != null)
+        {
+            GachaManager.Instance.BeginLevel();
+        }
 
         OnCaseStarted?.Invoke();
 
@@ -1263,6 +1279,13 @@ public class CaseManager : MonoBehaviour
 
     public void DeactivateCase()
     {
+        // Leaving a level immediately stops its music. Do this even if the
+        // case was already marked complete by its boss-death logic.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusic();
+        }
+
         if (!caseActive)
         {
             return;

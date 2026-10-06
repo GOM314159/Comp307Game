@@ -1182,6 +1182,27 @@ public class Chair : WorldInteractable
 
 
         // -----------------------------------------------------
+        // REVEAL THE LEVEL PORTAL
+        // -----------------------------------------------------
+        // Chair.cs is the actual theater playback path in this project.
+        // Finishing the chair video must therefore be the authoritative
+        // event that unlocks the portal for the current day.
+
+        if (currentPlayDay > 0 &&
+            PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance
+                .RevealPortalForDay(currentPlayDay);
+
+            DebugChair(
+                "Revealed Level "
+                + currentPlayDay
+                + " portal after successful theater playback."
+            );
+        }
+
+
+        // -----------------------------------------------------
         // FADE TO BLACK
         // -----------------------------------------------------
 

@@ -1,3 +1,5 @@
+using System.Threading;
+using Unity.AppUI.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -48,6 +50,10 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField] private Transform cameraTransform;
 
+    [Header("Main Menu Safety")]
+    [Tooltip("Optional point where the persistent player is placed while the Main Menu is active. This prevents an old gameplay position from remaining in the scene.")]
+    [SerializeField] private Transform mainMenuSafePoint;
+
     private CharacterController controller;
     private PlayerControls controls;
 
@@ -65,11 +71,15 @@ public class PlayerMovement : MonoBehaviour
     private PlayerStamina stamina;
 
     private PlayerStateManager stateManager;
+    private bool mainMenuPositionApplied = false;
+
+    [Tooltip("Animator component for handling player animations.")]
+    [SerializeField]
+    private Animator animator;
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
-
         controls = new PlayerControls();
 
         controls.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
@@ -99,8 +109,34 @@ public class PlayerMovement : MonoBehaviour
         controls.Disable();
     }
 
+    public void setAnimator(Animator genderAnimator)
+    {
+
+        animator = genderAnimator;
+
+    }
+
     private void Update()
     {
+        // The player object persists across scenes, including the Main Menu.
+        // In the Main Menu / Loading state there may be no ground collider at
+        // all, so applying CharacterController gravity would make the player
+        // fall thousands of units below the scene.
+        if (IsMenuOrLoadingState())
+        {
+            if (IsMainMenuState())
+            {
+                MoveToMainMenuSafePointOnce();
+            }
+
+            velocity = Vector3.zero;
+            isSprinting = false;
+            isCrouching = false;
+            return;
+        }
+
+        mainMenuPositionApplied = false;
+
         CheckGround();
 
         Move();
@@ -128,6 +164,56 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+
+    private bool IsMainMenuState()
+    {
+        return GameStateManager.Instance != null &&
+               GameStateManager.Instance.CurrentGameMode == GameStateManager.GameMode.MainMenu;
+    }
+
+    private void MoveToMainMenuSafePointOnce()
+    {
+        if (mainMenuPositionApplied)
+            return;
+
+        if (mainMenuSafePoint != null && controller != null)
+        {
+            bool wasEnabled = controller.enabled;
+            controller.enabled = false;
+
+            transform.SetPositionAndRotation(
+                mainMenuSafePoint.position,
+                mainMenuSafePoint.rotation);
+
+            controller.enabled = wasEnabled;
+        }
+
+        mainMenuPositionApplied = true;
+    }
+
+    private bool IsMenuOrLoadingState()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.GameMode mode =
+                GameStateManager.Instance.CurrentGameMode;
+
+            if (mode == GameStateManager.GameMode.MainMenu ||
+                mode == GameStateManager.GameMode.Loading)
+            {
+                return true;
+            }
+        }
+
+        if (stateManager != null &&
+            stateManager.GetCurrentState() == PlayerStateManager.PlayerState.MainMenu)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
     private void StartSprint()
     {
         // =====================================
@@ -139,7 +225,17 @@ public class PlayerMovement : MonoBehaviour
             Debug.Log(
                 "[Player] Sprinting is currently disabled.");
 
-            isSprinting = false;
+            isSprinting = false; 
+            
+            if (animator != null)
+            {
+                animator.SetTrigger("Walk");
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[PlayerMovement] Animator component is missing. Walk animation will not play.");
+            }
 
             return;
         }
@@ -147,8 +243,17 @@ public class PlayerMovement : MonoBehaviour
         // =====================================
         // START SPRINT
         // =====================================
-
         isSprinting = true;
+
+        if (animator != null)
+        {
+            animator.SetTrigger("Run");
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[PlayerMovement] Animator component is missing. Sprint animation will not play.");
+        }
     }
 
     private void ToggleCrouch()
@@ -165,7 +270,16 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        isCrouching = !isCrouching;
+        if (isCrouching)
+        {
+            animator.SetTrigger("Stand");
+        }
+        else
+        {
+            animator.SetTrigger("Crouch");
+        }
+
+            isCrouching = !isCrouching;
     }
 
     private void StopSprint()
@@ -193,6 +307,11 @@ public class PlayerMovement : MonoBehaviour
             // Sprinting must also stop.
             stamina.SetSprinting(false);
 
+            if (animator != null)
+            {
+                animator.SetTrigger("Idle");
+            }
+
             return;
         }
 
@@ -206,7 +325,6 @@ public class PlayerMovement : MonoBehaviour
                                stateManager.CanSprint();
 
         stamina.SetSprinting(canPlayerSprint);
-
 
         // =====================================
         // MOVEMENT SPEED
@@ -232,6 +350,32 @@ public class PlayerMovement : MonoBehaviour
 
         controller.Move(
             direction * speed * Time.deltaTime);
+
+        if (animator != null)
+        {
+            if (IsMoving() && isCrouching)
+            {
+                animator.SetTrigger("CrouchWalk");
+            }
+            else if (isCrouching)
+            {
+                animator.SetTrigger("Crouch");
+            }
+            else if (canPlayerSprint)
+            {
+                animator.SetTrigger("Run");
+            }
+            else if (IsMoving() && !isCrouching)
+            {
+                animator.SetTrigger("Walk");
+            }
+            else
+            {
+                animator.SetTrigger("Idle");
+            }
+        }
+
+
     }
 
     private void CheckGround()
@@ -268,7 +412,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     private void Jump()
-{
+    {
     // =====================================
     // JUMP PERMISSION
     // =====================================
@@ -283,19 +427,27 @@ public class PlayerMovement : MonoBehaviour
     // GROUND CHECK
     // =====================================
 
-    if (!isGrounded)
-    {
-        return;
+        if (!isGrounded)
+        {
+            return;
+        }
+
+
+        // =====================================
+        // JUMP
+        // =====================================
+        animator.SetTrigger("Jump");
+
+        // wait 0.1s second for animation before jumping
+        Timer jumpDelayTimer = new Timer((state) =>
+        {
+            // Apply jump velocity
+            velocity.y = Mathf.Sqrt(
+                jumpHeight * -2f * gravity);
+
+        }, null, 100, Timeout.Infinite);
+
     }
-
-
-    // =====================================
-    // JUMP
-    // =====================================
-
-    velocity.y = Mathf.Sqrt(
-        jumpHeight * -2f * gravity);
-}
 
     private void HandleCrouch()
     {

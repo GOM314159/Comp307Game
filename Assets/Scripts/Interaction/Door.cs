@@ -86,6 +86,8 @@ public class Door : WorldInteractable
         // -----------------------------------------------------
         // ANIMATION
         // -----------------------------------------------------
+        Animator animator = GetComponent<Animator>();
+        animator.SetTrigger("Open");
 
 
         // -----------------------------------------------------
@@ -107,7 +109,8 @@ public class Door : WorldInteractable
         // -----------------------------------------------------
         // ANIMATION
         // -----------------------------------------------------
-
+        Animator animator = GetComponent<Animator>();
+        animator.SetTrigger("Close");
 
         // -----------------------------------------------------
         // SOUND

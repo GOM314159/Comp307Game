@@ -155,7 +155,6 @@ public class AxeInteractable : WorldInteractable
             + " | Objective updated."
         );
 
-
         graphAgent.SetVariableValue(
         "AxeInteracted",
          true

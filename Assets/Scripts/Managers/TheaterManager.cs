@@ -407,6 +407,29 @@ public class TheaterManager : MonoBehaviour
             "Play completed."
         );
 
+        if (PortalProgressionManager.Instance != null &&
+            GameStateManager.Instance != null)
+        {
+            int completedPlayDay =
+                GameStateManager.Instance.GetCurrentDay();
+
+            Debug.Log(
+                "[Theater] Revealing portal for Day "
+                + completedPlayDay
+                + " after play completion."
+            );
+
+            PortalProgressionManager.Instance
+                .RevealPortalForDay(completedPlayDay);
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Theater] Could not reveal portal because " +
+                "PortalProgressionManager or GameStateManager is missing."
+            );
+        }
+
         OnPlayCompleted?.Invoke();
 
 

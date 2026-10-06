@@ -33,6 +33,31 @@ public class GameResetManager : MonoBehaviour
 
 
     // =========================================================
+    // CASE-ENTRY CHECKPOINT
+    // =========================================================
+    //
+    // This is the exact state immediately BEFORE entering a
+    // level/case portal. Death restores this checkpoint so items
+    // collected inside the case (axe, Exodia pieces, etc.) cannot
+    // leak into the next attempt.
+    //
+    // =========================================================
+
+    private List<PlayerInventory.InventorySnapshotSlot>
+    caseEntryInventorySnapshot =
+        new List<PlayerInventory.InventorySnapshotSlot>();
+
+    private float caseEntrySpeedMultiplier = 1f;
+    private float caseEntryStrength = 0f;
+    private float caseEntryMaxStamina = 100f;
+
+    private bool[] caseEntryExodiaSnapshot =
+        new bool[5];
+
+    private bool caseEntrySnapshotCreated = false;
+
+
+    // =========================================================
     // STATE
     // =========================================================
 
@@ -109,7 +134,7 @@ public class GameResetManager : MonoBehaviour
     // DAY SNAPSHOT
     // =========================================================
 
-    public void CreateDaySnapshot()
+    public void CreateDaySnapshot(bool forceOverwrite = false)
     {
         if (GameStateManager.Instance == null)
         {
@@ -136,8 +161,25 @@ public class GameResetManager : MonoBehaviour
         // DAY
         // -----------------------------------------------------
 
-        snapshotDay =
+        int currentDay =
             GameStateManager.Instance.GetCurrentDay();
+
+        // A day-start snapshot must NEVER be overwritten while restarting
+        // the same day. This is the key protection against a case item such
+        // as the Day 1 axe becoming part of the death baseline.
+        if (!forceOverwrite &&
+            daySnapshotCreated &&
+            snapshotDay == currentDay)
+        {
+            Debug.Log(
+                "[Reset] Day " + currentDay +
+                " snapshot already exists. Keeping the current checkpoint."
+            );
+
+            return;
+        }
+
+        snapshotDay = currentDay;
 
 
         // -----------------------------------------------------
@@ -214,22 +256,41 @@ public class GameResetManager : MonoBehaviour
 
 
         // -----------------------------------------------------
-        // RESET INVENTORY
+        // RESTORE THE EXACT CHECKPOINT FOR THIS ATTEMPT
+        // -----------------------------------------------------
+        //
+        // If the player is/was inside a case, the case-entry
+        // checkpoint is the exact state from before entering the
+        // level portal. Otherwise use the latest day checkpoint
+        // (which is updated whenever a case is successfully returned).
         // -----------------------------------------------------
 
-        RestoreDayInventory();
-
-
-        // -----------------------------------------------------
-        // RESET EXODIA
-        // -----------------------------------------------------
-
-        if (GameStateManager.Instance != null)
+        if (caseEntrySnapshotCreated)
         {
-            GameStateManager.Instance
-                .RestoreExodiaCollectionSnapshot(
-                    dayExodiaSnapshot
-                );
+            RestoreCaseEntrySnapshot();
+            ClearCaseEntrySnapshot();
+
+            Debug.Log(
+                "[Reset] Restored the pre-case-entry checkpoint."
+            );
+        }
+        else
+        {
+            RestoreDayInventory();
+
+            if (GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance
+                    .RestoreExodiaCollectionSnapshot(
+                        dayExodiaSnapshot
+                    );
+            }
+
+            RestoreDayPlayerUpgrades();
+
+            Debug.Log(
+                "[Reset] Restored the latest day checkpoint."
+            );
         }
 
         if (PortalProgressionManager.Instance != null)
@@ -239,31 +300,14 @@ public class GameResetManager : MonoBehaviour
             );
         }
 
-
-        // -----------------------------------------------------
-        // RESET PLAYER UPGRADES
-        // -----------------------------------------------------
-
-        RestoreDayPlayerUpgrades();
-
-
-        // -----------------------------------------------------
-        // RESET WORLD INTERACTABLES
-        // -----------------------------------------------------
-
         ResetWorldInteractables();
 
-
-        // -----------------------------------------------------
-        // RESET BOSSES
-        // -----------------------------------------------------
 
         ResetBosses();
 
 
-        // -----------------------------------------------------
-        // RESET CASE
-        // -----------------------------------------------------
+        JumpscareTrigger.ResetAllJumpscares();
+
 
         if (CaseManager.Instance != null)
         {
@@ -385,6 +429,18 @@ public class GameResetManager : MonoBehaviour
 
         snapshotDay = -1;
 
+        ClearCaseEntrySnapshot();
+
+
+        // -----------------------------------------------------
+        // RESET PORTAL PROGRESSION
+        // -----------------------------------------------------
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance.ResetForGame();
+        }
+
 
         // -----------------------------------------------------
         // RESET GAME STATE
@@ -410,8 +466,183 @@ public class GameResetManager : MonoBehaviour
 
 
     // =========================================================
+    // CASE ENTRY CHECKPOINT
+    // =========================================================
+
+    /// <summary>
+    /// Captures the exact player progression immediately before
+    /// entering a case/level portal.
+    /// </summary>
+    public void CreateCaseEntrySnapshot()
+    {
+        PlayerInventory inventory =
+            FindAnyObjectByType<PlayerInventory>();
+
+        PlayerMovement movement =
+            FindAnyObjectByType<PlayerMovement>();
+
+        PlayerStamina stamina =
+            FindAnyObjectByType<PlayerStamina>();
+
+        caseEntryInventorySnapshot.Clear();
+
+        if (inventory != null)
+        {
+            caseEntryInventorySnapshot =
+                inventory.CreateSnapshot();
+        }
+
+        if (movement != null)
+        {
+            caseEntrySpeedMultiplier =
+                movement.GetPermanentSpeedMultiplier();
+
+            caseEntryStrength =
+                movement.GetStrength();
+        }
+
+        if (stamina != null)
+        {
+            caseEntryMaxStamina =
+                stamina.MaxStamina;
+        }
+
+        if (GameStateManager.Instance != null)
+        {
+            caseEntryExodiaSnapshot =
+                GameStateManager.Instance
+                    .GetExodiaCollectionSnapshot();
+        }
+
+        caseEntrySnapshotCreated = true;
+
+        Debug.Log(
+            "[Reset] Pre-case-entry checkpoint captured."
+        );
+    }
+
+    public bool HasCaseEntrySnapshot()
+    {
+        return caseEntrySnapshotCreated;
+    }
+
+    public void ClearCaseEntrySnapshot()
+    {
+        caseEntryInventorySnapshot.Clear();
+
+        caseEntrySpeedMultiplier = 1f;
+        caseEntryStrength = 0f;
+        caseEntryMaxStamina = 100f;
+
+        caseEntryExodiaSnapshot =
+            new bool[5];
+
+        caseEntrySnapshotCreated = false;
+    }
+
+    private void RestoreCaseEntrySnapshot()
+    {
+        PlayerInventory inventory =
+            FindAnyObjectByType<PlayerInventory>();
+
+        if (inventory != null)
+        {
+            inventory.RestoreSnapshot(
+                caseEntryInventorySnapshot
+            );
+        }
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance
+                .RestoreExodiaCollectionSnapshot(
+                    caseEntryExodiaSnapshot
+                );
+        }
+
+        PlayerMovement movement =
+            FindAnyObjectByType<PlayerMovement>();
+
+        if (movement != null)
+        {
+            movement.SetPermanentSpeedMultiplier(
+                caseEntrySpeedMultiplier
+            );
+
+            movement.SetPermanentStrength(
+                caseEntryStrength
+            );
+        }
+
+        PlayerStamina stamina =
+            FindAnyObjectByType<PlayerStamina>();
+
+        if (stamina != null)
+        {
+            stamina.SetMaxStamina(
+                caseEntryMaxStamina
+            );
+        }
+    }
+
+
+    // =========================================================
     // INVENTORY RESTORE
     // =========================================================
+
+    private void RemoveCurrentDayCaseItem()
+    {
+        PlayerInventory inventory =
+            FindAnyObjectByType<PlayerInventory>();
+
+        if (inventory == null || GameStateManager.Instance == null)
+            return;
+
+        int day = GameStateManager.Instance.GetCurrentDay();
+        ItemData caseItem = FindCaseItemForDay(day);
+
+        if (caseItem == null)
+            return;
+
+        if (inventory.RemoveItemData(caseItem))
+        {
+            Debug.Log(
+                "[Reset] Removed Day " + day +
+                " case item from inventory after death: " +
+                caseItem.itemName
+            );
+        }
+    }
+
+    private ItemData FindCaseItemForDay(int day)
+    {
+        if (day == 1)
+        {
+            AxeItem[] items =
+                Resources.FindObjectsOfTypeAll<AxeItem>();
+
+            if (items.Length > 0)
+                return items[0];
+        }
+        else if (day == 2)
+        {
+            CableCutterItem[] items =
+                Resources.FindObjectsOfTypeAll<CableCutterItem>();
+
+            if (items.Length > 0)
+                return items[0];
+        }
+        else if (day == 3)
+        {
+            GunItem[] items =
+                Resources.FindObjectsOfTypeAll<GunItem>();
+
+            if (items.Length > 0)
+                return items[0];
+        }
+
+        return null;
+    }
 
     private void RestoreDayInventory()
     {
@@ -634,7 +865,12 @@ public class GameResetManager : MonoBehaviour
             + "as the new day checkpoint."
         );
 
+        // Force the overwrite. A normal CreateDaySnapshot call protects
+        // the original day-start snapshot from accidental recapture.
+        CreateDaySnapshot(true);
 
-        CreateDaySnapshot();
+        // Once the case has been successfully returned from, its
+        // pre-entry checkpoint is no longer needed.
+        ClearCaseEntrySnapshot();
     }
 }

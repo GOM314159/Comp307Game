@@ -1,7 +1,11 @@
+using Unity.Behavior;
 using UnityEngine;
 
 public class BossDeath : MonoBehaviour
 {
+
+    private BehaviorGraphAgent agent;
+
     // =========================================================
     // BOSS
     // =========================================================
@@ -139,6 +143,19 @@ public class BossDeath : MonoBehaviour
                 "[BossDeath] No return portal assigned."
             );
         }
+
+        // -----------------------------------------------------
+        // Change behaviour tree variable
+        // -----------------------------------------------------
+
+        agent = GetComponent<BehaviorGraphAgent>();
+
+        if (agent != null)
+            agent.SetVariableValue("DollAlive", false);
+        else
+            Debug.LogWarning(
+                "Behaviour tree graph not found");
+
     }
 
 
