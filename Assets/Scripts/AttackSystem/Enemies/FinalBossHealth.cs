@@ -1,0 +1,359 @@
+using System;
+using UnityEngine;
+
+/// <summary>
+/// Gargamel's custom three-phase health system.
+/// This replaces the normal Health component on the final boss.
+/// GargamelDeathScript listens to OnDied and owns Gargamel's actual death/cutscene.
+/// </summary>
+public class FinalBossHealth : MonoBehaviour, IDamageable
+{
+    [Header("Phase Health")]
+    [SerializeField] private float phase1MaxHealth = 100f;
+    [SerializeField] private float phase2MaxHealth = 150f;
+    [SerializeField] private float phase3MaxHealth = 200f;
+
+    [Header("Hardcore Health")]
+    [SerializeField] private float hardcoreHealthMultiplier = 1.5f;
+
+    [Header("Phase Damage")]
+    [SerializeField] private float phase1Damage = 10f;
+    [SerializeField] private float phase2Damage = 20f;
+    [SerializeField] private float phase3Damage = 30f;
+
+    [Header("Phase Dialogue")]
+    [SerializeField] private AudioClip phase2Dialogue;
+    [SerializeField] private AudioClip phase3Dialogue;
+
+    [Tooltip(
+        "AudioSource used for phase dialogue. Leave empty to find/create one " +
+        "on this object. AudioManager.PlayVoice is also used when available."
+    )]
+    [SerializeField] private AudioSource dialogueAudioSource;
+
+    [SerializeField] [Range(0f, 1f)] private float dialogueVolume = 1f;
+
+    [Header("Hitbox")]
+    [Tooltip(
+        "If Gargamel has no collider, create a BoxCollider so player " +
+        "attack raycasts on the Damage layer can land hits."
+    )]
+    [SerializeField] private bool autoCreateHitboxIfMissing = true;
+
+    [SerializeField] private Vector3 hitboxCenter = new Vector3(0f, 1.0f, 0f);
+    [SerializeField] private Vector3 hitboxSize = new Vector3(1.2f, 2.2f, 1.2f);
+
+    [Header("Final Death")]
+    [Tooltip("Leave disabled. GargamelDeathScript handles the death sequence.")]
+    [SerializeField] private bool destroyOnDeath = false;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugHealth = true;
+
+    private int currentPhase = 1;
+    private float currentHealth;
+    private bool isDead;
+
+    public event Action<int> OnPhaseChanged;
+    public event Action OnDied;
+
+    private void Awake()
+    {
+        EnsureDialogueAudioSource();
+        EnsureDamageHitbox();
+        ResetBossHealth();
+    }
+
+    private void OnEnable()
+    {
+        EnsureDialogueAudioSource();
+        EnsureDamageHitbox();
+    }
+
+    public bool TakeDamage(float damage)
+    {
+        if (isDead || damage <= 0f)
+        {
+            return false;
+        }
+
+        currentHealth -= damage;
+
+        DebugHealth(
+            gameObject.name +
+            " Phase " + currentPhase +
+            " took " + damage +
+            " damage. Remaining phase health: " + currentHealth
+        );
+
+        if (currentHealth > 0f)
+        {
+            return false;
+        }
+
+        currentHealth = 0f;
+
+        if (currentPhase < 3)
+        {
+            AdvancePhase();
+            return false;
+        }
+
+        Die();
+        return true;
+    }
+
+    private void AdvancePhase()
+    {
+        currentPhase++;
+        currentHealth = GetPhaseMaxHealth(currentPhase);
+
+        PlayPhaseDialogue(currentPhase);
+        OnPhaseChanged?.Invoke(currentPhase);
+
+        DebugHealth(
+            "Advanced to Phase " + currentPhase +
+            ". Health: " + currentHealth +
+            ". Damage: " + GetCurrentDamage()
+        );
+    }
+
+    private void PlayPhaseDialogue(int phase)
+    {
+        AudioClip dialogue = null;
+
+        if (phase == 2)
+        {
+            dialogue = phase2Dialogue;
+        }
+        else if (phase == 3)
+        {
+            dialogue = phase3Dialogue;
+        }
+
+        if (dialogue == null)
+        {
+            Debug.LogWarning(
+                "[FinalBossHealth] No dialogue AudioClip assigned for Phase " +
+                phase +
+                ". Assign Phase 2/3 Dialogue on Gargamel's FinalBossHealth.",
+                this
+            );
+            return;
+        }
+
+        EnsureDialogueAudioSource();
+
+        bool played = false;
+
+        // Prefer the local source so dialogue is heard even if AudioManager
+        // voice volume/routing is muted or not ready.
+        if (dialogueAudioSource != null)
+        {
+            dialogueAudioSource.Stop();
+            dialogueAudioSource.clip = dialogue;
+            dialogueAudioSource.volume = dialogueVolume;
+            dialogueAudioSource.Play();
+            played = true;
+        }
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayVoice(dialogue);
+            played = true;
+        }
+
+        if (!played)
+        {
+            AudioSource.PlayClipAtPoint(
+                dialogue,
+                transform.position,
+                dialogueVolume
+            );
+        }
+
+        DebugHealth(
+            "Playing Phase " + phase + " dialogue: " + dialogue.name
+        );
+    }
+
+    private void EnsureDialogueAudioSource()
+    {
+        if (dialogueAudioSource != null)
+        {
+            dialogueAudioSource.playOnAwake = false;
+            dialogueAudioSource.loop = false;
+            dialogueAudioSource.spatialBlend = 0f;
+            return;
+        }
+
+        dialogueAudioSource = GetComponent<AudioSource>();
+
+        if (dialogueAudioSource == null)
+        {
+            dialogueAudioSource =
+                gameObject.AddComponent<AudioSource>();
+        }
+
+        dialogueAudioSource.playOnAwake = false;
+        dialogueAudioSource.loop = false;
+        dialogueAudioSource.spatialBlend = 0f;
+        dialogueAudioSource.volume = dialogueVolume;
+    }
+
+    private void Die()
+    {
+        if (isDead)
+        {
+            return;
+        }
+
+        isDead = true;
+        DebugHealth("Gargamel final boss defeated.");
+
+        // GargamelDeathScript subscribes to this event and owns the
+        // normal/secret ending video and final completion flow.
+        OnDied?.Invoke();
+
+        if (destroyOnDeath)
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    public void ResetBossHealth()
+    {
+        currentPhase = 1;
+        currentHealth = GetPhaseMaxHealth(1);
+        isDead = false;
+
+        DebugHealth(
+            "Reset to Phase 1 with " + currentHealth + " health."
+        );
+    }
+
+    public int GetCurrentPhase()
+    {
+        return currentPhase;
+    }
+
+    public float GetCurrentHealth()
+    {
+        return currentHealth;
+    }
+
+    public float GetCurrentMaxHealth()
+    {
+        return GetPhaseMaxHealth(currentPhase);
+    }
+
+    public float GetCurrentDamage()
+    {
+        switch (currentPhase)
+        {
+            case 1:
+                return phase1Damage;
+            case 2:
+                return phase2Damage;
+            case 3:
+            default:
+                return phase3Damage;
+        }
+    }
+
+    public bool IsDead()
+    {
+        return isDead;
+    }
+
+    private float GetPhaseMaxHealth(int phase)
+    {
+        float baseHealth;
+
+        switch (phase)
+        {
+            case 1:
+                baseHealth = phase1MaxHealth;
+                break;
+            case 2:
+                baseHealth = phase2MaxHealth;
+                break;
+            case 3:
+            default:
+                baseHealth = phase3MaxHealth;
+                break;
+        }
+
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.IsHardcore())
+        {
+            return baseHealth * hardcoreHealthMultiplier;
+        }
+
+        return baseHealth;
+    }
+
+    private void EnsureDamageHitbox()
+    {
+        int damageLayer = LayerMask.NameToLayer("Damage");
+
+        Collider existing = GetComponent<Collider>();
+
+        if (existing == null)
+        {
+            existing = GetComponentInChildren<Collider>(true);
+        }
+
+        if (existing != null)
+        {
+            existing.enabled = true;
+            existing.isTrigger = false;
+
+            if (damageLayer >= 0 &&
+                existing.gameObject.layer != damageLayer)
+            {
+                existing.gameObject.layer = damageLayer;
+            }
+
+            return;
+        }
+
+        if (!autoCreateHitboxIfMissing)
+        {
+            Debug.LogWarning(
+                "[FinalBossHealth] No collider found on " +
+                gameObject.name +
+                ". Player attacks cannot hit Gargamel.",
+                this
+            );
+            return;
+        }
+
+        BoxCollider hitbox = gameObject.AddComponent<BoxCollider>();
+        hitbox.center = hitboxCenter;
+        hitbox.size = hitboxSize;
+        hitbox.isTrigger = false;
+        hitbox.enabled = true;
+
+        if (damageLayer >= 0)
+        {
+            gameObject.layer = damageLayer;
+        }
+
+        DebugHealth(
+            "Auto-created Damage hitbox on " +
+            gameObject.name +
+            " (size " + hitboxSize + ", center " + hitboxCenter + ")."
+        );
+    }
+
+    private void DebugHealth(string message)
+    {
+        if (!debugHealth)
+        {
+            return;
+        }
+
+        Debug.Log("[FinalBossHealth] " + message, this);
+    }
+}

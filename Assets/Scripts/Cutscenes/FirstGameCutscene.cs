@@ -475,10 +475,15 @@ public class FirstGameCutscene : MonoBehaviour
             );
         }
 
-        Cursor.lockState =
-            CursorLockMode.Locked;
-
-        Cursor.visible = false;
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
 
         if (GameFlowManager.Instance != null)
         {

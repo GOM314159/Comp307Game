@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using System.Collections;
 public class TeleportPortal : MonoBehaviour
 {
     // =========================================================
@@ -142,6 +142,72 @@ public class TeleportPortal : MonoBehaviour
 
 
     // =========================================================
+    // PORTAL VISIBILITY
+    // =========================================================
+
+    private void Awake()
+    {
+        if (GetConfiguredPortalLevel() > 0 || IsLikelyLevelPortalByName())
+        {
+            if (PortalProgressionManager.Instance == null ||
+                !PortalProgressionManager.Instance.ShouldPortalBeVisible(
+                    GetEffectivePortalLevelForVisibility()))
+            {
+                gameObject.SetActive(false);
+            }
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (PortalProgressionManager.Instance == null)
+            return;
+
+        int level = GetEffectivePortalLevelForVisibility();
+
+        if (level > 0 &&
+            !PortalProgressionManager.Instance.ShouldPortalBeVisible(level))
+        {
+            StartCoroutine(DisableIfStillLocked(level));
+        }
+    }
+
+    private IEnumerator DisableIfStillLocked(int level)
+    {
+        yield return null;
+
+        if (this == null || !gameObject.activeInHierarchy)
+            yield break;
+
+        if (PortalProgressionManager.Instance == null ||
+            !PortalProgressionManager.Instance.ShouldPortalBeVisible(level))
+        {
+            gameObject.SetActive(false);
+        }
+    }
+
+    private bool IsLikelyLevelPortalByName()
+    {
+        string n = gameObject.name.ToLowerInvariant();
+
+        return n.Contains("level1portal") ||
+               n.Contains("level2portal") ||
+               n.Contains("level3portal") ||
+               n.Contains("level4portal");
+    }
+
+    private int GetEffectivePortalLevelForVisibility()
+    {
+        if (PortalProgressionManager.Instance != null)
+        {
+            return PortalProgressionManager.Instance
+                .GetEffectivePortalLevel(this);
+        }
+
+        return GetConfiguredPortalLevel();
+    }
+
+    // =========================================================
     // COLLISION
     // =========================================================
 
@@ -211,6 +277,17 @@ public class TeleportPortal : MonoBehaviour
                 ControllerLightManager.Instance
                     .OnReturnPortalEntered();
             }
+        }
+
+
+        // =====================================================
+        // GACHA LEVEL REWARD
+        // =====================================================
+
+        if (teleportType == TeleportType.ReturnFromCase &&
+            GachaManager.Instance != null)
+        {
+            GachaManager.Instance.CompleteLevel();
         }
 
 
@@ -387,9 +464,40 @@ public class TeleportPortal : MonoBehaviour
         return caseID;
     }
 
-    public int GetPortalLevel()
+    public int GetConfiguredPortalLevel()
     {
         return portalLevel;
+    }
+
+    public int GetPortalLevel()
+    {
+        if (portalLevel > 0)
+            return portalLevel;
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            return PortalProgressionManager.Instance
+                .GetEffectivePortalLevel(this);
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Called only by PortalProgressionManager.
+    /// </summary>
+    public void SetProgressionVisibility(bool visible)
+    {
+        if (visible)
+        {
+            if (!gameObject.activeSelf)
+                gameObject.SetActive(true);
+        }
+        else
+        {
+            if (gameObject.activeSelf)
+                gameObject.SetActive(false);
+        }
     }
 
 

@@ -91,6 +91,14 @@ public class PlayerLook : MonoBehaviour
         currentFOV =
             defaultFOV;
 
+        // Load the shared settings value. The SettingsMenu can change
+        // this at runtime, but the player also needs the value when
+        // spawning after a scene change.
+        sensitivity =
+            PlayerPrefs.GetFloat(
+                "Settings.CameraSensitivity",
+                sensitivity);
+
         ApplyFOV();
     }
 
@@ -175,6 +183,27 @@ public class PlayerLook : MonoBehaviour
         transform.Rotate(
             Vector3.up * mouseX
         );
+    }
+
+
+    // =========================================================
+    // SENSITIVITY SETTINGS
+    // =========================================================
+
+    public float GetSensitivity()
+    {
+        return sensitivity;
+    }
+
+    public void SetSensitivity(float value)
+    {
+        sensitivity = Mathf.Max(0.01f, value);
+
+        PlayerPrefs.SetFloat(
+            "Settings.CameraSensitivity",
+            sensitivity);
+
+        PlayerPrefs.Save();
     }
 
 

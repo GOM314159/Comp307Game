@@ -5,11 +5,6 @@ public class GachaManager : MonoBehaviour
 {
     public static GachaManager Instance { get; private set; }
 
-
-    // =========================================================
-    // RARITY
-    // =========================================================
-
     public enum Rarity
     {
         Common,
@@ -19,74 +14,47 @@ public class GachaManager : MonoBehaviour
         Legendary
     }
 
-
-    // =========================================================
-    // GACHA REWARD
-    // =========================================================
-
     [System.Serializable]
     public class GachaReward
     {
         public string rewardID;
-
         public string displayName;
-
         public Rarity rarity;
 
         [Min(0f)]
         public float weight = 1f;
 
-        public GameObject itemPrefab;
+        [Tooltip("The actual item that goes into the player's inventory.")]
+        public ItemData item;
+
+        [Tooltip("Turn this off for things that can be rolled more than once.")]
+        public bool unique = true;
     }
 
-
-    // =========================================================
-    // SETTINGS
-    // =========================================================
-
     [Header("Gacha Settings")]
-
-    [SerializeField]
-    [Min(1)]
-    private int rollCost = 1;
-
-
-    [SerializeField]
-    [Min(1)]
-    private int rollsPerPull = 1;
-
-
-    // =========================================================
-    // REWARDS
-    // =========================================================
+    [SerializeField, Min(1)] private int rollCost = 30;
 
     [Header("Rewards")]
+    [SerializeField] private List<GachaReward> rewards = new List<GachaReward>();
 
-    [SerializeField]
-    private List<GachaReward> rewards =
-        new List<GachaReward>();
+    [Header("Level point settings")]
+    [SerializeField, Min(0)] private int startingLevelPoints = 100;
+    [SerializeField, Min(0)] private int pointsLostPerMinute = 10;
+    [SerializeField, Min(0)] private int levelCompletionReward = 50;
+    [SerializeField, Min(0)] private int normalDeathPenalty = 10;
 
-
-    // =========================================================
-    // DEBUG
-    // =========================================================
+    [Header("Dragon Ball win")]
+    [SerializeField] private GachaWinCutscene dragonBallWinCutscene;
 
     [Header("Debug")]
-
-    [SerializeField]
-    private bool debugGacha = true;
-
-
-    // =========================================================
-    // LAST RESULT
-    // =========================================================
+    [SerializeField] private bool debugGacha = true;
 
     private GachaReward lastReward;
 
-
-    // =========================================================
-    // UNITY
-    // =========================================================
+    public int StartingLevelPoints => startingLevelPoints;
+    public int PointsLostPerMinute => pointsLostPerMinute;
+    public int LevelCompletionReward => levelCompletionReward;
+    public int NormalDeathPenalty => normalDeathPenalty;
 
     private void Awake()
     {
@@ -97,90 +65,194 @@ public class GachaManager : MonoBehaviour
         }
 
         Instance = this;
-
         DontDestroyOnLoad(gameObject);
+
+        if (GachaLevelTimer.Instance == null)
+        {
+            gameObject.AddComponent<GachaLevelTimer>();
+        }
     }
 
+    private void OnEnable()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.OnLoss += OnLoss;
+        }
+    }
 
-    // =========================================================
-    // CAN ROLL
-    // =========================================================
+    private void Start()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.OnLoss -= OnLoss;
+            GameStateManager.Instance.OnLoss += OnLoss;
+        }
+
+        SyncLevelTimerSettings();
+        BuildDefaultRewardsIfNeeded();
+    }
+
+    private void OnDisable()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.OnLoss -= OnLoss;
+        }
+    }
+
+    private void SyncLevelTimerSettings()
+    {
+        GachaLevelTimer timer = GachaLevelTimer.Instance;
+
+        if (timer == null)
+        {
+            return;
+        }
+
+        timer.SetSettings(startingLevelPoints, pointsLostPerMinute);
+    }
+
+    private void BuildDefaultRewardsIfNeeded()
+    {
+        if (rewards.Count > 0)
+        {
+            return;
+        }
+
+        ItemData[] items = Resources.LoadAll<ItemData>("Gacha");
+
+        foreach (ItemData item in items)
+        {
+            if (item == null)
+            {
+                continue;
+            }
+
+            string rewardID = item.name;
+            Rarity rarity = Rarity.Rare;
+            float weight = 1f;
+
+            DragonBallItem dragonBall = item as DragonBallItem;
+
+            if (dragonBall != null)
+            {
+                rewardID = "DragonBall" + dragonBall.dragonBallNumber;
+                rarity = Rarity.Legendary;
+                weight = 1f;
+            }
+            else if (item is KatanaItem)
+            {
+                rewardID = "Katana";
+                rarity = Rarity.Epic;
+            }
+            else if (item is PanItem)
+            {
+                rewardID = "Pan";
+                rarity = Rarity.Legendary;
+            }
+            else if (item is StormbreakerItem)
+            {
+                rewardID = "Stormbreaker";
+                rarity = Rarity.Legendary;
+            }
+            else if (item is OneRingItem)
+            {
+                rewardID = "TheOneRing";
+                rarity = Rarity.Legendary;
+            }
+
+            rewards.Add(new GachaReward
+            {
+                rewardID = rewardID,
+                displayName = item.itemName,
+                rarity = rarity,
+                weight = weight,
+                item = item,
+                unique = true
+            });
+        }
+
+        DebugGacha("Loaded " + rewards.Count + " default rewards.");
+    }
+
 
     public bool CanRoll()
     {
-        if (GameStateManager.Instance == null)
-        {
-            Debug.LogError(
-                "[Gacha] GameStateManager not found."
-            );
-
-            return false;
-        }
-
-        return GameStateManager.Instance
-            .GetGachaCurrency() >= rollCost;
+        return GameStateManager.Instance != null &&
+               GameStateManager.Instance.GetGachaCurrency() >= rollCost &&
+               GetAvailableRewards().Count > 0;
     }
-
-
-    // =========================================================
-    // SINGLE ROLL
-    // =========================================================
 
     public GachaReward Roll()
     {
-        if (!CanRoll())
-        {
-            Debug.Log(
-                "[Gacha] Not enough currency."
-            );
-
-            return null;
-        }
-
-        if (rewards.Count == 0)
-        {
-            Debug.LogWarning(
-                "[Gacha] No rewards configured."
-            );
-
-            return null;
-        }
-
-        bool spent =
-            GameStateManager.Instance
-                .SpendGachaCurrency(rollCost);
-
-        if (!spent)
+        if (GameStateManager.Instance == null)
         {
             return null;
         }
 
-        GachaReward reward =
-            SelectWeightedReward();
+        List<GachaReward> availableRewards = GetAvailableRewards();
+
+        if (availableRewards.Count == 0)
+        {
+            Debug.LogWarning("[Gacha] Nothing left to roll.");
+            return null;
+        }
+
+        if (GameStateManager.Instance.GetGachaCurrency() < rollCost)
+        {
+            DebugGacha("Not enough points for a spin.");
+            return null;
+        }
+
+        GachaReward reward = SelectWeightedReward(availableRewards);
+
+        if (reward == null || reward.item == null)
+        {
+            Debug.LogWarning("[Gacha] Reward is missing its item.");
+            return null;
+        }
+
+        PlayerInventory inventory = FindAnyObjectByType<PlayerInventory>();
+
+        if (inventory == null)
+        {
+            Debug.LogWarning("[Gacha] Could not find the player inventory.");
+            return null;
+        }
+
+        if (!inventory.AddItem(reward.item, 1))
+        {
+            DebugGacha("Inventory is full, so the spin was cancelled.");
+            return null;
+        }
+
+        if (!GameStateManager.Instance.SpendGachaCurrency(rollCost))
+        {
+            inventory.RemoveItemData(reward.item);
+            return null;
+        }
+
+        if (reward.unique)
+        {
+            GameStateManager.Instance.MarkGachaRewardCollected(reward.rewardID);
+        }
 
         lastReward = reward;
 
         DebugGacha(
-            "Player received: "
-            + reward.displayName
-            + " ["
-            + reward.rarity
-            + "]"
+            "Player got " + reward.displayName +
+            " for " + rollCost + " points."
         );
+
+        CheckDragonBalls();
 
         return reward;
     }
 
-
-    // =========================================================
-    // MULTI ROLL
-    // =========================================================
-
-    public List<GachaReward> RollMultiple(
-        int amount)
+    public List<GachaReward> RollMultiple(int amount)
     {
-        List<GachaReward> results =
-            new List<GachaReward>();
+        List<GachaReward> results = new List<GachaReward>();
 
         if (amount <= 0)
         {
@@ -202,52 +274,49 @@ public class GachaManager : MonoBehaviour
         return results;
     }
 
-
-    // =========================================================
-    // WEIGHTED SELECTION
-    // =========================================================
-
-    private GachaReward SelectWeightedReward()
+    public List<GachaReward> GetAvailableRewards()
     {
-        float totalWeight = 0f;
+        List<GachaReward> available = new List<GachaReward>();
 
         foreach (GachaReward reward in rewards)
         {
-            if (reward == null)
+            if (reward == null || reward.item == null || reward.weight <= 0f)
             {
                 continue;
             }
 
-            if (reward.weight <= 0f)
+            if (reward.unique &&
+                GameStateManager.Instance != null &&
+                GameStateManager.Instance.HasGachaRewardBeenCollected(reward.rewardID))
             {
                 continue;
             }
 
+            available.Add(reward);
+        }
+
+        return available;
+    }
+
+    private GachaReward SelectWeightedReward(List<GachaReward> availableRewards)
+    {
+        float totalWeight = 0f;
+
+        foreach (GachaReward reward in availableRewards)
+        {
             totalWeight += reward.weight;
         }
 
         if (totalWeight <= 0f)
         {
-            Debug.LogError(
-                "[Gacha] Total reward weight is zero."
-            );
-
             return null;
         }
 
-        float randomValue =
-            Random.Range(0f, totalWeight);
-
+        float randomValue = Random.Range(0f, totalWeight);
         float currentWeight = 0f;
 
-        foreach (GachaReward reward in rewards)
+        foreach (GachaReward reward in availableRewards)
         {
-            if (reward == null ||
-                reward.weight <= 0f)
-            {
-                continue;
-            }
-
             currentWeight += reward.weight;
 
             if (randomValue <= currentWeight)
@@ -256,82 +325,139 @@ public class GachaManager : MonoBehaviour
             }
         }
 
-        return rewards[rewards.Count - 1];
+        return availableRewards[availableRewards.Count - 1];
     }
 
+    public void BeginLevel()
+    {
+        SyncLevelTimerSettings();
 
-    // =========================================================
-    // REWARD INFORMATION
-    // =========================================================
+        if (GachaLevelTimer.Instance != null)
+        {
+            GachaLevelTimer.Instance.BeginLevel();
+        }
+    }
+
+    public int CompleteLevel()
+    {
+        if (GachaLevelTimer.Instance == null ||
+            !GachaLevelTimer.Instance.IsRunning)
+        {
+            return 0;
+        }
+
+        int timeBonus = GachaLevelTimer.Instance.FinishLevel();
+        int reward = GachaPointCalculator.GetLevelCompletionReward(
+            timeBonus,
+            levelCompletionReward);
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.AddGachaCurrency(reward);
+        }
+
+        DebugGacha(
+            "Level finished. +" + levelCompletionReward +
+            " completion and +" + timeBonus +
+            " time bonus = +" + reward + "."
+        );
+
+        return reward;
+    }
+
+    public int GetCurrentLevelPoints()
+    {
+        if (GachaLevelTimer.Instance == null)
+        {
+            return startingLevelPoints;
+        }
+
+        return GachaLevelTimer.Instance.GetCurrentPoints();
+    }
+
+    private void OnLoss(GameStateManager.LossReason reason)
+    {
+        if (reason == GameStateManager.LossReason.PlayerDeath &&
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.IsNormal())
+        {
+            int current = GameStateManager.Instance.GetGachaCurrency();
+            int newValue = GachaPointCalculator.ApplyDeathPenalty(
+                current,
+                normalDeathPenalty);
+
+            GameStateManager.Instance.SetGachaCurrency(newValue);
+
+            DebugGacha(
+                "Normal death. Lost " +
+                (current - newValue) + " points."
+            );
+        }
+
+        if (GachaLevelTimer.Instance != null)
+        {
+            GachaLevelTimer.Instance.CancelLevel();
+        }
+    }
+
+    private void CheckDragonBalls()
+    {
+        if (GameStateManager.Instance == null ||
+            !GameStateManager.Instance.HasAllDragonBalls())
+        {
+            return;
+        }
+
+        if (dragonBallWinCutscene != null)
+        {
+            dragonBallWinCutscene.Play();
+        }
+        else if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.StartGachaWin();
+        }
+    }
 
     public GachaReward GetLastReward()
     {
         return lastReward;
     }
 
-
     public List<GachaReward> GetRewards()
     {
         return rewards;
     }
-
 
     public int GetRollCost()
     {
         return rollCost;
     }
 
-
     public void SetRollCost(int cost)
     {
-        if (cost <= 0)
-        {
-            return;
-        }
-
-        rollCost = cost;
+        rollCost = Mathf.Max(0, cost);
     }
-
-
-    // =========================================================
-    // CURRENCY
-    // =========================================================
 
     public int GetCurrency()
     {
-        if (GameStateManager.Instance == null)
-        {
-            return 0;
-        }
-
-        return GameStateManager.Instance
-            .GetGachaCurrency();
+        return GameStateManager.Instance != null
+            ? GameStateManager.Instance.GetGachaCurrency()
+            : 0;
     }
-
 
     public void AddCurrency(int amount)
     {
-        if (GameStateManager.Instance == null)
+        if (GameStateManager.Instance != null)
         {
-            return;
+            GameStateManager.Instance.AddGachaCurrency(amount);
         }
-
-        GameStateManager.Instance
-            .AddGachaCurrency(amount);
     }
-
-
-    // =========================================================
-    // DEBUG
-    // =========================================================
 
     private void DebugGacha(string message)
     {
-        if (!debugGacha)
+        if (debugGacha)
         {
-            return;
+            Debug.Log("[Gacha] " + message);
         }
-
-        Debug.Log("[Gacha] " + message);
     }
 }

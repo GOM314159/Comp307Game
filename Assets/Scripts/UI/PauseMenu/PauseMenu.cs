@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using System.Collections;
 
 public class PauseMenu : MonoBehaviour
 {
@@ -16,6 +17,9 @@ public class PauseMenu : MonoBehaviour
     [Header("Scene")]
     [SerializeField] private string mainMenuSceneName = "MainMenu";
 
+    [Header("Settings")]
+    [SerializeField] private SettingsMenu settingsMenu;
+
     private bool isPaused;
 
     private bool toolbarWasActive;
@@ -23,6 +27,11 @@ public class PauseMenu : MonoBehaviour
     private GameStateManager.GameMode previousGameMode;
 
     private PlayerStateManager.PlayerState previousPlayerState;
+
+    // Short debounce only — must NOT last for the whole cursor-reassert
+    // window, or Escape presses after resume get eaten.
+    private float ignorePauseInputUntil;
+    private Coroutine cursorRestoreRoutine;
 
 
     private void Awake()
@@ -32,6 +41,7 @@ public class PauseMenu : MonoBehaviour
             playerInventory =
                 FindFirstObjectByType<PlayerInventory>();
         }
+
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -47,6 +57,7 @@ public class PauseMenu : MonoBehaviour
         Time.timeScale = 1f;
 
         isPaused = false;
+        ignorePauseInputUntil = 0f;
 
         if (container != null)
         {
@@ -57,30 +68,28 @@ public class PauseMenu : MonoBehaviour
 
     private void Update()
     {
+        if (Time.unscaledTime < ignorePauseInputUntil)
+        {
+            return;
+        }
+
         bool pausePressed = false;
-
-
-        // =====================================================
-        // KEYBOARD
-        // =====================================================
 
         if (Keyboard.current != null)
         {
             if (Keyboard.current.escapeKey.wasPressedThisFrame ||
                 Keyboard.current.pauseKey.wasPressedThisFrame)
             {
+                GameInputDevice.SetLastUsedDevice(
+                    Keyboard.current
+                );
+
                 pausePressed = true;
             }
         }
 
-
-        // =====================================================
-        // GAMEPAD
-        // =====================================================
-
         if (Gamepad.current != null)
         {
-            // Start / Options button
             if (Gamepad.current.startButton.wasPressedThisFrame)
             {
                 GameInputDevice.SetLastUsedDevice(
@@ -91,16 +100,10 @@ public class PauseMenu : MonoBehaviour
             }
         }
 
-
         if (!pausePressed)
         {
             return;
         }
-
-
-        // =====================================================
-        // PAUSE / RESUME
-        // =====================================================
 
         if (isPaused)
         {
@@ -108,18 +111,15 @@ public class PauseMenu : MonoBehaviour
             return;
         }
 
-
         if (PlayerStateManager.Instance == null)
         {
             return;
         }
 
-
         if (!PlayerStateManager.Instance.CanPause())
         {
             return;
         }
-
 
         PauseGame();
     }
@@ -134,45 +134,39 @@ public class PauseMenu : MonoBehaviour
 
         if (PlayerStateManager.Instance == null)
         {
-            Debug.LogWarning("[PauseMenu] PlayerStateManager.Instance is missing.");
+            Debug.LogWarning(
+                "[PauseMenu] PlayerStateManager.Instance is missing."
+            );
             return;
         }
 
-
-        // Close inventory if it is open
-        if (playerInventory != null)
+        if (playerInventory != null &&
+            playerInventory.IsInventoryOpen())
         {
-            if (playerInventory.IsInventoryOpen())
-            {
-                playerInventory.CloseInventory();
-            }
+            playerInventory.CloseInventory();
         }
 
-
-        // Save current GameMode
         if (GameStateManager.Instance != null)
         {
-            previousGameMode = GameStateManager.Instance.GetGameMode();
+            previousGameMode =
+                GameStateManager.Instance.GetGameMode();
         }
 
+        previousPlayerState =
+            PlayerStateManager.Instance.GetCurrentState();
 
-        // Save current PlayerState
-        previousPlayerState = PlayerStateManager.Instance.GetCurrentState();
-
-
-        // Save toolbar state and hide it
         if (toolbar != null)
         {
             toolbarWasActive = toolbar.activeSelf;
             toolbar.SetActive(false);
         }
 
-
-        // Mark the game as paused
         isPaused = true;
 
+        // Ignore the same Escape/Start that opened the menu so it cannot
+        // immediately close it on a held/repeat edge.
+        ignorePauseInputUntil = Time.unscaledTime + 0.2f;
 
-        // Set GameMode to Paused
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
@@ -180,31 +174,44 @@ public class PauseMenu : MonoBehaviour
             );
         }
 
-
-        // Set PlayerState to PauseMenu
         PlayerStateManager.Instance.SetState(
             PlayerStateManager.PlayerState.PauseMenu
         );
 
+        // AudioSource playback is independent of Time.timeScale, so pause
+        // the music explicitly rather than relying on the game freeze.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PauseMusic();
+        }
 
-        // Actually pause Unity's game time
         Time.timeScale = 0f;
 
-
-        // Show pause menu
         if (container != null)
         {
             container.SetActive(true);
         }
 
-
-        // Unlock cursor
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-
         ClearUISelection();
 
+        if (GameUICursorController.Instance != null)
+        {
+            if (GameInputDevice.LastUsedDeviceIsGamepad())
+            {
+                GameUICursorController.Instance
+                    .ResetControllerCursorForUI();
+            }
+            else
+            {
+                GameUICursorController.Instance
+                    .ShowCursorForUI();
+            }
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
 
         Debug.Log(
             "[PauseMenu] Game paused. Time.timeScale = "
@@ -220,26 +227,31 @@ public class PauseMenu : MonoBehaviour
             return;
         }
 
+        // Debounce only — do not block Escape for a full second.
+        ignorePauseInputUntil = Time.unscaledTime + 0.25f;
 
-        // Hide pause menu
+        bool resumedWithEscape =
+            Keyboard.current != null &&
+            (Keyboard.current.escapeKey.wasPressedThisFrame ||
+             Keyboard.current.escapeKey.isPressed);
+
         if (container != null)
         {
             container.SetActive(false);
         }
 
-
-        // Restore toolbar
         if (toolbar != null)
         {
             toolbar.SetActive(toolbarWasActive);
         }
 
-
-        // Resume Unity's game time
         Time.timeScale = 1f;
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ResumeMusic();
+        }
 
-        // Restore previous GameMode
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
@@ -247,8 +259,6 @@ public class PauseMenu : MonoBehaviour
             );
         }
 
-
-        // Restore previous PlayerState
         if (PlayerStateManager.Instance != null)
         {
             PlayerStateManager.Instance.SetState(
@@ -256,18 +266,30 @@ public class PauseMenu : MonoBehaviour
             );
         }
 
-
-        // Mark game as unpaused
         isPaused = false;
-
-
-        // Lock cursor again
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-
 
         ClearUISelection();
 
+        // Claim gameplay cursor ownership IMMEDIATELY so
+        // GameUICursorController.SyncCursorVisibility stops forcing the
+        // mouse visible while we wait out Escape's Editor unlock.
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.HideCursorForGameplay();
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        if (cursorRestoreRoutine != null)
+        {
+            StopCoroutine(cursorRestoreRoutine);
+        }
+
+        cursorRestoreRoutine =
+            StartCoroutine(
+                HideCursorAfterEscapeResume(resumedWithEscape)
+            );
 
         Debug.Log(
             "[PauseMenu] Game resumed. Time.timeScale = "
@@ -276,9 +298,121 @@ public class PauseMenu : MonoBehaviour
     }
 
 
+#if UNITY_EDITOR
+    private void FocusGameViewAfterResume()
+    {
+        if (isPaused)
+        {
+            return;
+        }
+
+        System.Type gameViewType =
+            System.Type.GetType(
+                "UnityEditor.GameView,UnityEditor"
+            );
+
+        if (gameViewType == null)
+        {
+            return;
+        }
+
+        UnityEditor.EditorWindow gameView =
+            UnityEditor.EditorWindow.GetWindow(
+                gameViewType,
+                false,
+                null,
+                true
+            );
+
+        if (gameView != null)
+        {
+            gameView.Focus();
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+    }
+#endif
+
+
+    private IEnumerator HideCursorAfterEscapeResume(
+        bool resumedWithEscape)
+    {
+        if (resumedWithEscape)
+        {
+            // Escape unlocks the cursor in the Editor while held. Keep the
+            // gameplay lock flag set, wait for release, then force-hide again.
+            while (Keyboard.current != null &&
+                   Keyboard.current.escapeKey.isPressed)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+                yield return null;
+            }
+
+            yield return null;
+            yield return new WaitForEndOfFrame();
+        }
+
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.HideCursorForGameplay();
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+#if UNITY_EDITOR
+        FocusGameViewAfterResume();
+        UnityEditor.EditorApplication.delayCall +=
+            FocusGameViewAfterResume;
+#endif
+
+        // Keep hammering the lock for a short window after Escape.
+        float endTime = Time.unscaledTime + 1.0f;
+
+        while (Time.unscaledTime < endTime)
+        {
+            if (isPaused)
+            {
+                break;
+            }
+
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+
+#if UNITY_EDITOR
+            if (Time.unscaledTime < endTime - 0.5f)
+            {
+                FocusGameViewAfterResume();
+            }
+#endif
+
+            yield return null;
+        }
+
+        cursorRestoreRoutine = null;
+    }
+
+
     public void SettingsButton()
     {
         Debug.Log("[PauseMenu] Settings button pressed.");
+
+        if (settingsMenu == null)
+        {
+            settingsMenu =
+                FindFirstObjectByType<SettingsMenu>();
+        }
+
+        if (settingsMenu == null)
+        {
+            Debug.LogError(
+                "[PauseMenu] SettingsMenu could not be found."
+            );
+            return;
+        }
+
+        settingsMenu.OpenFromPauseMenu();
     }
 
 
@@ -286,21 +420,27 @@ public class PauseMenu : MonoBehaviour
     {
         Debug.Log("[PauseMenu] Returning to Main Menu.");
 
-
-        // Make absolutely sure time is restored
         Time.timeScale = 1f;
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusicImmediate();
+        }
+
         isPaused = false;
+        ignorePauseInputUntil = 0f;
 
+        if (cursorRestoreRoutine != null)
+        {
+            StopCoroutine(cursorRestoreRoutine);
+            cursorRestoreRoutine = null;
+        }
 
-        // Hide pause menu
         if (container != null)
         {
             container.SetActive(false);
         }
 
-
-        // Set player state to MainMenu
         if (PlayerStateManager.Instance != null)
         {
             PlayerStateManager.Instance.SetState(
@@ -308,8 +448,6 @@ public class PauseMenu : MonoBehaviour
             );
         }
 
-
-        // Open main menu
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance.OpenMainMenu();
@@ -328,19 +466,20 @@ public class PauseMenu : MonoBehaviour
         Time.timeScale = 1f;
 
         isPaused = false;
+        ignorePauseInputUntil = 0f;
 
+        if (cursorRestoreRoutine != null)
+        {
+            StopCoroutine(cursorRestoreRoutine);
+            cursorRestoreRoutine = null;
+        }
 
         Debug.Log("[PauseMenu] Exiting game.");
 
-
 #if UNITY_EDITOR
-
         UnityEditor.EditorApplication.isPlaying = false;
-
 #else
-
-        FindFirstObjectByType<AltF4ExitCutscene>().AllowNormalQuit();
-
+        Application.Quit();
 #endif
     }
 

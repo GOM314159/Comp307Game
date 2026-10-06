@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class MainMenu : MonoBehaviour
 {
@@ -12,6 +13,9 @@ public class MainMenu : MonoBehaviour
 
     [Header("Game Mode / Gender Selection")]
     [SerializeField] private GameObject gameModeSelectionScreen;
+
+    [Header("Settings")]
+    [SerializeField] private SettingsMenu settingsMenu;
 
 
     // =========================================================
@@ -38,6 +42,19 @@ public class MainMenu : MonoBehaviour
         // ---------------------------------------------------------
 
         Time.timeScale = 1f;
+
+        // ---------------------------------------------------------
+        // MAIN MENU MUSIC
+        // ---------------------------------------------------------
+
+        // The same music cue continues into the Game Mode / Gender
+        // selection screen. It is only stopped when Continue is pressed.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.MainMenu
+            );
+        }
 
         // ---------------------------------------------------------
         // GAME STATE
@@ -89,6 +106,17 @@ public class MainMenu : MonoBehaviour
     public void PlayButton()
     {
         Debug.Log("[MainMenu] Play pressed.");
+
+        // If Play was reached with a controller, explicitly register that
+        // device. This prevents the persistent cursor controller from
+        // waiting for a mouse event before it knows a controller is active.
+        if (Gamepad.current != null &&
+            (Gamepad.current.buttonSouth.wasPressedThisFrame ||
+             Gamepad.current.buttonWest.wasPressedThisFrame ||
+             Gamepad.current.startButton.wasPressedThisFrame))
+        {
+            GameInputDevice.SetLastUsedDevice(Gamepad.current);
+        }
 
         if (mainMenuGroup != null)
         {
@@ -160,18 +188,46 @@ public class MainMenu : MonoBehaviour
             " | Gender: " + selectedGender
         );
 
-        //// Hide the menu immediately.
-        //if (mainMenuGroup != null)
-        //{
-        //    mainMenuGroup.SetActive(false);
-        //}
+        // Prefer the cursor controller's gamepad state over wasPressedThisFrame.
+        // SelectAtCursor can invoke this after the press frame, and Start /
+        // South / EventSystem submit must all count as controller start.
+        if (Gamepad.current != null &&
+            (GameInputDevice.LastUsedDeviceIsGamepad() ||
+             (GameUICursorController.Instance != null &&
+              GameUICursorController.Instance.IsUsingGamepad()) ||
+             Gamepad.current.buttonSouth.wasPressedThisFrame ||
+             Gamepad.current.buttonWest.wasPressedThisFrame ||
+             Gamepad.current.startButton.wasPressedThisFrame))
+        {
+            GameInputDevice.SetLastUsedDevice(Gamepad.current);
+        }
 
-        //if (gameModeSelectionScreen != null)
-        //{
-        //    gameModeSelectionScreen.SetActive(false);
-        //}
+        ClearUISelection();
 
-        // Start the actual game.
+        // The Main Menu cue ends exactly when the player confirms the
+        // Game Mode / Gender selection.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusicImmediate();
+        }
+
+        // Hide the cursor immediately, but KEEP the game-mode selection
+        // screen active. Its full-screen background acts as the black
+        // hold until IntroCutscene reports the first video frame, then
+        // GameFlowManager.HideMenuAfterVideoFrame removes it.
+        GameUICursorController cursorController =
+            GameUICursorController.Instance;
+
+        if (cursorController != null)
+        {
+            cursorController.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
         if (GameFlowManager.Instance == null)
         {
             Debug.LogError(
@@ -196,7 +252,21 @@ public class MainMenu : MonoBehaviour
     {
         Debug.Log("[MainMenu] Settings pressed.");
 
-        // Settings will be implemented later.
+        if (settingsMenu == null)
+        {
+            settingsMenu =
+                FindFirstObjectByType<SettingsMenu>();
+        }
+
+        if (settingsMenu == null)
+        {
+            Debug.LogError(
+                "[MainMenu] SettingsMenu could not be found."
+            );
+            return;
+        }
+
+        settingsMenu.OpenFromMainMenu();
     }
 
 
@@ -235,7 +305,9 @@ public class MainMenu : MonoBehaviour
 
 #else
 
-        FindFirstObjectByType<AltF4ExitCutscene>().AllowNormalQuit();
+        // Normal UI quit intentionally bypasses the Alt+F4 cutscene.
+        // Alt+F4 is intercepted separately by AltF4ExitCutscene.
+        Application.Quit();
 
 #endif
     }

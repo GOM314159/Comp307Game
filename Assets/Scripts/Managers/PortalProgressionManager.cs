@@ -1,43 +1,61 @@
-using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// Persistent progression authority for the level-entry portals.
+///
+/// IMPORTANT:
+/// This manager intentionally contains NO serialized references to
+/// scene-local portal GameObjects. Portals are discovered from the
+/// currently loaded scene by their TeleportPortal component.
+///
+/// This prevents Unity from losing scene-object drag/drop references
+/// when the persistent manager survives a scene change.
+/// </summary>
 public class PortalProgressionManager : MonoBehaviour
 {
     public static PortalProgressionManager Instance { get; private set; }
 
-    [Header("Legacy / Optional References")]
-
+    [Header("Progression")]
+    [Tooltip(
+        "The level portal currently unlocked by a completed theater play. " +
+        "-1 means no level portal is unlocked."
+    )]
     [SerializeField]
-    private GameObject level1Portal;
+    private int revealedDay = -1;
 
-    [SerializeField]
-    private GameObject level2Portal;
+    private int GetAuthoritativeRevealedDay()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            int storedDay = GameStateManager.Instance.GetRevealedPortalDay();
 
-    [SerializeField]
-    private GameObject level3Portal;
+            if (storedDay >= -1)
+            {
+                revealedDay = storedDay;
+            }
+        }
 
-    [SerializeField]
-    private GameObject level4Portal;
+        return revealedDay;
+    }
+
+    private void StoreRevealedDay(int day)
+    {
+        revealedDay = day;
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetRevealedPortalDay(day);
+        }
+    }
 
     [Header("Debug")]
-
     [SerializeField]
     private bool debugPortalProgression = true;
 
-    private readonly HashSet<int> revealedLevels =
-        new HashSet<int>();
-
-    private readonly HashSet<int> usedLevels =
-        new HashSet<int>();
-
-    private bool allPortalsUnlocked = false;
-
-    private bool initialized = false;
-
-    // =========================================================
-    // UNITY
-    // =========================================================
+    [SerializeField]
+    private bool debugAllPortalsVisible = false;
 
     private void Awake()
     {
@@ -48,16 +66,16 @@ public class PortalProgressionManager : MonoBehaviour
         }
 
         Instance = this;
-
         DontDestroyOnLoad(gameObject);
+
+        SyncProgressionFromGameState();
 
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
     private void Start()
     {
-        initialized = true;
-
+        SyncProgressionFromGameState();
         RefreshCurrentScenePortals();
     }
 
@@ -66,177 +84,282 @@ public class PortalProgressionManager : MonoBehaviour
         if (Instance == this)
         {
             SceneManager.sceneLoaded -= OnSceneLoaded;
+            Instance = null;
         }
     }
 
-    private void OnSceneLoaded(
-        Scene scene,
-        LoadSceneMode mode)
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (!initialized)
-        {
-            return;
-        }
-
-        StartCoroutine(
-            RefreshAfterSceneLoad()
-        );
+        SyncProgressionFromGameState();
+        StartCoroutine(RefreshAfterSceneLoad());
     }
 
-    private System.Collections.IEnumerator
-        RefreshAfterSceneLoad()
+    private IEnumerator RefreshAfterSceneLoad()
     {
+        SyncProgressionFromGameState();
+
+        // Let the newly loaded scene finish Awake/OnEnable first.
         yield return null;
+        RefreshCurrentScenePortals();
 
+        // One additional frame protects against portals that are enabled
+        // by another scene-local initialization script.
+        yield return null;
         RefreshCurrentScenePortals();
     }
 
     // =========================================================
-    // REVEAL
+    // VISIBILITY
+    // =========================================================
+
+    public bool ShouldPortalBeVisible(int level)
+    {
+        if (level <= 0)
+        {
+            return true;
+        }
+
+        if (debugAllPortalsVisible)
+        {
+            return true;
+        }
+
+        return level == GetAuthoritativeRevealedDay();
+    }
+
+    public int GetRevealedDay()
+    {
+        return revealedDay;
+    }
+
+    // =========================================================
+    // PORTAL IDENTIFICATION
+    // =========================================================
+
+    public int GetEffectivePortalLevel(TeleportPortal portal)
+    {
+        if (portal == null)
+        {
+            return 0;
+        }
+
+        int configuredLevel =
+            portal.GetConfiguredPortalLevel();
+
+        if (configuredLevel > 0)
+        {
+            return configuredLevel;
+        }
+
+        GameObject obj = portal.gameObject;
+
+        if (IsNamedPortal(obj, 1))
+        {
+            return 1;
+        }
+
+        if (IsNamedPortal(obj, 2))
+        {
+            return 2;
+        }
+
+        if (IsNamedPortal(obj, 3))
+        {
+            return 3;
+        }
+
+        if (IsNamedPortal(obj, 4))
+        {
+            return 4;
+        }
+
+        return 0;
+    }
+
+    private bool IsNamedPortal(GameObject obj, int level)
+    {
+        if (obj == null)
+        {
+            return false;
+        }
+
+        string n =
+            obj.name.ToLowerInvariant();
+
+        string number =
+            level.ToString();
+
+        return n == "level" + number + "portal" ||
+               n.Contains("level" + number + "portal");
+    }
+
+    // =========================================================
+    // PLAY PROGRESSION
     // =========================================================
 
     public void RevealPortalForDay(int day)
     {
         if (day < 1)
         {
+            Debug.LogWarning(
+                "[PortalProgression] Cannot reveal an invalid day: "
+                + day
+            );
+
             return;
         }
 
-        if (allPortalsUnlocked)
-        {
-            return;
-        }
-
-        revealedLevels.Add(day);
-
-        usedLevels.Remove(day);
-
-        RefreshCurrentScenePortals();
+        StoreRevealedDay(day);
+        debugAllPortalsVisible = false;
 
         DebugPortal(
-            "Level "
-            + day
-            + " portal revealed."
+            "Day " + day +
+            " play completed. Level " + day +
+            " portal is now unlocked and will remain open until the day is completed."
         );
+
+        RefreshCurrentScenePortals();
+        StartCoroutine(RefreshAfterReveal());
     }
 
-    // =========================================================
-    // USED
-    // =========================================================
+    private IEnumerator RefreshAfterReveal()
+    {
+        yield return null;
+        RefreshCurrentScenePortals();
 
-    public void NotifyPortalUsed(
-        TeleportPortal portal)
+        yield return null;
+        RefreshCurrentScenePortals();
+    }
+
+    public void NotifyPortalUsed(TeleportPortal portal)
     {
         if (portal == null)
         {
             return;
         }
 
-        if (allPortalsUnlocked)
-        {
-            return;
-        }
-
         int level =
-            portal.GetPortalLevel();
+            GetEffectivePortalLevel(portal);
 
         if (level <= 0)
         {
             return;
         }
 
-        usedLevels.Add(level);
+        if (level == revealedDay)
+        {
+            DebugPortal(
+                "Level " + level +
+                " portal used. It remains unlocked until the day is completed."
+            );
+        }
+    }
+
+    // =========================================================
+    // DAY / GAME RESET
+    // =========================================================
+
+    /// <summary>
+    /// Called when a day is restarted because of death.
+    /// The currently unlocked portal MUST remain unlocked.
+    /// </summary>
+    public void ResetForDay(int day)
+    {
+        debugAllPortalsVisible = false;
 
         RefreshCurrentScenePortals();
 
         DebugPortal(
-            "Level "
-            + level
-            + " portal used and hidden."
+            "Day " + day +
+            " restarted. Keeping revealed portal state at Level " +
+            revealedDay + "."
+        );
+    }
+
+    /// <summary>
+    /// Called only when a day has genuinely been completed.
+    /// The current portal closes and the next portal remains locked
+    /// until its theater play is watched.
+    /// </summary>
+    public void CompleteDay(int day)
+    {
+        if (GetAuthoritativeRevealedDay() == day)
+        {
+            StoreRevealedDay(-1);
+        }
+
+        debugAllPortalsVisible = false;
+
+        RefreshCurrentScenePortals();
+
+        DebugPortal(
+            "Day " + day +
+            " completed. Its portal is now closed."
+        );
+    }
+
+    /// <summary>
+    /// Called for a brand-new game/main-menu reset.
+    /// </summary>
+    public void ResetForGame()
+    {
+        StoreRevealedDay(-1);
+        debugAllPortalsVisible = false;
+
+        RefreshCurrentScenePortals();
+
+        DebugPortal(
+            "Portal progression completely reset. All level portals are locked."
         );
     }
 
     // =========================================================
-    // F8
+    // DEBUG
     // =========================================================
+
+    public void ToggleDebugPortals()
+    {
+        debugAllPortalsVisible =
+            !debugAllPortalsVisible;
+
+        RefreshCurrentScenePortals();
+
+        DebugPortal(
+            debugAllPortalsVisible
+                ? "F8 ON: all level portals forced visible."
+                : "F8 OFF: normal portal progression restored."
+        );
+    }
 
     public void UnlockAllPortals()
     {
-        allPortalsUnlocked = true;
-
+        debugAllPortalsVisible = true;
         RefreshCurrentScenePortals();
-
-        DebugPortal(
-            "DEBUG: All level portals unlocked."
-        );
     }
-
-    // =========================================================
-    // HIDE ALL
-    // =========================================================
 
     public void HideAllPortals()
     {
-        if (allPortalsUnlocked)
-        {
-            return;
-        }
-
-        revealedLevels.Clear();
-
-        usedLevels.Clear();
-
+        debugAllPortalsVisible = false;
+        StoreRevealedDay(-1);
         RefreshCurrentScenePortals();
-
-        DebugPortal(
-            "All level portals hidden."
-        );
     }
 
-    // =========================================================
-    // RESET CURRENT DAY
-    // =========================================================
-
-    public void ResetForDay(int day)
+    public void RefreshPortals()
     {
-        if (day < 1)
-        {
-            return;
-        }
-
-        revealedLevels.Remove(day);
-
-        usedLevels.Remove(day);
-
         RefreshCurrentScenePortals();
-
-        DebugPortal(
-            "Portal progression reset for Day "
-            + day
-        );
     }
 
-    // =========================================================
-    // RESET ENTIRE GAME
-    // =========================================================
-
-    public void ResetForGame()
+    private void SyncProgressionFromGameState()
     {
-        revealedLevels.Clear();
-
-        usedLevels.Clear();
-
-        allPortalsUnlocked = false;
-
-        RefreshCurrentScenePortals();
-
-        DebugPortal(
-            "Portal progression completely reset."
-        );
+        if (GameStateManager.Instance != null)
+        {
+            revealedDay =
+                GameStateManager.Instance.GetRevealedPortalDay();
+        }
     }
 
     // =========================================================
-    // REFRESH
+    // SCENE REFRESH
     // =========================================================
 
     private void RefreshCurrentScenePortals()
@@ -247,6 +370,9 @@ public class PortalProgressionManager : MonoBehaviour
                 FindObjectsSortMode.None
             );
 
+        int visibleCount = 0;
+        int hiddenCount = 0;
+
         foreach (TeleportPortal portal in portals)
         {
             if (portal == null)
@@ -255,7 +381,7 @@ public class PortalProgressionManager : MonoBehaviour
             }
 
             int level =
-                portal.GetPortalLevel();
+                GetEffectivePortalLevel(portal);
 
             if (level <= 0)
             {
@@ -263,22 +389,34 @@ public class PortalProgressionManager : MonoBehaviour
             }
 
             bool visible =
-                allPortalsUnlocked ||
-                (
-                    revealedLevels.Contains(level) &&
-                    !usedLevels.Contains(level)
-                );
+                ShouldPortalBeVisible(level);
 
-            portal.gameObject.SetActive(visible);
+            portal.SetProgressionVisibility(visible);
+
+            if (visible)
+            {
+                visibleCount++;
+            }
+            else
+            {
+                hiddenCount++;
+            }
         }
+
+        DebugPortal(
+            "Scene '" +
+            SceneManager.GetActiveScene().name +
+            "' portal refresh: " +
+            visibleCount +
+            " visible, " +
+            hiddenCount +
+            " hidden, revealedDay=" +
+            revealedDay +
+            "."
+        );
     }
 
-    // =========================================================
-    // DEBUG
-    // =========================================================
-
-    private void DebugPortal(
-        string message)
+    private void DebugPortal(string message)
     {
         if (!debugPortalProgression)
         {
@@ -286,8 +424,8 @@ public class PortalProgressionManager : MonoBehaviour
         }
 
         Debug.Log(
-            "[PortalProgression] "
-            + message
+            "[PortalProgression] " +
+            message
         );
     }
 }

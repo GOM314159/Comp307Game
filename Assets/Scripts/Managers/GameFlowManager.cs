@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using UnityEngine.InputSystem;
 
 public class GameFlowManager : MonoBehaviour
 {
@@ -68,6 +69,41 @@ public class GameFlowManager : MonoBehaviour
 
     [SerializeField] private float transitionDelay = 0.25f;
 
+    // =========================================================
+    // LOBBY DAY / FINAL BOSS CHANGES
+    // =========================================================
+    //
+    // These are scene-local roots in GamePlayTest. The GameFlowManager
+    // itself is persistent, so it deliberately stores ONLY their names,
+    // not direct GameObject references. This keeps the system safe when
+    // teleportation or scene loading recreates the Lobby objects.
+    // Their Inspector Active state does not matter: the script always
+    // applies the correct state from persistent game progression.
+    //
+    [Header("Lobby Changes")]
+    [SerializeField] private string day2ChangesRootName = "Day2Changes";
+    [SerializeField] private string day3ChangesRootName = "Day3Changes";
+    [SerializeField] private string day4ChangesRootName = "Day4Changes";
+    [SerializeField] private string bossChangesRootName = "BossChanges";
+
+    [Header("Final Boss")]
+    [Tooltip(
+        "Exact GameObject name of the FinalBossController host in the " +
+        "loaded scene. GameFlowManager is persistent, so this is a typed " +
+        "name lookup instead of a direct scene reference."
+    )]
+    [SerializeField]
+    private string finalBossControllerObjectName = "FinalBossController";
+
+    [Tooltip(
+        "Exact GameObject name of the boss (e.g. Gargamel). Used when the " +
+        "controller object is missing so one can be created and bound at runtime."
+    )]
+    [SerializeField]
+    private string finalBossObjectName = "Gargamel";
+
+    [SerializeField] private bool debugLobbyChanges = true;
+
     private bool createDaySnapshotOnLobbyLoad = false;
 
     private Coroutine newGamePreparationCoroutine;
@@ -78,9 +114,23 @@ public class GameFlowManager : MonoBehaviour
     // EnsureInGamePlayTestScene().
     private System.Action pendingGamePlayTestAction;
 
+    [Header("Final Ending")]
+
+    [Tooltip("How long the Credits game mode remains active before returning to the Main Menu.")]
+    [Min(0f)]
+    [SerializeField] private float finalCreditsDuration = 10f;
+
     [Header("Debug")]
 
+    [Tooltip("Enable or disable all F-key debug hotkeys.")]
+    [SerializeField] private bool enableDebugHotkeys = true;
+
     [SerializeField] private bool debugFlow = true;
+
+    public bool AreDebugHotkeysEnabled()
+    {
+        return enableDebugHotkeys;
+    }
 
     // =========================================================
     // UNITY
@@ -117,6 +167,16 @@ public class GameFlowManager : MonoBehaviour
         RefreshSceneReferences();
     }
 
+    private void Start()
+    {
+        // The initial scene does not fire SceneManager.sceneLoaded for the
+        // scene it started in. Start() runs after all manager Awake() calls,
+        // so the authoritative GameStateManager is available here.
+        // This also forces the Day/Boss roots into their correct state, so
+        // their initial Inspector Active state does not matter.
+        ApplyLobbyChangesToCurrentScene();
+    }
+
     private void OnDestroy()
     {
         if (Instance == this)
@@ -130,11 +190,12 @@ public class GameFlowManager : MonoBehaviour
     LoadSceneMode mode)
     {
         RefreshSceneReferences();
+        ApplyLobbyChangesToCurrentScene();
 
         DebugFlow(
             "Scene loaded: "
             + scene.name
-            + ". Scene references refreshed."
+            + ". Scene references and lobby changes refreshed."
         );
 
         // If EnsureInGamePlayTestScene() had to load GamePlayTest
@@ -236,6 +297,165 @@ public class GameFlowManager : MonoBehaviour
             "Scene-local GameFlow references refreshed."
         );
     }
+
+    // =========================================================
+    // LOBBY DAY / FINAL BOSS CHANGES
+    // =========================================================
+
+    /// <summary>
+    /// Applies the persistent day/final-play progression to the scene-local
+    /// Lobby change roots. No scene-local GameObject references are stored on
+    /// this persistent manager.
+    /// </summary>
+    public void ApplyLobbyChangesToCurrentScene()
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogWarning(
+                "[GameFlow] Cannot apply Lobby changes because GameStateManager is missing."
+            );
+            return;
+        }
+
+        Scene activeScene = SceneManager.GetActiveScene();
+
+        // These changes only belong to the GamePlayTest/Lobby scene.
+        if (activeScene.name != gamePlayTestScene)
+        {
+            return;
+        }
+
+        int day = GameStateManager.Instance.GetCurrentDay();
+        bool finalPlayComplete =
+            GameStateManager.Instance.IsFinalPlayComplete();
+
+        SetSceneRootActive(
+            activeScene,
+            day2ChangesRootName,
+            day >= 2
+        );
+
+        SetSceneRootActive(
+            activeScene,
+            day3ChangesRootName,
+            day >= 3
+        );
+
+        SetSceneRootActive(
+            activeScene,
+            day4ChangesRootName,
+            day >= 4
+        );
+
+        SetSceneRootActive(
+            activeScene,
+            bossChangesRootName,
+            finalPlayComplete
+        );
+
+        DebugLobbyChanges(
+            "Applied Lobby changes for Day "
+            + day
+            + ". Final play complete = "
+            + finalPlayComplete
+            + "."
+        );
+    }
+
+    private void SetSceneRootActive(
+        Scene scene,
+        string rootName,
+        bool shouldBeActive)
+    {
+        if (string.IsNullOrWhiteSpace(rootName))
+        {
+            return;
+        }
+
+        GameObject target = FindSceneObjectByName(scene, rootName);
+
+        if (target == null)
+        {
+            DebugLobbyChanges(
+                "Object '"
+                + rootName
+                + "' was not found in scene '"
+                + scene.name
+                + "'."
+            );
+
+            return;
+        }
+
+        // The script owns this state completely. The Inspector Active
+        // checkbox is only an initial scene-authoring value and does not
+        // need to be changed by hand.
+        if (target.activeSelf != shouldBeActive)
+        {
+            target.SetActive(shouldBeActive);
+        }
+    }
+
+    private GameObject FindSceneObjectByName(
+        Scene scene,
+        string objectName)
+    {
+        GameObject[] roots = scene.GetRootGameObjects();
+
+        foreach (GameObject root in roots)
+        {
+            if (root == null)
+            {
+                continue;
+            }
+
+            GameObject found = FindChildObjectByName(
+                root.transform,
+                objectName
+            );
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private GameObject FindChildObjectByName(
+        Transform parent,
+        string objectName)
+    {
+        if (parent.name == objectName)
+        {
+            return parent.gameObject;
+        }
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            GameObject found = FindChildObjectByName(
+                parent.GetChild(i),
+                objectName
+            );
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    private void DebugLobbyChanges(string message)
+    {
+        if (debugLobbyChanges)
+        {
+            Debug.Log("[LobbyChanges] " + message);
+        }
+    }
+
     //private void Start()
     //{
     //    if (GameStateManager.Instance != null)
@@ -424,6 +644,14 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
+        // Re-entering the main menu should restore its looping music cue.
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.MainMenu
+            );
+        }
+
         if (PlayerStateManager.Instance != null)
         {
             PlayerStateManager.Instance.SetState(
@@ -443,8 +671,15 @@ public class GameFlowManager : MonoBehaviour
             gameModeSelectionScreen.SetActive(false);
         }
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.ShowCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
     }
 
     private void SetToolbarVisible(bool visible)
@@ -600,6 +835,10 @@ public class GameFlowManager : MonoBehaviour
 
         GameStateManager.Instance.SetPlayerGender(gender);
 
+        setPlayerAnimator();
+
+
+
         // ---------------------------------------------------------
         // GIVE PLAYER THEIR GENDER-SPECIFIC LETTER
         // ---------------------------------------------------------
@@ -634,6 +873,41 @@ public class GameFlowManager : MonoBehaviour
             StartCoroutine(StartNewGameAfterPlayerReset());
 
 
+    }
+    // set the player animator to the correct gender animator in the PlayerMovement script
+    public void setPlayerAnimator()
+    {
+        PlayerMovement playerMovement = player.GetComponent<PlayerMovement>();
+
+        if (playerMovement != null)
+        {
+            if (GameStateManager.Instance != null)
+            {
+                if (GameStateManager.Instance.GetPlayerGender() == GameStateManager.PlayerGender.Male)
+                {
+                    Animator nephewAnim = GameObject.Find("Nephew").GetComponent<Animator>();
+                    playerMovement.setAnimator(nephewAnim);
+                }
+                else
+                {
+                    Animator nieceAnim = GameObject.Find("Niece").GetComponent<Animator>();
+                    playerMovement.setAnimator(nieceAnim);
+                }
+
+            }
+            else
+            {
+                Debug.LogError(
+                    "[GameFlow] GameStateManager.Instance is missing."
+                );
+            }
+        }
+        else
+        {
+            Debug.LogError(
+                "[GameFlow] PlayerMovement component is missing on the player."
+            );
+        }
     }
 
     public void StartFirstGameSequence()
@@ -681,25 +955,32 @@ public class GameFlowManager : MonoBehaviour
         // HIDE MENU
         // ---------------------------------------------------------
 
-        //if (mainMenuGroup != null)
-        //{
-        //    mainMenuGroup.SetActive(false);
-        //}
-
-        //if (gameModeSelectionScreen != null)
-        //{
-        //    gameModeSelectionScreen.SetActive(false);
-        //}
-
+        // Do NOT hide GameModeSelectionScreen here. Its full-screen
+        // background is the black hold between Continue and the first
+        // intro video frame. IntroVideoFirstFrameReady hides it.
 
         // ---------------------------------------------------------
         // CURSOR
         // ---------------------------------------------------------
 
-        Cursor.lockState =
-            CursorLockMode.Locked;
+        // Force the persistent cursor controller into gameplay/cutscene
+        // mode as well as hiding Unity's native cursor.
+        // Otherwise its Update loop can restore Cursor.visible after this
+        // method runs.
+        GameUICursorController cursorController =
+            GameUICursorController.Instance;
 
-        Cursor.visible = false;
+        if (cursorController != null)
+        {
+            cursorController.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState =
+                CursorLockMode.Locked;
+
+            Cursor.visible = false;
+        }
 
 
         // ---------------------------------------------------------
@@ -955,6 +1236,7 @@ public class GameFlowManager : MonoBehaviour
         // ---------------------------------------------------------
 
         GameStateManager.Instance.SetDay(day);
+        ApplyLobbyChangesToCurrentScene();
 
         // ---------------------------------------------------------
         // THEATER DAY
@@ -984,6 +1266,29 @@ public class GameFlowManager : MonoBehaviour
 
     public void CompleteDay()
     {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Cannot complete day because GameStateManager is missing."
+            );
+
+            return;
+        }
+
+        int completedDay =
+            GameStateManager.Instance.GetCurrentDay();
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance
+                .CompleteDay(completedDay);
+        }
+
+        if (AchievementManager.Instance != null)
+        {
+            AchievementManager.Instance.UnlockDayCompletion(completedDay);
+        }
+
         if (GameStateManager.Instance.IsFinalDay())
         {
             StartFinalPlay();
@@ -992,7 +1297,9 @@ public class GameFlowManager : MonoBehaviour
 
         GameStateManager.Instance.AdvanceDay();
 
-        StartDay(GameStateManager.Instance.GetCurrentDay());
+        StartDay(
+            GameStateManager.Instance.GetCurrentDay()
+        );
     }
 
     // =========================================================
@@ -1299,6 +1606,11 @@ public class GameFlowManager : MonoBehaviour
 
     public void FinalPlayFinished()
     {
+        // CompleteFinalPlay() has already persisted the final-play state.
+        // Apply the Lobby change immediately so the Lobby is blocked as
+        // soon as the final theater play ends, even before another scene
+        // load occurs.
+        ApplyLobbyChangesToCurrentScene();
         StartBossFight();
     }
 
@@ -1308,8 +1620,11 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartBossFight()
     {
-        GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.BossFight);
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.BossFight);
+        }
 
         if (AudioManager.Instance != null)
         {
@@ -1319,11 +1634,224 @@ public class GameFlowManager : MonoBehaviour
             AudioManager.Instance.PlayAmbience(
                 AudioManager.AmbienceType.Boss);
         }
+
+        FinalBossController bossController =
+            ResolveFinalBossController();
+
+        if (bossController != null)
+        {
+            bossController.BeginBossSpawnSequence();
+        }
+        else
+        {
+            Debug.LogError(
+                "[GameFlow] FinalBossController could not be resolved. " +
+                "Set Final Boss Controller Object Name / Final Boss Object Name " +
+                "in the GameFlowManager Inspector (current values: '"
+                + finalBossControllerObjectName
+                + "' / '"
+                + finalBossObjectName
+                + "')."
+            );
+        }
     }
+
+
+    private FinalBossController ResolveFinalBossController()
+    {
+        // 1) Typed Inspector name for the controller host object.
+        FinalBossController byControllerName =
+            FindFinalBossControllerByObjectName(
+                finalBossControllerObjectName
+            );
+
+        if (byControllerName != null)
+        {
+            return byControllerName;
+        }
+
+        // 2) Any existing controller in loaded scenes, including inactive.
+        FinalBossController existing =
+            FindAnyObjectByType<FinalBossController>(
+                FindObjectsInactive.Include
+            );
+
+        if (existing != null)
+        {
+            return existing;
+        }
+
+        // 3) Find the boss by typed name / FinalBossHealth and create a
+        //    lightweight controller host so teleport/debug paths still work
+        //    even when no FinalBossController was placed in the scene.
+        GameObject bossObject =
+            FindSceneObjectByNameAcrossLoadedScenes(
+                finalBossObjectName
+            );
+
+        if (bossObject == null)
+        {
+            FinalBossHealth health =
+                FindAnyObjectByType<FinalBossHealth>(
+                    FindObjectsInactive.Include
+                );
+
+            if (health != null)
+            {
+                bossObject = health.gameObject;
+            }
+        }
+
+        if (bossObject == null)
+        {
+            return null;
+        }
+
+        string hostName =
+            string.IsNullOrWhiteSpace(finalBossControllerObjectName)
+                ? "FinalBossController"
+                : finalBossControllerObjectName.Trim();
+
+        GameObject host = new GameObject(hostName);
+        SceneManager.MoveGameObjectToScene(
+            host,
+            bossObject.scene
+        );
+
+        FinalBossController created =
+            host.AddComponent<FinalBossController>();
+
+        created.SetFinalBoss(bossObject);
+
+        DebugFlow(
+            "Created FinalBossController host '"
+            + hostName
+            + "' bound to boss '"
+            + bossObject.name
+            + "'."
+        );
+
+        return created;
+    }
+
+
+    private FinalBossController FindFinalBossControllerByObjectName(
+        string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return null;
+        }
+
+        GameObject host =
+            FindSceneObjectByNameAcrossLoadedScenes(
+                objectName.Trim()
+            );
+
+        if (host == null)
+        {
+            return null;
+        }
+
+        FinalBossController controller =
+            host.GetComponent<FinalBossController>();
+
+        if (controller == null)
+        {
+            controller =
+                host.GetComponentInChildren<FinalBossController>(true);
+        }
+
+        if (controller != null)
+        {
+            return controller;
+        }
+
+        // Never put the controller on the boss body itself — Awake disables
+        // the boss and would disable this component with it.
+        if (host.GetComponent<FinalBossHealth>() != null ||
+            host.GetComponentInParent<FinalBossHealth>() != null)
+        {
+            return null;
+        }
+
+        return host.AddComponent<FinalBossController>();
+    }
+
+
+    private GameObject FindSceneObjectByNameAcrossLoadedScenes(
+        string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName))
+        {
+            return null;
+        }
+
+        string trimmedName = objectName.Trim();
+
+        for (int i = 0; i < SceneManager.sceneCount; i++)
+        {
+            Scene scene = SceneManager.GetSceneAt(i);
+
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                continue;
+            }
+
+            GameObject found =
+                FindSceneObjectByName(scene, trimmedName);
+
+            if (found != null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
+
+    // =========================================================
+    // DEBUG - FINAL BOSS
+    // =========================================================
+
+    /// <summary>
+    /// Debug entry point for F10. Forces Day 4, marks the final
+    /// play as completed, enables BossChanges in the Lobby, and
+    /// starts the final boss state.
+    /// </summary>
+    public void DebugStartFinalBossFight()
+    {
+        EnsureInGamePlayTestScene(FinishDebugStartFinalBossFight);
+    }
+
+    private void FinishDebugStartFinalBossFight()
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Cannot start debug final boss: GameStateManager is missing."
+            );
+            return;
+        }
+
+        GameStateManager.Instance.SetDay(4);
+        GameStateManager.Instance.CompleteFinalPlay();
+
+        ApplyLobbyChangesToCurrentScene();
+        StartBossFight();
+
+        DebugFlow(
+            "DEBUG F10: Day 4 final play completed. BossChanges enabled and final boss started."
+        );
+    }
+
 
     public void FinalBossDefeated()
     {
-        GameStateManager.Instance.DefeatFinalBoss();
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.DefeatFinalBoss();
+        }
 
         StartFinalCutscene();
     }
@@ -1349,15 +1877,57 @@ public class GameFlowManager : MonoBehaviour
         SetStaminaBarVisible(false);
     }
 
+    public void StartGachaWin()
+    {
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Cutscene);
+        }
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.Cutscene);
+        }
+
+        SetGameplayHUDVisible(false);
+
+        // No special video was assigned, so just let the player win.
+        OpenCredits();
+    }
+
+
     public void FinalCutsceneFinished()
     {
-        GameStateManager.Instance.CompleteFinalCutscene();
+        if (AchievementManager.Instance != null &&
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.IsHardcore())
+        {
+            AchievementManager.Instance.UnlockHardcoreCompletion();
+        }
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.CompleteFinalCutscene();
+        }
 
         SetToolbarVisible(false);
         SetHealthBarVisible(false);
         SetStaminaBarVisible(false);
 
         OpenCredits();
+        StartCoroutine(ReturnToMainMenuAfterFinalCredits());
+    }
+
+    private IEnumerator ReturnToMainMenuAfterFinalCredits()
+    {
+        if (finalCreditsDuration > 0f)
+        {
+            yield return new WaitForSecondsRealtime(finalCreditsDuration);
+        }
+
+        OpenMainMenu();
     }
 
     // =========================================================
@@ -1664,4 +2234,66 @@ public class GameFlowManager : MonoBehaviour
             "Player returned to the PlayerRespawnPoint."
         );
     }
+
+    private void Update()
+    {
+        if (!enableDebugHotkeys || Keyboard.current == null)
+        {
+            return;
+        }
+
+        // F11 - reset achievements.
+        if (Keyboard.current.f11Key.wasPressedThisFrame)
+        {
+            if (AchievementManager.Instance != null)
+            {
+                AchievementManager.Instance.ResetAchievements();
+                Debug.Log(
+                    "[GameFlowManager] F11 pressed. Achievements reset."
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[GameFlowManager] F11 pressed, but AchievementManager is missing."
+                );
+            }
+
+            return;
+        }
+
+        if (!Keyboard.current.f9Key.wasPressedThisFrame)
+        {
+            return;
+        }
+
+        Debug.Log(
+            "[GameFlowManager] F9 debug skip requested."
+        );
+
+        ChairPlayController chairPlayController =
+            FindAnyObjectByType<ChairPlayController>();
+
+        if (chairPlayController != null)
+        {
+            TheaterManager theaterManager =
+                TheaterManager.Instance;
+
+            if (theaterManager != null &&
+                theaterManager.IsPlayActive())
+            {
+                Debug.Log(
+                    "[GameFlowManager] Active theater play detected. " +
+                    "Skipping play while preserving progression."
+                );
+
+                chairPlayController.SkipCurrentPlay();
+                return;
+            }
+        }
+
+        SkipCurrentCutscene();
+    }
+
+
 }

@@ -7609,9 +7609,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3492142591821468553, guid: 1cfd4fb8807108b44a6bc9c3ee3157cc, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5477113447843240681}
-    - targetCorrespondingSourceObject: {fileID: -8326875371704364956, guid: 1cfd4fb8807108b44a6bc9c3ee3157cc, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 3633453825419134812}
     - targetCorrespondingSourceObject: {fileID: 8273579642761901096, guid: 1cfd4fb8807108b44a6bc9c3ee3157cc, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1745674968700331861}
@@ -8614,33 +8611,6 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
---- !u!1 &658905473755371486 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: -8326875371704364956, guid: 1cfd4fb8807108b44a6bc9c3ee3157cc, type: 3}
-  m_PrefabInstance: {fileID: 383960447401002938}
-  m_PrefabAsset: {fileID: 0}
---- !u!64 &3633453825419134812
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 658905473755371486}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 1
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: -8364251083990770497, guid: 1cfd4fb8807108b44a6bc9c3ee3157cc, type: 3}
 --- !u!1 &690581469318232811 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 1cfd4fb8807108b44a6bc9c3ee3157cc, type: 3}
@@ -41653,6 +41623,8 @@ MonoBehaviour:
   automaticallyFindText: 1
   cableCutterItem: {fileID: 11400000, guid: df179d321f5654147884572c33d9b56d, type: 2}
   playerInventory: {fileID: 0}
+  agent: {fileID: 0}
+  miniboss: {fileID: 0}
   theaterOriginal: {fileID: 0}
   theaterDestroyed: {fileID: 0}
   debugCableCutter: 1
@@ -41752,6 +41724,8 @@ MonoBehaviour:
   automaticallyFindText: 1
   cableCutterItem: {fileID: 11400000, guid: df179d321f5654147884572c33d9b56d, type: 2}
   playerInventory: {fileID: 0}
+  agent: {fileID: 0}
+  miniboss: {fileID: 0}
   theaterOriginal: {fileID: 0}
   theaterDestroyed: {fileID: 0}
   debugCableCutter: 1

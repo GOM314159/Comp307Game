@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 
 
@@ -263,4 +263,43 @@ public class ChairPlayController : MonoBehaviour
             "[ChairPlayController] " + message
         );
     }
+
+    // =========================================================
+    // DEBUG - SKIP CURRENT PLAY
+    // =========================================================
+
+    public void SkipCurrentPlay()
+    {
+        if (!isPlaying)
+        {
+            Debug.Log("[ChairPlayController] No theater play is currently playing.");
+            return;
+        }
+
+        int day = GameStateManager.Instance != null
+            ? GameStateManager.Instance.GetCurrentDay()
+            : 1;
+
+        int index = day - 1;
+
+        if (index < 0 || index >= dailyPlayVideos.Count)
+        {
+            Debug.LogError("[ChairPlayController] Cannot skip play. Invalid day index: " + index);
+            return;
+        }
+
+        TheaterPlayVideo play = dailyPlayVideos[index];
+
+        if (play == null)
+        {
+            Debug.LogError("[ChairPlayController] Cannot skip play. TheaterPlayVideo is missing for Day " + day);
+            return;
+        }
+
+        Debug.Log("[ChairPlayController] F9 pressed. Skipping Day " + day +
+                  " theater play while allowing progression.");
+
+        play.SkipAndComplete();
+    }
+
 }

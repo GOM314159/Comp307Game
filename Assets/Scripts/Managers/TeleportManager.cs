@@ -89,6 +89,9 @@ public class TeleportManager : MonoBehaviour
     [SerializeField]
     private TeleportDestination f7LobbyDay4;
 
+    [SerializeField]
+    private TeleportDestination f10FinalBoss;
+
 
     [SerializeField]
     private DebugTarget f1Target = new DebugTarget();
@@ -110,6 +113,12 @@ public class TeleportManager : MonoBehaviour
 
     [SerializeField]
     private DebugTarget f7Target = new DebugTarget();
+
+    [SerializeField]
+    private DebugTarget f10Target = new DebugTarget();
+
+    // Set while F10 is waiting for its destination teleport to finish.
+    private bool pendingDebugFinalBoss;
 
 
     // =========================================================
@@ -214,6 +223,35 @@ public class TeleportManager : MonoBehaviour
 
         pendingTeleportType =
             portal.GetTeleportType();
+
+
+        // -----------------------------------------------------
+        // CAPTURE PRE-CASE CHECKPOINT
+        // -----------------------------------------------------
+        //
+        // This happens BEFORE the level scene is loaded. If the
+        // player dies inside the case, GameResetManager restores
+        // this exact state instead of allowing case pickups to
+        // leak into the next attempt.
+
+        if (
+            pendingTeleportType ==
+            TeleportPortal.TeleportType.EnterCase
+        )
+        {
+            if (GameResetManager.Instance != null)
+            {
+                GameResetManager.Instance
+                    .CreateCaseEntrySnapshot();
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[Teleport] GameResetManager is missing. " +
+                    "No pre-case inventory checkpoint was captured."
+                );
+            }
+        }
 
 
         // -----------------------------------------------------
@@ -365,10 +403,23 @@ public class TeleportManager : MonoBehaviour
             // LOAD THE EXACT REQUESTED SCENE
             // -------------------------------------------------
 
+            // For EnterCase portals, start/rebind the case after the
+            // destination scene has loaded. Same-scene EnterCase still
+            // starts immediately in HandleCaseState().
+            int caseIDAfterLoad = 0;
+
+            if (pendingTeleportType ==
+                    TeleportPortal.TeleportType.EnterCase &&
+                pendingPortal != null)
+            {
+                caseIDAfterLoad = pendingPortal.GetCaseID();
+            }
+
             yield return LoadSceneAndFinishTeleport(
                 pendingSceneName,
                 pendingDestinationID,
-                pendingTeleportType
+                pendingTeleportType,
+                caseIDAfterLoad
             );
 
             yield break;
@@ -423,7 +474,8 @@ public class TeleportManager : MonoBehaviour
     private IEnumerator LoadSceneAndFinishTeleport(
     string sceneName,
     string destinationID,
-    TeleportPortal.TeleportType teleportType)
+    TeleportPortal.TeleportType teleportType,
+    int debugCaseID = 0)
     {
         // =========================================================
         // VALIDATE SCENE
@@ -795,6 +847,21 @@ public class TeleportManager : MonoBehaviour
 
 
                 // =================================================
+                // HIDE LOADING SCREEN EARLY
+                // =================================================
+                // The destination scene and player are valid now.
+                // Hide the loading screen before optional scene-manager
+                // rebinding so a broken optional manager cannot trap
+                // the player behind the loading overlay.
+
+                EnsureLoadingScreen();
+
+                if (loadingScreenManager != null)
+                {
+                    loadingScreenManager.Hide();
+                }
+
+                // =================================================
                 // REFRESH SCENE REFERENCES
                 // =================================================
 
@@ -802,9 +869,39 @@ public class TeleportManager : MonoBehaviour
                     "[Teleport] Refreshing scene references."
                 );
 
+                try
+                {
+                    RebindSceneSystems();
+                }
+                catch (System.Exception exception)
+                {
+                    Debug.LogError(
+                        "[Teleport] Scene reference refresh threw an "
+                        + "exception. Teleport will continue."
+                        + exception
+                    );
+                }
 
-                RebindSceneSystems();
 
+                // =================================================
+                // START THE DEBUG CASE
+                // =================================================
+                // Normal level portals start the CaseManager after the
+                // destination scene has loaded. Debug F2/F4/F6 must also
+                // initialise the case, otherwise Level 1/2/3 music will
+                // not start when entering through a debug key.
+                if (teleportType == TeleportPortal.TeleportType.EnterCase &&
+                    debugCaseID > 0 &&
+                    CaseManager.Instance != null)
+                {
+                    CaseManager.Instance.RefreshSceneReferences();
+                    CaseManager.Instance.StartCase(debugCaseID);
+
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.PlayLevelMusic(debugCaseID);
+                    }
+                }
 
                 // =================================================
                 // CASE / LOBBY STATE
@@ -941,6 +1038,10 @@ public class TeleportManager : MonoBehaviour
                     "[Teleport] ========================================"
                 );
 
+                if (pendingDebugFinalBoss)
+                {
+                    FinishPendingDebugFinalBoss();
+                }
 
                 // =================================================
                 // RESET
@@ -1168,6 +1269,15 @@ public class TeleportManager : MonoBehaviour
             == TeleportPortal.TeleportType.EnterCase
         )
         {
+            // Cross-scene EnterCase starts CaseManager after the
+            // destination scene finishes loading inside
+            // LoadSceneAndFinishTeleport. Starting it here would bind
+            // against the old scene and break level progression.
+            if (portal.HasCrossSceneDestination())
+            {
+                return;
+            }
+
             int caseID =
                 portal.GetCaseID();
 
@@ -1215,10 +1325,28 @@ public class TeleportManager : MonoBehaviour
             }
 
 
+            // A successful return is the new checkpoint.
+            //
+            // This is important when a player completes Case 1,
+            // returns to the lobby, and later dies during Case 2:
+            // Case 1 rewards must survive, while Case 2 pickups must
+            // be discarded on death.
             if (GameResetManager.Instance != null)
             {
                 GameResetManager.Instance
                     .CommitCurrentProgressAsDayCheckpoint();
+
+                Debug.Log(
+                    "[Teleport] Successful case return committed as "
+                    + "the new day checkpoint."
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[Teleport] GameResetManager is missing. "
+                    + "Case return checkpoint was not committed."
+                );
             }
         }
     }
@@ -1493,6 +1621,12 @@ public class TeleportManager : MonoBehaviour
 
     private void HandleDebugFKeys()
     {
+        if (GameFlowManager.Instance != null &&
+            !GameFlowManager.Instance.AreDebugHotkeysEnabled())
+        {
+            return;
+        }
+
         if (Keyboard.current == null)
         {
             return;
@@ -1605,12 +1739,127 @@ public class TeleportManager : MonoBehaviour
 
 
         // =====================================================
-        // F8 - UNLOCK ALL PORTALS
+        // F8 - TOGGLE PORTAL VISIBILITY
         // =====================================================
 
         if (Keyboard.current.f8Key.wasPressedThisFrame)
         {
-            DebugUnlockAllPortals();
+            DebugTogglePortals();
+        }
+
+
+        // =====================================================
+        // F10 - FINAL BOSS
+        // =====================================================
+
+        if (Keyboard.current.f10Key.wasPressedThisFrame)
+        {
+            DebugStartFinalBossTeleport();
+        }
+    }
+
+
+    // =========================================================
+    // F10 FINAL BOSS DEBUG TELEPORT
+    // =========================================================
+
+    private void DebugStartFinalBossTeleport()
+    {
+        SkipActiveCutscene();
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[Debug Teleport] GameStateManager is missing. " +
+                "F10 final boss could not be started."
+            );
+            return;
+        }
+
+        // Persist final-play completion BEFORE the scene transition so
+        // GameFlowManager can correctly rebuild BossChanges when the
+        // destination scene loads.
+        GameStateManager.Instance.SetDay(4);
+        GameStateManager.Instance.CompleteFinalPlay();
+
+        pendingDebugFinalBoss = true;
+
+        if (f10FinalBoss != null)
+        {
+            GameObject player =
+                GameObject.FindGameObjectWithTag("Player");
+
+            if (player == null)
+            {
+                Debug.LogError(
+                    "[Debug Teleport] Player not found for F10 final boss teleport."
+                );
+                pendingDebugFinalBoss = false;
+                return;
+            }
+
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Lobby
+            );
+
+            MovePlayerToDestination(
+                player,
+                f10FinalBoss
+            );
+
+            RestoreGameplayState();
+            FinishPendingDebugFinalBoss();
+            return;
+        }
+
+        if (f10Target != null &&
+            !string.IsNullOrWhiteSpace(f10Target.sceneName) &&
+            !string.IsNullOrWhiteSpace(f10Target.destinationID))
+        {
+            DebugTeleportCrossScene(
+                f10Target.sceneName,
+                f10Target.destinationID,
+                4,
+                false
+            );
+
+            return;
+        }
+
+        Debug.LogWarning(
+            "[Debug Teleport] F10 has no teleport destination configured. " +
+            "Assign either F10 Final Boss or the F10 cross-scene target. " +
+            "Starting the boss at the current location instead."
+        );
+
+        pendingDebugFinalBoss = false;
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.ApplyLobbyChangesToCurrentScene();
+            GameFlowManager.Instance.StartBossFight();
+        }
+    }
+
+    private void FinishPendingDebugFinalBoss()
+    {
+        if (!pendingDebugFinalBoss)
+        {
+            return;
+        }
+
+        pendingDebugFinalBoss = false;
+
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.ApplyLobbyChangesToCurrentScene();
+            GameFlowManager.Instance.StartBossFight();
+        }
+        else if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.BossFight
+            );
         }
     }
 
@@ -1704,8 +1953,30 @@ public class TeleportManager : MonoBehaviour
                     ? GameStateManager.GameMode.Case
                     : GameStateManager.GameMode.Lobby
             );
+
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance.ApplyLobbyChangesToCurrentScene();
+            }
         }
 
+
+        // -----------------------------------------------------
+        // START THE DEBUG CASE
+        // -----------------------------------------------------
+        // Normal level portals start the CaseManager as part of the
+        // level-entry flow. Debug F2/F4/F6 must do the same thing;
+        // otherwise the level music owned by CaseManager never starts.
+        if (level && CaseManager.Instance != null)
+        {
+            CaseManager.Instance.RefreshSceneReferences();
+            CaseManager.Instance.StartCase(day);
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayLevelMusic(day);
+            }
+        }
 
         // -----------------------------------------------------
         // MOVE PLAYER
@@ -1734,6 +2005,11 @@ public class TeleportManager : MonoBehaviour
         )
         {
             CaseManager.Instance.DeactivateCase();
+        }
+
+        if (pendingDebugFinalBoss)
+        {
+            FinishPendingDebugFinalBoss();
         }
     }
 
@@ -1833,6 +2109,11 @@ public class TeleportManager : MonoBehaviour
                     ? GameStateManager.GameMode.Case
                     : GameStateManager.GameMode.Lobby
             );
+
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance.ApplyLobbyChangesToCurrentScene();
+            }
         }
 
 
@@ -1869,6 +2150,29 @@ public class TeleportManager : MonoBehaviour
             level
                 ? TeleportPortal.TeleportType.EnterCase
                 : TeleportPortal.TeleportType.ReturnFromCase;
+
+
+        // DEBUG level-entry teleports must use the same checkpoint
+        // rules as normal level portals.
+
+        if (
+            pendingTeleportType ==
+            TeleportPortal.TeleportType.EnterCase
+        )
+        {
+            if (GameResetManager.Instance != null)
+            {
+                GameResetManager.Instance
+                    .CreateCaseEntrySnapshot();
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[Debug Teleport] GameResetManager is missing. " +
+                    "No pre-case inventory checkpoint was captured."
+                );
+            }
+        }
 
 
         // =====================================================
@@ -1924,7 +2228,8 @@ public class TeleportManager : MonoBehaviour
             LoadSceneAndFinishTeleport(
                 sceneName,
                 destinationID,
-                pendingTeleportType
+                pendingTeleportType,
+                level ? day : 0
             )
         );
     }
@@ -2001,18 +2306,22 @@ public class TeleportManager : MonoBehaviour
     // DEBUG UNLOCK
     // =========================================================
 
-    private void DebugUnlockAllPortals()
+    private void DebugTogglePortals()
     {
         Debug.Log(
-            "[Debug Teleport] F8 pressed. "
-            + "Unlocking all portals."
+            "[Debug Teleport] F8 pressed. Toggling portal visibility."
         );
-
 
         if (PortalProgressionManager.Instance != null)
         {
             PortalProgressionManager.Instance
-                .UnlockAllPortals();
+                .ToggleDebugPortals();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Debug Teleport] PortalProgressionManager is missing."
+            );
         }
     }
 }

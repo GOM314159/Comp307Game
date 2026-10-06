@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Video;
 
 public class TheaterPlayVideo : MonoBehaviour
@@ -252,4 +252,28 @@ public class TheaterPlayVideo : MonoBehaviour
     // =========================================================
 
     private System.Action finishCallback;
+
+    // =========================================================
+    // DEBUG - SKIP PLAY BUT COMPLETE IT
+    // =========================================================
+
+    public void SkipAndComplete()
+    {
+        if (videoPlayer == null)
+        {
+            Debug.LogWarning("[TheaterPlayVideo] Cannot skip. VideoPlayer missing.");
+            return;
+        }
+
+        Debug.Log("[TheaterPlayVideo] Debug skip requested. Completing theater play.");
+
+        CleanupEvents();
+        videoPlayer.Stop();
+
+        System.Action callback = finishCallback;
+        finishCallback = null;
+
+        callback?.Invoke();
+    }
+
 }
