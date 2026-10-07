@@ -5507,6 +5507,10 @@ PrefabInstance:
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 6698306860332415442, guid: b4e12737ac452b64ebf7c2653b70715f, type: 3}
+      propertyPath: m_CastShadows
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6698306860332415442, guid: b4e12737ac452b64ebf7c2653b70715f, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: f37f7381c4d369d429c4f5bc7dae3db1, type: 2}
@@ -5520,7 +5524,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: af0e93038dcbe294da416c22d3ce65f6, type: 2}
     - target: {fileID: 7816784405131815046, guid: b4e12737ac452b64ebf7c2653b70715f, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7942480354218882993, guid: b4e12737ac452b64ebf7c2653b70715f, type: 3}
       propertyPath: m_Layer
@@ -18377,7 +18381,6 @@ MonoBehaviour:
   hardcoreModePanel: {fileID: 1213291424}
   hardcoreMainMenuButton: {fileID: 230295604}
   mainMenu: {fileID: 682185822}
-  deathReasonText: {fileID: 1023642227}
 --- !u!1 &990789233
 GameObject:
   m_ObjectHideFlags: 0

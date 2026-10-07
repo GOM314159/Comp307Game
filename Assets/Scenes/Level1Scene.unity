@@ -11874,8 +11874,12 @@ PrefabInstance:
       value: -0.314
       objectReference: {fileID: 0}
     - target: {fileID: 2535046464305097979, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 4.234
+      objectReference: {fileID: 0}
+    - target: {fileID: 2535046464305097979, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.05
       objectReference: {fileID: 0}
     - target: {fileID: 2535046464305097979, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
       propertyPath: m_LocalPosition.z
@@ -13707,9 +13711,41 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
+      propertyPath: m_TileSize
+      value: 256
+      objectReference: {fileID: 0}
+    - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
+      propertyPath: m_VoxelSize
+      value: 0.05
+      objectReference: {fileID: 0}
+    - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
       propertyPath: m_NavMeshData
       value: 
       objectReference: {fileID: 23800000, guid: cd31322748de79a44afa907968736ef7, type: 2}
+    - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
+      propertyPath: m_UseGeometry
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
+      propertyPath: m_GenerateLinks
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
+      propertyPath: m_MinRegionArea
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
+      propertyPath: m_BuildHeightMesh
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
+      propertyPath: m_OverrideTileSize
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7149827684389908229, guid: a98fc730c9bfe1d408a84c4eea677f9e, type: 3}
+      propertyPath: m_OverrideVoxelSize
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
