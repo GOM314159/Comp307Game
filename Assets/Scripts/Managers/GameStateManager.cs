@@ -436,9 +436,7 @@ public class GameStateManager : MonoBehaviour
             if (nephew != null)
             {
                 nephew.SetActive(false);
-            }
-
-            }
+            }            
 
             if (nephew != null)
             {
@@ -489,7 +487,7 @@ public class GameStateManager : MonoBehaviour
         return null;
     }
 
-    }
+ 
 
 
     public PlayerGender GetPlayerGender()
