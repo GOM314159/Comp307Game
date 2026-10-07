@@ -88,10 +88,36 @@ public class PlayerDeathManager : MonoBehaviour
             return;
         }
 
-        if (GameStateManager.Instance.IsNormal())
+        bool diedDuringBossFight =
+            GameStateManager.Instance.GetGameMode() ==
+            GameStateManager.GameMode.BossFight;
+
+        if (diedDuringBossFight)
+        {
+            // A final-boss death is a run-ending death. There is no normal
+            // respawn from the boss arena; the player must return to the
+            // Main Menu and start a fresh run.
+            if (normalPanel != null)
+                normalPanel.SetActive(true);
+
+            if (hardcorePanel != null)
+                hardcorePanel.SetActive(false);
+
+            if (normalRespawnButton != null)
+                normalRespawnButton.gameObject.SetActive(false);
+
+            Debug.Log(
+                "[PlayerDeathManager] Boss-fight death. Respawn disabled; " +
+                "Main Menu is required."
+            );
+        }
+        else if (GameStateManager.Instance.IsNormal())
         {
             if (normalPanel != null)
                 normalPanel.SetActive(true);
+
+            if (normalRespawnButton != null)
+                normalRespawnButton.gameObject.SetActive(true);
 
             Debug.Log(
                 "[PlayerDeathManager] Normal death screen shown."
@@ -101,6 +127,9 @@ public class PlayerDeathManager : MonoBehaviour
         {
             if (hardcorePanel != null)
                 hardcorePanel.SetActive(true);
+
+            if (normalRespawnButton != null)
+                normalRespawnButton.gameObject.SetActive(false);
 
             Debug.Log(
                 "[PlayerDeathManager] Hardcore death screen shown."
@@ -115,6 +144,29 @@ public class PlayerDeathManager : MonoBehaviour
             Debug.LogError(
                 "[PlayerDeathManager] GameStateManager is missing."
             );
+
+            return;
+        }
+
+        // ---------------------------------------------------------
+        // FINAL BOSS DEATH
+        // ---------------------------------------------------------
+
+        if (GameStateManager.Instance.GetGameMode() ==
+            GameStateManager.GameMode.BossFight)
+        {
+            Debug.Log(
+                "[PlayerDeathManager] Boss-fight death cannot respawn. " +
+                "Returning to Main Menu with a full game reset."
+            );
+
+            HideDeathScreen();
+            Time.timeScale = 1f;
+
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance.OpenMainMenu();
+            }
 
             return;
         }
@@ -176,10 +228,14 @@ public class PlayerDeathManager : MonoBehaviour
         if (GameStateManager.Instance == null)
             return;
 
-        if (!GameStateManager.Instance.IsHardcore())
+        bool bossFightDeath =
+            GameStateManager.Instance.GetGameMode() ==
+            GameStateManager.GameMode.BossFight;
+
+        if (!GameStateManager.Instance.IsHardcore() && !bossFightDeath)
         {
             Debug.LogWarning(
-                "[PlayerDeathManager] Main menu requested outside Hardcore mode."
+                "[PlayerDeathManager] Main menu requested outside a run-ending death state."
             );
             return;
         }

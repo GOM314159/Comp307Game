@@ -166,6 +166,10 @@ public class Chair : WorldInteractable
 
     private bool interactionSuppressed = false;
 
+    // Once the final Day 4 play has completed, this chair must remain
+    // permanently unavailable until a full game/day reset occurs.
+    private bool finalPlayCompleted = false;
+
 
     // ---------------------------------------------------------
     // PLAYER
@@ -303,6 +307,15 @@ public class Chair : WorldInteractable
         {
             HideInteractionPrompt();
 
+            return;
+        }
+
+        // The final Day 4 play has completed. The player must not be able
+        // to sit in the chair and replay it while the boss sequence is active.
+        if (finalPlayCompleted)
+        {
+            SetInteractionEnabled(false);
+            HideInteractionPrompt();
             return;
         }
 
@@ -494,6 +507,11 @@ public class Chair : WorldInteractable
 
 
         if (interactionSuppressed)
+        {
+            return;
+        }
+
+        if (finalPlayCompleted)
         {
             return;
         }
@@ -1221,6 +1239,21 @@ public class Chair : WorldInteractable
             TheaterManager.Instance.IsPlayActive() &&
             TheaterManager.Instance.IsFinalPlay();
 
+        if (completedFinalPlay)
+        {
+            finalPlayCompleted = true;
+
+            // Keep the chair disabled after Day 4. Do this before restoring
+            // player state so the chair can never become interactable again
+            // during the transition into the boss fight.
+            SuppressChairInteraction();
+
+            DebugChair(
+                "Final Day 4 play completed. Chair permanently disabled " +
+                "until a game reset."
+            );
+        }
+
         if (TheaterManager.Instance != null &&
             TheaterManager.Instance.IsPlayActive())
         {
@@ -1520,6 +1553,44 @@ public class Chair : WorldInteractable
 
 
     // =========================================================
+    // DEBUG - SKIP CURRENT PLAY
+    // =========================================================
+
+    /// <summary>
+    /// Skips the currently playing chair theater video while still running
+    /// the normal completion pipeline. Returns true when a play was skipped.
+    /// </summary>
+    public bool DebugSkipCurrentPlay()
+    {
+        if (!isWatchingPlay)
+        {
+            return false;
+        }
+
+        DebugChair(
+            "F9 pressed. Skipping the active chair theater play."
+        );
+
+        if (playSequenceCoroutine != null)
+        {
+            StopCoroutine(playSequenceCoroutine);
+            playSequenceCoroutine = null;
+        }
+
+        if (currentVideoPlayer != null)
+        {
+            currentVideoPlayer.loopPointReached -= HandleFinished;
+            currentVideoPlayer.errorReceived -= HandleVideoError;
+            currentVideoPlayer.Stop();
+        }
+
+        // Use the exact same completion path as a naturally finished play.
+        playSequenceCoroutine = StartCoroutine(FinishPlaySequence());
+        return true;
+    }
+
+
+    // =========================================================
     // STOP CURRENT PLAY
     // =========================================================
 
@@ -1597,6 +1668,8 @@ public class Chair : WorldInteractable
         isWatchingPlay = false;
 
         currentVideoPlayer = null;
+
+        finalPlayCompleted = false;
 
 
         // Allow interaction again after reset.

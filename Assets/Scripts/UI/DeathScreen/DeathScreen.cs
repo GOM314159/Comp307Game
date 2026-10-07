@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
-using TMPro;
 
 public class DeathScreen : MonoBehaviour
 {
@@ -20,10 +19,6 @@ public class DeathScreen : MonoBehaviour
     [Header("Main Menu")]
 
     [SerializeField] private GameObject mainMenu;
-
-    [Header("Death Message")]
-    [Tooltip("Text field that displays the reason the player died.")]
-    [SerializeField] private TMP_Text deathReasonText;
 
 
     private void Awake()
@@ -113,29 +108,6 @@ public class DeathScreen : MonoBehaviour
 
         deathScreenGroup.SetActive(true);
 
-        // =========================================================
-        // SET DEATH REASON TEXT
-        // =========================================================
-
-        if (deathReasonText != null)
-        {
-            if (GameStateManager.Instance != null)
-            {
-                deathReasonText.text =
-                    GameStateManager.Instance.GetLastLossDescription();
-            }
-            else
-            {
-                deathReasonText.text = "Player Death";
-            }
-        }
-        else
-        {
-            Debug.LogWarning(
-                "[DeathScreen] Death Reason Text is not assigned."
-            );
-        }
-
 
         // =========================================================
         // SET PLAYER STATE
@@ -202,8 +174,35 @@ public class DeathScreen : MonoBehaviour
         // SELECT CORRECT DEATH PANEL
         // =========================================================
 
-        if (GameStateManager.Instance != null &&
-            GameStateManager.Instance.IsHardcore())
+        bool bossFightDeath =
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.GetGameMode() ==
+            GameStateManager.GameMode.BossFight;
+
+        if (bossFightDeath)
+        {
+            Debug.Log(
+                "[DeathScreen] Boss-fight death. Respawn is disabled; " +
+                "the player must return to Main Menu."
+            );
+
+            if (normalModePanel != null)
+            {
+                normalModePanel.SetActive(true);
+            }
+
+            if (hardcoreModePanel != null)
+            {
+                hardcoreModePanel.SetActive(false);
+            }
+
+            if (normalRespawnButton != null)
+            {
+                normalRespawnButton.gameObject.SetActive(false);
+            }
+        }
+        else if (GameStateManager.Instance != null &&
+                 GameStateManager.Instance.IsHardcore())
         {
             Debug.Log("[DeathScreen] Hardcore mode.");
 
@@ -215,6 +214,11 @@ public class DeathScreen : MonoBehaviour
             if (hardcoreModePanel != null)
             {
                 hardcoreModePanel.SetActive(true);
+            }
+
+            if (normalRespawnButton != null)
+            {
+                normalRespawnButton.gameObject.SetActive(false);
             }
         }
         else
@@ -229,6 +233,11 @@ public class DeathScreen : MonoBehaviour
             if (hardcoreModePanel != null)
             {
                 hardcoreModePanel.SetActive(false);
+            }
+
+            if (normalRespawnButton != null)
+            {
+                normalRespawnButton.gameObject.SetActive(true);
             }
         }
     }
@@ -247,6 +256,33 @@ public class DeathScreen : MonoBehaviour
         // ---------------------------------------------------------
 
         Time.timeScale = 1f;
+
+        // ---------------------------------------------------------
+        // FINAL BOSS DEATH CANNOT RESPAWN
+        // ---------------------------------------------------------
+
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.GetGameMode() ==
+            GameStateManager.GameMode.BossFight)
+        {
+            Debug.Log(
+                "[DeathScreen] Boss-fight death detected. " +
+                "Returning to Main Menu instead of respawning."
+            );
+
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance.OpenMainMenu();
+            }
+
+            if (deathScreenGroup != null)
+            {
+                deathScreenGroup.SetActive(false);
+            }
+
+            ClearUISelection();
+            return;
+        }
 
         // ---------------------------------------------------------
         // GAME FLOW HANDLES THE ENTIRE RESPawn

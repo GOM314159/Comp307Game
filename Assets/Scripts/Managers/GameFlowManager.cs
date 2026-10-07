@@ -1290,42 +1290,6 @@ public class GameFlowManager : MonoBehaviour
             "[GameFlowManager] Debug override skipping cutscene."
         );
 
-        // -----------------------------------------------------
-        // THEATER PLAY
-        // -----------------------------------------------------
-
-        TheaterManager theaterManager =
-            TheaterManager.Instance;
-
-        if (theaterManager != null &&
-            theaterManager.IsPlayActive())
-        {
-            ChairPlayController chairPlayController =
-                FindAnyObjectByType<ChairPlayController>(
-                    FindObjectsInactive.Include
-                );
-
-            if (chairPlayController != null)
-            {
-                Debug.Log(
-                    "[GameFlowManager] Active theater play detected. " +
-                    "Skipping play while preserving progression."
-                );
-
-                chairPlayController.SkipCurrentPlay();
-                return;
-            }
-
-            Debug.LogWarning(
-                "[GameFlowManager] Theater play is active, but " +
-                "ChairPlayController could not be found."
-            );
-        }
-
-        // -----------------------------------------------------
-        // DAY SCREEN
-        // -----------------------------------------------------
-
         if (dayScreenCutscene == null)
         {
             dayScreenCutscene =
@@ -1345,18 +1309,9 @@ public class GameFlowManager : MonoBehaviour
             dayScreenCutscene.IsPlaying
         )
         {
-            Debug.Log(
-                "[GameFlowManager] Active day screen detected. " +
-                "Skipping it and returning to gameplay."
-            );
-
             dayScreenCutscene.StopDayScreen();
             return;
         }
-
-        // -----------------------------------------------------
-        // OPENING SEQUENCE
-        // -----------------------------------------------------
 
         bool skippedOpeningSequence = false;
 
@@ -1366,6 +1321,7 @@ public class GameFlowManager : MonoBehaviour
         )
         {
             firstGameCutscene.StopSequence();
+
             skippedOpeningSequence = true;
         }
         else if (
@@ -1374,6 +1330,7 @@ public class GameFlowManager : MonoBehaviour
         )
         {
             introCutscene.StopCutscene();
+
             skippedOpeningSequence = true;
         }
         else
@@ -1391,8 +1348,6 @@ public class GameFlowManager : MonoBehaviour
 
         if (skippedOpeningSequence)
         {
-            // F9 is a full debug skip of the opening sequence. Do NOT
-            // immediately play the Day 1 transition video afterwards.
             IntroFinished(false);
         }
     }
@@ -1426,7 +1381,8 @@ public class GameFlowManager : MonoBehaviour
     public void IntroFinished(bool showDayScreen = true)
     {
         DebugFlow(
-            "Intro cutscene finished."
+            "Intro cutscene finished. Show Day Screen = " +
+            showDayScreen
         );
 
         if (GameStateManager.Instance == null)
@@ -1438,6 +1394,9 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
+        // A normal intro completion shows the Day 1 screen. A debug F9
+        // skip is treated as a complete cutscene override and therefore
+        // goes directly into gameplay.
         StartDay(
             1,
             showDayScreen
@@ -2511,15 +2470,56 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-        // F9 - skip the currently active theater play/cutscene.
-        if (Keyboard.current.f9Key.wasPressedThisFrame)
+        // F9 - skip active play/cutscene.
+        if (!Keyboard.current.f9Key.wasPressedThisFrame)
         {
-            Debug.Log(
-                "[GameFlowManager] F9 debug skip requested."
+            return;
+        }
+
+        Debug.Log(
+            "[GameFlowManager] F9 debug skip requested."
+        );
+
+        // The actual theater chair uses Chair.cs to run the video. This must
+        // be checked before ChairPlayController; otherwise F9 can find the
+        // secondary controller while the real chair play keeps running.
+        Chair chair =
+            FindAnyObjectByType<Chair>(
+                FindObjectsInactive.Include
             );
 
-            SkipCurrentCutscene();
+        if (chair != null && chair.DebugSkipCurrentPlay())
+        {
+            return;
         }
+
+        // Keep compatibility with the separate ChairPlayController system.
+        ChairPlayController chairPlayController =
+            FindAnyObjectByType<ChairPlayController>(
+                FindObjectsInactive.Include
+            );
+
+        if (chairPlayController != null)
+        {
+            TheaterManager theaterManager =
+                TheaterManager.Instance;
+
+            if (
+                theaterManager != null &&
+                theaterManager.IsPlayActive()
+            )
+            {
+                Debug.Log(
+                    "[GameFlowManager] Active theater play detected on " +
+                    "ChairPlayController. Skipping play while preserving progression."
+                );
+
+                chairPlayController.SkipCurrentPlay();
+                return;
+            }
+        }
+
+        SkipCurrentCutscene();
     }
 
     private void DebugFlow(string message)

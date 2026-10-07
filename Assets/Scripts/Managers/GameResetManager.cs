@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -865,7 +865,64 @@ public class GameResetManager : MonoBehaviour
 
             boss.ResetBossState();
         }
-   
+
+        // -----------------------------------------------------
+        // FINAL BOSS SYSTEM
+        // -----------------------------------------------------
+        //
+        // The final boss does not use the old BossDeath/Health pair.
+        // Reset Gargamel's custom three-phase health, death sequence,
+        // and spawn controller as part of every full/day reset.
+        // This is especially important when the player dies during the
+        // final boss and then returns to the Main Menu.
+        //
+        FinalBossHealth[] finalBossHealths =
+            FindObjectsByType<FinalBossHealth>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (FinalBossHealth health in finalBossHealths)
+        {
+            if (health == null)
+            {
+                continue;
+            }
+
+            health.ResetBossHealth();
+        }
+
+        GargamelDeathScript[] gargamelDeaths =
+            FindObjectsByType<GargamelDeathScript>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (GargamelDeathScript deathScript in gargamelDeaths)
+        {
+            if (deathScript == null)
+            {
+                continue;
+            }
+
+            deathScript.ResetDeathSequence();
+        }
+
+        FinalBossController[] finalBossControllers =
+            FindObjectsByType<FinalBossController>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (FinalBossController controller in finalBossControllers)
+        {
+            if (controller == null)
+            {
+                continue;
+            }
+
+            controller.ResetBossSpawnSequence();
+        }
     }
 
 
