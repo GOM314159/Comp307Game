@@ -390,9 +390,13 @@ public class GameStateManager : MonoBehaviour
 
     private void HideOtherGender()
     {
+
+        GameObject nephew = GameObject.Find("Nephew");
+        GameObject niece = GameObject.Find("Niece");
+
         if (GetPlayerGender() == PlayerGender.Male)
         {
-            GameObject niece = GameObject.Find("Niece");
+            setCameraToHead(nephew);
             if (niece != null)
             {
                 niece.SetActive(false);
@@ -400,13 +404,27 @@ public class GameStateManager : MonoBehaviour
         }
         else
         {
-            GameObject newphew = GameObject.Find("Nephew");
-            if (newphew != null)
+            setCameraToHead(niece);
+            if (nephew != null)
             {
-                newphew.SetActive(false);
+                nephew.SetActive(false);
             }
 
         }
+    }
+
+    private void setCameraToHead(GameObject character)
+    {
+        CameraAttachment camScript = FindObjectOfType<CameraAttachment>();
+        if (camScript != null)
+        {
+            camScript.AttachCameraToHead(character);
+        }
+        else
+        {
+            Debug.LogError("Could not find the CameraBoneAttach script in the scene!");
+        }
+
     }
 
 

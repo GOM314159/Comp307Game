@@ -477,14 +477,14 @@ public class PlayerMovement : MonoBehaviour
             0);
 
         // Smoothly move the camera
-        Vector3 cameraPosition = cameraTransform.localPosition;
+     //   Vector3 cameraPosition = cameraTransform.localPosition;
 
-        cameraPosition.y = Mathf.Lerp(
-            cameraPosition.y,
-            targetCameraHeight,
-            crouchTransitionSpeed * Time.deltaTime);
+     //   cameraPosition.y = Mathf.Lerp(
+     //       cameraPosition.y,
+     //       targetCameraHeight,
+     //       crouchTransitionSpeed * Time.deltaTime);
 
-        cameraTransform.localPosition = cameraPosition;
+     //   cameraTransform.localPosition = cameraPosition;
     }
 
     private void OnDrawGizmosSelected() //Debugging code for ground and ceiling detection
@@ -642,17 +642,17 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Reset camera height.
-        if (cameraTransform != null)
-        {
-            Vector3 cameraPosition =
-                cameraTransform.localPosition;
-
-            cameraPosition.y =
-                standingCameraHeight;
-
-            cameraTransform.localPosition =
-                cameraPosition;
-        }
+     //  if (cameraTransform != null)
+     //   {
+     //       Vector3 cameraPosition =
+     //           cameraTransform.localPosition;
+     //
+     //       cameraPosition.y =
+     //           standingCameraHeight;
+     //
+     //       cameraTransform.localPosition =
+     //           cameraPosition;
+     //   }
 
         Debug.Log(
             "[PlayerMovement] Movement reset after teleport."

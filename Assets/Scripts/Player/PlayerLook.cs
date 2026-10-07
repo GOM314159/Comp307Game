@@ -28,7 +28,7 @@ public class PlayerLook : MonoBehaviour
 
     // Adjust the maximum up/down look angle here.
     [SerializeField]
-    private float maxLookAngle = 80f;
+    private float maxLookAngle = 50f;
 
 
     // =========================================================
@@ -114,8 +114,8 @@ public class PlayerLook : MonoBehaviour
         controls.Disable();
     }
 
-
-    private void Update()
+    // CHANGED: Update() changed to LateUpdate() to prevent conflict with Animator
+    private void LateUpdate()
     {
         Look();
     }
@@ -167,12 +167,12 @@ public class PlayerLook : MonoBehaviour
                 maxLookAngle
             );
 
-
+        // This correctly rotates the camera locally relative to the head bone's current animated position
         cameraTransform.localRotation =
             Quaternion.Euler(
                 xRotation,
                 0f,
-                0f
+                1.5f
             );
 
 
