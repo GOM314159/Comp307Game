@@ -77,8 +77,25 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
 
     private void Update()
     {
+        // Scene loads and UI activation order can temporarily leave the
+        // text references unresolved. Retry until both are available.
+        if (dayText == null || objectiveText == null)
+        {
+            ResolveTexts();
+            RefreshAll();
+        }
+
         // This catches pause/unpause without requiring the pause system
         // to know anything about this UI.
+        ApplyVisibility();
+    }
+
+
+    public void RefreshNow()
+    {
+        ResolveTexts();
+        Subscribe();
+        RefreshAll();
         ApplyVisibility();
     }
 
@@ -107,7 +124,32 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
     public void SetOverlayVisible(bool visible)
     {
         explicitVisibility = visible;
+
+        // A scene transition can leave the Canvas or one of its parent UI
+        // roots inactive. Updating the TMP objects alone is not enough; the
+        // hierarchy itself must be active before the objective can be seen.
+        if (visible)
+        {
+            ActivateOverlayHierarchy();
+        }
+
         ApplyVisibility();
+    }
+
+
+    private void ActivateOverlayHierarchy()
+    {
+        Transform current = transform;
+
+        while (current != null)
+        {
+            if (!current.gameObject.activeSelf)
+            {
+                current.gameObject.SetActive(true);
+            }
+
+            current = current.parent;
+        }
     }
 
 
@@ -164,6 +206,11 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
         if (hideWhilePaused && Time.timeScale <= 0f)
         {
             shouldBeVisible = false;
+        }
+
+        if (shouldBeVisible)
+        {
+            ActivateOverlayHierarchy();
         }
 
         if (dayText != null)

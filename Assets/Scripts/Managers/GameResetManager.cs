@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -365,6 +365,21 @@ public class GameResetManager : MonoBehaviour
         if (inventory != null)
         {
             inventory.ClearInventory();
+        }
+
+
+        // -----------------------------------------------------
+        // RESET PLAYER HEALTH
+        // -----------------------------------------------------
+
+        PlayerHealth playerHealth =
+            FindAnyObjectByType<PlayerHealth>(
+                FindObjectsInactive.Include
+            );
+
+        if (playerHealth != null)
+        {
+            playerHealth.ResetHealth();
         }
 
 

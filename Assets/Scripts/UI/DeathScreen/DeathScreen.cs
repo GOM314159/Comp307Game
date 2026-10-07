@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using TMPro;
 
 public class DeathScreen : MonoBehaviour
 {
@@ -19,6 +20,10 @@ public class DeathScreen : MonoBehaviour
     [Header("Main Menu")]
 
     [SerializeField] private GameObject mainMenu;
+
+    [Header("Death Message")]
+    [Tooltip("Text field that displays the reason the player died.")]
+    [SerializeField] private TMP_Text deathReasonText;
 
 
     private void Awake()
@@ -107,6 +112,29 @@ public class DeathScreen : MonoBehaviour
         // =========================================================
 
         deathScreenGroup.SetActive(true);
+
+        // =========================================================
+        // SET DEATH REASON TEXT
+        // =========================================================
+
+        if (deathReasonText != null)
+        {
+            if (GameStateManager.Instance != null)
+            {
+                deathReasonText.text =
+                    GameStateManager.Instance.GetLastLossDescription();
+            }
+            else
+            {
+                deathReasonText.text = "Player Death";
+            }
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[DeathScreen] Death Reason Text is not assigned."
+            );
+        }
 
 
         // =========================================================

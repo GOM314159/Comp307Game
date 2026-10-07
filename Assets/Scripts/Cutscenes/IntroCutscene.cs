@@ -24,6 +24,8 @@ public class IntroCutscene : MonoBehaviour
 
     private System.Action finishCallback;
 
+    public bool IsPlaying => isPlaying;
+
 
     // =========================================================
     // UNITY

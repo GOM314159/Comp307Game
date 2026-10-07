@@ -23,9 +23,16 @@ public class LobbyNPC : WorldInteractable
     [Header("Dialogue by Day")]
     [SerializeField] private List<DayDialogue> dayDialogue = new List<DayDialogue>();
 
-    [Header("Final Day")]
-    [SerializeField] private bool disappearOnFinalDay = true;
-    [SerializeField, Min(1)] private int finalDay = 4;
+    [Header("Models by Day")]
+    [Tooltip("Assign 1 model to use it for all days, or assign up to 3 models and map days below.")]
+    [SerializeField] private List<GameObject> dayModels = new List<GameObject>();
+
+    [Tooltip("Optional explicit model index per day. Example 0,1,2,2 uses 3 models for 4 days.")]
+    [SerializeField] private List<int> modelIndexByDay = new List<int> { 0, 1, 2, 2 };
+
+    [Tooltip("Optional single-model override. When assigned, this model is used every day.")]
+    [SerializeField] private GameObject singleModelOverride;
+
 
     private bool playWatchedThisDay;
     private bool respawnPending;
@@ -124,17 +131,98 @@ public class LobbyNPC : WorldInteractable
         int day = GetCurrentDay();
         trackedDay = day;
 
-        if (disappearOnFinalDay && day >= finalDay)
+        // Keep the component/root active so subscriptions remain valid, but
+        // the NPC itself must disappear completely on Day 4.
+        if (day >= 4)
         {
-            gameObject.SetActive(false);
+            SetAllModelsActive(false);
             return;
         }
 
-        gameObject.SetActive(true);
+        ApplyModelForDay(day);
     }
+
+
+    private void ApplyModelForDay(int day)
+    {
+        if (singleModelOverride != null)
+        {
+            SetAllModelsActive(false);
+            singleModelOverride.SetActive(true);
+            return;
+        }
+
+        if (dayModels == null || dayModels.Count == 0)
+        {
+            return;
+        }
+
+        int dayIndex = Mathf.Max(0, day - 1);
+
+        // Four gameplay days may use only three models. For Day 4 (and any
+        // later safety-state), use the last configured day mapping.
+        if (modelIndexByDay.Count > 0)
+        {
+            dayIndex = Mathf.Min(dayIndex, modelIndexByDay.Count - 1);
+        }
+
+        int modelIndex = dayIndex;
+
+        if (dayIndex < modelIndexByDay.Count)
+        {
+            modelIndex = modelIndexByDay[dayIndex];
+        }
+
+        // One model is automatically reused for all days. With multiple
+        // models, clamp to the last supplied model for any later day.
+        modelIndex = Mathf.Clamp(
+            modelIndex,
+            0,
+            dayModels.Count - 1
+        );
+
+        for (int i = 0; i < dayModels.Count; i++)
+        {
+            if (dayModels[i] != null)
+            {
+                dayModels[i].SetActive(i == modelIndex);
+            }
+        }
+    }
+
+
+    private void SetAllModelsActive(bool active)
+    {
+        if (singleModelOverride != null)
+        {
+            singleModelOverride.SetActive(active);
+        }
+
+        if (dayModels == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < dayModels.Count; i++)
+        {
+            if (dayModels[i] != null)
+            {
+                dayModels[i].SetActive(active);
+            }
+        }
+    }
+
 
     public override bool CanInteract()
     {
+        // The lobby NPC does not exist as an interactive character on the
+        // final day. Keep the root active for state/event handling, but block
+        // all interaction.
+        if (GetCurrentDay() >= 4)
+        {
+            return false;
+        }
+
         if (!base.CanInteract())
         {
             return false;

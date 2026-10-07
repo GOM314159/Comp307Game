@@ -728,7 +728,14 @@ public class Chair : WorldInteractable
         // GAME STATE
         // -----------------------------------------------------
 
-        GameStateManager.Instance.SetCurrentPlay(day);
+        if (TheaterManager.Instance != null)
+        {
+            TheaterManager.Instance.BeginExternalPlayForDay(day);
+        }
+        else
+        {
+            GameStateManager.Instance.SetCurrentPlay(day);
+        }
 
         GameStateManager.Instance.SetGameMode(
             watchingGameMode
@@ -1182,27 +1189,6 @@ public class Chair : WorldInteractable
 
 
         // -----------------------------------------------------
-        // REVEAL THE LEVEL PORTAL
-        // -----------------------------------------------------
-        // Chair.cs is the actual theater playback path in this project.
-        // Finishing the chair video must therefore be the authoritative
-        // event that unlocks the portal for the current day.
-
-        if (currentPlayDay > 0 &&
-            PortalProgressionManager.Instance != null)
-        {
-            PortalProgressionManager.Instance
-                .RevealPortalForDay(currentPlayDay);
-
-            DebugChair(
-                "Revealed Level "
-                + currentPlayDay
-                + " portal after successful theater playback."
-            );
-        }
-
-
-        // -----------------------------------------------------
         // FADE TO BLACK
         // -----------------------------------------------------
 
@@ -1227,10 +1213,35 @@ public class Chair : WorldInteractable
 
 
         // -----------------------------------------------------
+        // AUTHORITATIVE THEATER PROGRESSION
+        // -----------------------------------------------------
+
+        bool completedFinalPlay =
+            TheaterManager.Instance != null &&
+            TheaterManager.Instance.IsPlayActive() &&
+            TheaterManager.Instance.IsFinalPlay();
+
+        if (TheaterManager.Instance != null &&
+            TheaterManager.Instance.IsPlayActive())
+        {
+            TheaterManager.Instance.CompleteExternalPlay();
+        }
+        else if (currentPlayDay > 0 &&
+                 PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance
+                .RevealPortalForDay(currentPlayDay);
+        }
+
+
+        // -----------------------------------------------------
         // RESTORE STATES
         // -----------------------------------------------------
 
-        RestoreAfterPlay();
+        // Day 4 completion can have just moved the game into BossFight.
+        // Restore the player/reading-chair state, but do not overwrite the
+        // authoritative BossFight game mode with the pre-play Lobby mode.
+        RestoreAfterPlay(!completedFinalPlay);
 
 
         // -----------------------------------------------------
@@ -1286,6 +1297,12 @@ public class Chair : WorldInteractable
         }
 
 
+        if (TheaterManager.Instance != null &&
+            TheaterManager.Instance.IsPlayActive())
+        {
+            TheaterManager.Instance.CancelExternalPlay();
+        }
+
         RestoreAfterPlay();
 
 
@@ -1305,7 +1322,7 @@ public class Chair : WorldInteractable
     // RESTORE AFTER PLAY
     // =========================================================
 
-    private void RestoreAfterPlay()
+    private void RestoreAfterPlay(bool restoreGameMode = true)
     {
         isWatchingPlay = false;
 

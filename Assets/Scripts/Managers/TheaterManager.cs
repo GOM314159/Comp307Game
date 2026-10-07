@@ -100,6 +100,9 @@ public class TheaterManager : MonoBehaviour
 
     [SerializeField]
     private PlayData currentPlay;
+    // External chair/video playback can be the final day even when its PlayData
+    // was not explicitly marked isFinalPlay in the Inspector.
+    private bool externalPlayFinalOverride;
 
     [SerializeField]
     private bool playActive = false;
@@ -211,12 +214,11 @@ public class TheaterManager : MonoBehaviour
             "[Theater] Resetting theater progression."
         );
 
-        // Reset theater-specific runtime state here.
-        //
-        // The actual PlayData configuration is NOT modified.
-        //
-        // The next time StartPlay() is called, the theater
-        // will start from the configured play for the current day.
+        // Reset runtime state only. Serialized PlayData configuration is not modified.
+        currentPlay = null;
+        playActive = false;
+        playComplete = false;
+        externalPlayFinalOverride = false;
     }
 
     private DayTheaterData GetDay(int day)
@@ -383,6 +385,182 @@ public class TheaterManager : MonoBehaviour
     // =========================================================
     // PLAY COMPLETE
     // =========================================================
+
+    /// <summary>
+    /// Binds a video that is played by another component (for example Chair.cs)
+    /// to the authoritative theater state. This is especially important on
+    /// Day 4 because the configured PlayData carries the final-play flag.
+    /// </summary>
+    public bool BeginExternalPlayForDay(int day)
+    {
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[Theater] Cannot begin external play without GameStateManager."
+            );
+            return false;
+        }
+
+        SetTheaterDay(day);
+
+        DayTheaterData dayData = GetDay(day);
+        PlayData selectedPlay = null;
+
+        if (dayData != null)
+        {
+            if (day == maximumDay)
+            {
+                foreach (PlayData candidate in dayData.plays)
+                {
+                    if (candidate != null && candidate.isFinalPlay)
+                    {
+                        selectedPlay = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (selectedPlay == null)
+            {
+                foreach (PlayData candidate in dayData.plays)
+                {
+                    if (candidate != null)
+                    {
+                        selectedPlay = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (selectedPlay == null)
+        {
+            Debug.LogWarning(
+                "[Theater] No PlayData is configured for external Day "
+                + day
+                + "."
+            );
+
+            currentPlay = null;
+            externalPlayFinalOverride = day == maximumDay;
+            playActive = true;
+            playComplete = false;
+
+            GameStateManager.Instance.SetCurrentPlay(day);
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.WatchingPlay
+            );
+
+            OnPlayStarted?.Invoke();
+            return true;
+        }
+
+        currentPlay = selectedPlay;
+        externalPlayFinalOverride = day == maximumDay || selectedPlay.isFinalPlay;
+        playActive = true;
+        playComplete = false;
+
+        GameStateManager.Instance.SetCurrentPlay(
+            selectedPlay.playID
+        );
+
+        GameStateManager.Instance.SetGameMode(
+            GameStateManager.GameMode.WatchingPlay
+        );
+
+        if (externalPlayFinalOverride)
+        {
+            OnFinalPlayStarted?.Invoke();
+        }
+
+        OnPlayStarted?.Invoke();
+
+        DebugTheater(
+            "External play bound: Day "
+            + day
+            + " / Play "
+            + selectedPlay.playID
+            + " / Final="
+            + externalPlayFinalOverride
+        );
+
+        return true;
+    }
+
+
+    /// <summary>
+    /// Completes an externally managed theater video. Normal external videos
+    /// return to the lobby; a configured final play enters BossFight through
+    /// the existing final-play pipeline.
+    /// </summary>
+    public void CancelExternalPlay()
+    {
+        if (!playActive)
+        {
+            return;
+        }
+
+        playActive = false;
+        playComplete = false;
+        externalPlayFinalOverride = false;
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Lobby
+            );
+        }
+    }
+
+
+    public void CompleteExternalPlay()
+    {
+        if (!playActive)
+        {
+            Debug.LogWarning(
+                "[Theater] No external play is currently active."
+            );
+            return;
+        }
+
+        playActive = false;
+        playComplete = true;
+
+        bool isFinal =
+            externalPlayFinalOverride ||
+            (currentPlay != null && currentPlay.isFinalPlay);
+
+        int completedDay =
+            GameStateManager.Instance != null
+                ? GameStateManager.Instance.GetCurrentDay()
+                : currentTheaterDay;
+
+        if (PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance.RevealPortalForDay(
+                completedDay
+            );
+        }
+
+        OnPlayCompleted?.Invoke();
+
+        if (isFinal)
+        {
+            externalPlayFinalOverride = false;
+            CompleteFinalPlay();
+            return;
+        }
+
+        externalPlayFinalOverride = false;
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Lobby
+            );
+        }
+    }
+
 
     public void CompletePlay()
     {
@@ -562,8 +740,8 @@ public class TheaterManager : MonoBehaviour
 
     public bool IsFinalPlay()
     {
-        return currentPlay != null &&
-               currentPlay.isFinalPlay;
+        return externalPlayFinalOverride ||
+               (currentPlay != null && currentPlay.isFinalPlay);
     }
 
 

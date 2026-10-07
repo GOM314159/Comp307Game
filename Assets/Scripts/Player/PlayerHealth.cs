@@ -11,11 +11,14 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     [SerializeField] private PlayerStateManager playerStateManager;
 
     private bool isDead;
+    private GameStateManager.DeathCause pendingDeathCause =
+        GameStateManager.DeathCause.Other;
 
     private void Awake()
     {
         currentHealth = maxHealth;
         isDead = false;
+        pendingDeathCause = GameStateManager.DeathCause.Other;
 
         if (playerStateManager == null)
         {
@@ -34,6 +37,17 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
     public bool TakeDamage(float damage)
     {
+        return TakeDamage(
+            damage,
+            GameStateManager.DeathCause.Other
+        );
+    }
+
+
+    public bool TakeDamage(
+        float damage,
+        GameStateManager.DeathCause deathCause)
+    {
         if (isDead)
         {
             return false;
@@ -44,6 +58,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
             return false;
         }
 
+        pendingDeathCause = deathCause;
         currentHealth -= damage;
 
         Debug.Log(
@@ -83,7 +98,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.HandlePlayerDeath();
+            GameStateManager.Instance.HandlePlayerDeath(
+                pendingDeathCause
+            );
         }
         else
         {
@@ -98,6 +115,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     {
         currentHealth = maxHealth;
         isDead = false;
+        pendingDeathCause = GameStateManager.DeathCause.Other;
 
         if (playerStateManager != null)
         {

@@ -11563,7 +11563,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8eede159872082744b4f82d94aa1dd42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CaseSceneBinding
-  caseID: 0
+  caseID: 1
   requiredObject: {fileID: 1464360250}
   sideQuestItem: {fileID: 1464360249}
 --- !u!1 &1442488380
@@ -14210,6 +14210,7 @@ MonoBehaviour:
   hardcoreCooldownMultiplier: 0.75
   increaseSpeedOnHardcore: 1
   hardcoreSpeedMultiplier: 1.25
+  deathCause: 1
   playerHealth: {fileID: 0}
   navMeshAgent: {fileID: 2006119300}
   debugAttack: 1

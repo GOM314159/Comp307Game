@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
 using System;
 using Unity.Behavior;
@@ -65,7 +65,16 @@ public class GameStateManager : MonoBehaviour
     public enum LossReason
     {
         PlayerDeath,
-        TimerExpired
+        TimeFail,
+        // Backward-compatible alias for existing serialized/referencing code.
+        TimerExpired = TimeFail
+    }
+
+    public enum DeathCause
+    {
+        Unknown,
+        Doll,
+        Other
     }
 
     // =========================================================
@@ -261,6 +270,9 @@ public class GameStateManager : MonoBehaviour
     [SerializeField]
     private LossReason lastLossReason;
 
+    [SerializeField]
+    private DeathCause lastDeathCause = DeathCause.Unknown;
+
     [Header("Behaviour Tree")]
     [SerializeField]
     private BehaviorGraphAgent behaviourAgent;
@@ -390,9 +402,16 @@ public class GameStateManager : MonoBehaviour
 
     private void HideOtherGender()
     {
+        GameObject nephew = FindGenderAvatar("Nephew");
+        GameObject niece = FindGenderAvatar("Niece");
+
         if (GetPlayerGender() == PlayerGender.Male)
         {
-            GameObject niece = GameObject.Find("Niece");
+            if (nephew != null)
+            {
+                nephew.SetActive(true);
+            }
+
             if (niece != null)
             {
                 niece.SetActive(false);
@@ -400,13 +419,45 @@ public class GameStateManager : MonoBehaviour
         }
         else
         {
-            GameObject newphew = GameObject.Find("Nephew");
-            if (newphew != null)
+            if (niece != null)
             {
-                newphew.SetActive(false);
+                niece.SetActive(true);
             }
 
+            if (nephew != null)
+            {
+                nephew.SetActive(false);
+            }
         }
+    }
+
+    private static GameObject FindGenderAvatar(string avatarName)
+    {
+        GameObject active = GameObject.Find(avatarName);
+        if (active != null)
+        {
+            return active;
+        }
+
+        // GameObject.Find skips inactive objects. After a prior run
+        // selected the other gender, the chosen avatar can still be
+        // inactive and must be found explicitly.
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform transform = transforms[i];
+            if (transform == null || transform.name != avatarName)
+            {
+                continue;
+            }
+
+            if (transform.gameObject.scene.IsValid())
+            {
+                return transform.gameObject;
+            }
+        }
+
+        return null;
     }
 
 
@@ -1058,17 +1109,53 @@ public class GameStateManager : MonoBehaviour
     }
 
 
-    public void HandlePlayerDeath()
+    public void HandlePlayerDeath(DeathCause cause = DeathCause.Other)
     {
+        lastDeathCause = cause;
+
         HandleLoss(
             LossReason.PlayerDeath
         );
     }
 
 
+    public void HandleDollDeath()
+    {
+        HandlePlayerDeath(DeathCause.Doll);
+    }
+
+
     public LossReason GetLastLossReason()
     {
         return lastLossReason;
+    }
+
+
+    public DeathCause GetLastDeathCause()
+    {
+        return lastDeathCause;
+    }
+
+
+    public string GetLastLossDescription()
+    {
+        if (lastLossReason == LossReason.TimeFail ||
+            lastLossReason == LossReason.TimerExpired)
+        {
+            return "Time Fail";
+        }
+
+        if (lastLossReason == LossReason.PlayerDeath)
+        {
+            if (lastDeathCause == DeathCause.Doll)
+            {
+                return "Death to Doll";
+            }
+
+            return "Player Death";
+        }
+
+        return "Unknown";
     }
 
 
@@ -1181,6 +1268,8 @@ public class GameStateManager : MonoBehaviour
         collectedGachaRewardIDs.Clear();
 
         gameOver = false;
+        lastLossReason = LossReason.PlayerDeath;
+        lastDeathCause = DeathCause.Unknown;
 
         difficulty =
             DifficultyMode.Normal;
