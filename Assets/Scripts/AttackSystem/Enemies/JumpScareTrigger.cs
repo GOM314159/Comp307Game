@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class JumpscareTrigger : MonoBehaviour
@@ -334,63 +334,42 @@ public class JumpscareTrigger : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        TryTrigger(other);
+    }
+
+
+    private void OnTriggerStay(Collider other)
+    {
+        // A CharacterController teleported directly into the trigger can
+        // miss OnTriggerEnter. TriggerStay makes normal and debug teleports
+        // deterministic.
+        TryTrigger(other);
+    }
+
+
+    private void TryTrigger(Collider other)
+    {
         if (isPlaying)
             return;
-
-
-        // -----------------------------------------------------
-        // ONLY PLAYER CAN TRIGGER
-        // -----------------------------------------------------
 
         bool isPlayer =
             other.CompareTag("Player") ||
             other.transform.root.CompareTag("Player");
 
-
         if (!isPlayer)
             return;
-
-
-        // -----------------------------------------------------
-        // DON'T REPEAT
-        // -----------------------------------------------------
 
         if (triggerOnce && hasTriggered)
             return;
 
-
-        // -----------------------------------------------------
-        // GAME STATE MANAGER
-        // -----------------------------------------------------
-
         if (GameStateManager.Instance == null)
-        {
-            Debug.LogWarning(
-                "[Jumpscare] GameStateManager is missing.",
-                this
-            );
-
             return;
-        }
-
-
-        // -----------------------------------------------------
-        // DAY CHECK
-        // -----------------------------------------------------
 
         if (GameStateManager.Instance.GetCurrentDay() != requiredDay)
-        {
             return;
-        }
-
-
-        // -----------------------------------------------------
-        // TRIGGER
-        // -----------------------------------------------------
 
         hasTriggered = true;
         isPlaying = true;
-
         StartCoroutine(PlayJumpscare());
     }
 
@@ -409,8 +388,23 @@ public class JumpscareTrigger : MonoBehaviour
 
         playerCamera = null;
 
-        FindPlayerCamera();
+        // The trigger can fire on the same frame as a scene/player camera
+        // rebinding. Wait briefly for Camera.main instead of consuming the
+        // one-shot trigger and leaving it permanently broken.
+        const float cameraSearchTimeout = 1.5f;
+        float cameraSearchElapsed = 0f;
 
+        while (playerCamera == null &&
+               cameraSearchElapsed < cameraSearchTimeout)
+        {
+            FindPlayerCamera();
+
+            if (playerCamera != null)
+                break;
+
+            cameraSearchElapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
 
         if (playerCamera == null)
         {
@@ -420,7 +414,7 @@ public class JumpscareTrigger : MonoBehaviour
             );
 
             isPlaying = false;
-
+            hasTriggered = false;
             yield break;
         }
 
@@ -507,7 +501,7 @@ public class JumpscareTrigger : MonoBehaviour
 
         if (jumpscareOverlay != null)
         {
-            jumpscareOverlay.gameObject.SetActive(true);
+            ActivateOverlayHierarchy();
 
             jumpscareOverlay.alpha = 0f;
 
@@ -782,6 +776,25 @@ public class JumpscareTrigger : MonoBehaviour
                     this
                 );
             }
+        }
+    }
+
+
+    private void ActivateOverlayHierarchy()
+    {
+        if (jumpscareOverlay == null)
+            return;
+
+        Transform current = jumpscareOverlay.transform;
+
+        while (current != null)
+        {
+            if (!current.gameObject.activeSelf)
+            {
+                current.gameObject.SetActive(true);
+            }
+
+            current = current.parent;
         }
     }
 

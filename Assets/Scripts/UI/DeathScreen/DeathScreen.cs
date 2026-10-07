@@ -12,6 +12,10 @@ public class DeathScreen : MonoBehaviour
     [SerializeField] private Button normalRespawnButton;
     [SerializeField] private Button normalMainMenuButton;
 
+    // Set by PlayerDeathManager when the player dies during the final boss.
+    // In that case the normal respawn option must not be available.
+    private bool bossFightDeath = false;
+
     [Header("Hardcore Mode")]
     [SerializeField] private GameObject hardcoreModePanel;
     [SerializeField] private Button hardcoreMainMenuButton;
@@ -88,6 +92,16 @@ public class DeathScreen : MonoBehaviour
         ShowDeathScreen();
     }
 
+
+    public void SetBossFightDeath(bool value)
+    {
+        bossFightDeath = value;
+
+        if (normalRespawnButton != null)
+        {
+            normalRespawnButton.gameObject.SetActive(!value);
+        }
+    }
 
     public void ShowDeathScreen()
     {
@@ -174,6 +188,13 @@ public class DeathScreen : MonoBehaviour
         // SELECT CORRECT DEATH PANEL
         // =========================================================
 
+        // Boss deaths are run-ending even in Normal mode.
+        // Keep the Main Menu button, but remove Respawn.
+        if (normalRespawnButton != null)
+        {
+            normalRespawnButton.gameObject.SetActive(!bossFightDeath);
+        }
+
         if (GameStateManager.Instance != null &&
             GameStateManager.Instance.IsHardcore())
         {
@@ -212,6 +233,14 @@ public class DeathScreen : MonoBehaviour
 
     private void OnNormalRespawnPressed()
     {
+        if (bossFightDeath)
+        {
+            Debug.Log(
+                "[DeathScreen] Respawn blocked because the player died in the final boss fight."
+            );
+            return;
+        }
+
         Debug.Log("[DeathScreen] Respawn pressed.");
 
         // ---------------------------------------------------------

@@ -53,6 +53,8 @@ public class FirstGameCutscene : MonoBehaviour
 
     private VideoPlayer currentBackstoryVideo;
 
+    public bool IsSequenceRunning => sequenceRunning;
+
 
     // =========================================================
     // UNITY

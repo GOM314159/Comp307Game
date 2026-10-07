@@ -1,5 +1,4 @@
 using UnityEngine;
-using static GameStateManager;
 
 public class PlayerDeathManager : MonoBehaviour
 {
@@ -9,8 +8,6 @@ public class PlayerDeathManager : MonoBehaviour
     [SerializeField] private GameObject deathScreen;
     [SerializeField] private GameObject normalPanel;
     [SerializeField] private GameObject hardcorePanel;
-
-    private PlayerHealth playerHealth;
 
     private void Awake()
     {
@@ -26,23 +23,7 @@ public class PlayerDeathManager : MonoBehaviour
 
     private void Start()
     {
-        if (deathScreen != null)
-            deathScreen.SetActive(false);
-
-        if (normalPanel != null)
-            normalPanel.SetActive(false);
-
-        if (hardcorePanel != null)
-            hardcorePanel.SetActive(false);
-
-        playerHealth = FindAnyObjectByType<PlayerHealth>();
-
-        if (playerHealth == null)
-        {
-            Debug.LogError(
-                "[PlayerDeathManager] Could not find PlayerHealth."
-            );
-        }
+        HideDeathScreen();
     }
 
     private void OnEnable()
@@ -61,10 +42,12 @@ public class PlayerDeathManager : MonoBehaviour
         }
     }
 
-    private void HandleLoss(LossReason reason)
+    private void HandleLoss(GameStateManager.LossReason reason)
     {
-        if (reason != LossReason.PlayerDeath)
+        if (reason != GameStateManager.LossReason.PlayerDeath)
+        {
             return;
+        }
 
         ShowDeathScreen();
     }
@@ -72,13 +55,19 @@ public class PlayerDeathManager : MonoBehaviour
     private void ShowDeathScreen()
     {
         if (deathScreen != null)
+        {
             deathScreen.SetActive(true);
+        }
 
         if (normalPanel != null)
+        {
             normalPanel.SetActive(false);
+        }
 
         if (hardcorePanel != null)
+        {
             hardcorePanel.SetActive(false);
+        }
 
         if (GameStateManager.Instance == null)
         {
@@ -88,22 +77,38 @@ public class PlayerDeathManager : MonoBehaviour
             return;
         }
 
-        if (GameStateManager.Instance.IsNormal())
-        {
-            if (normalPanel != null)
-                normalPanel.SetActive(true);
+        bool bossFightDeath =
+            GameStateManager.Instance.GetGameMode() ==
+            GameStateManager.GameMode.BossFight;
 
-            Debug.Log(
-                "[PlayerDeathManager] Normal death screen shown."
-            );
+        DeathScreen ui =
+            FindAnyObjectByType<DeathScreen>(FindObjectsInactive.Include);
+
+        if (ui != null)
+        {
+            ui.SetBossFightDeath(bossFightDeath);
         }
-        else if (GameStateManager.Instance.IsHardcore())
+
+        if (GameStateManager.Instance.IsHardcore())
         {
             if (hardcorePanel != null)
+            {
                 hardcorePanel.SetActive(true);
+            }
+        }
+        else
+        {
+            if (normalPanel != null)
+            {
+                normalPanel.SetActive(true);
+            }
+        }
 
+        if (bossFightDeath)
+        {
             Debug.Log(
-                "[PlayerDeathManager] Hardcore death screen shown."
+                "[PlayerDeathManager] Boss-fight death. " +
+                "Respawn disabled; player must return to Main Menu."
             );
         }
     }
@@ -115,95 +120,80 @@ public class PlayerDeathManager : MonoBehaviour
             Debug.LogError(
                 "[PlayerDeathManager] GameStateManager is missing."
             );
-
             return;
         }
 
-        // ---------------------------------------------------------
-        // NORMAL MODE
-        // ---------------------------------------------------------
-
-        if (GameStateManager.Instance.IsNormal())
+        // A boss-fight death is always a complete run restart.
+        if (GameStateManager.Instance.GetGameMode() ==
+            GameStateManager.GameMode.BossFight)
         {
             Debug.Log(
-                "[PlayerDeathManager] Normal death. " +
-                "Restarting current day."
+                "[PlayerDeathManager] Boss-fight death cannot respawn. " +
+                "Returning to Main Menu with a full game reset."
             );
 
-            HideDeathScreen();
+            Time.timeScale = 1f;
 
             if (GameFlowManager.Instance != null)
             {
-                GameFlowManager.Instance
-                    .RestartCurrentDayAfterDeath();
-            }
-            else
-            {
-                Debug.LogError(
-                    "[PlayerDeathManager] GameFlowManager is missing."
-                );
+                GameFlowManager.Instance.OpenMainMenu();
             }
 
             return;
         }
 
-        // ---------------------------------------------------------
-        // HARDCORE
-        // ---------------------------------------------------------
+        if (GameStateManager.Instance.IsNormal())
+        {
+            HideDeathScreen();
+            Time.timeScale = 1f;
 
-        Debug.Log(
-            "[PlayerDeathManager] Hardcore death. " +
-            "Resetting entire game."
-        );
+            if (GameFlowManager.Instance != null)
+            {
+                GameFlowManager.Instance.RestartCurrentDayAfterDeath();
+            }
+
+            return;
+        }
 
         HideDeathScreen();
+        Time.timeScale = 1f;
 
         if (GameFlowManager.Instance != null)
         {
-            GameFlowManager.Instance
-                .RestartEntireGameAfterDeath();
-        }
-        else
-        {
-            Debug.LogError(
-                "[PlayerDeathManager] GameFlowManager is missing."
-            );
+            GameFlowManager.Instance.RestartEntireGameAfterDeath();
         }
     }
 
     public void ReturnToMainMenu()
     {
-        if (GameStateManager.Instance == null)
-            return;
-
-        if (!GameStateManager.Instance.IsHardcore())
-        {
-            Debug.LogWarning(
-                "[PlayerDeathManager] Main menu requested outside Hardcore mode."
-            );
-            return;
-        }
-
-        Debug.Log(
-            "[PlayerDeathManager] Hardcore run ended."
-        );
-
+        Time.timeScale = 1f;
         HideDeathScreen();
 
-        GameStateManager.Instance.ResetEntireGame();
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.OpenMainMenu();
+        }
+        else if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.ResetEntireGame();
+        }
     }
 
     private void HideDeathScreen()
     {
         if (deathScreen != null)
+        {
             deathScreen.SetActive(false);
+        }
 
         if (normalPanel != null)
+        {
             normalPanel.SetActive(false);
+        }
 
         if (hardcorePanel != null)
+        {
             hardcorePanel.SetActive(false);
+        }
     }
-
-
 }

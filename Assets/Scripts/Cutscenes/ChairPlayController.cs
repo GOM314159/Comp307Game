@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 
 
@@ -102,7 +102,14 @@ public class ChairPlayController : MonoBehaviour
         // GAME STATE
         // -----------------------------------------------------
 
-        GameStateManager.Instance.SetCurrentPlay(day);
+        if (TheaterManager.Instance != null)
+        {
+            TheaterManager.Instance.BeginExternalPlayForDay(day);
+        }
+        else
+        {
+            GameStateManager.Instance.SetCurrentPlay(day);
+        }
 
         GameStateManager.Instance.SetGameMode(
             GameStateManager.GameMode.WatchingPlay
@@ -163,37 +170,26 @@ public class ChairPlayController : MonoBehaviour
     {
         isPlaying = false;
 
-
         DebugPlay(
             "Day " + day + " theater video finished."
         );
 
-
-        // -----------------------------------------------------
-        // REVEAL THE LEVEL PORTAL FOR THIS DAY
-        // -----------------------------------------------------
-        // Day 1 play -> Level 1 portal
-        // Day 2 play -> Level 2 portal
-        // Day 3 play -> Level 3 portal
-        // Day 4 play -> Level 4 portal
-
-        if (PortalProgressionManager.Instance != null)
+        if (TheaterManager.Instance != null &&
+            TheaterManager.Instance.IsPlayActive())
+        {
+            TheaterManager.Instance.CompleteExternalPlay();
+        }
+        else if (PortalProgressionManager.Instance != null)
         {
             PortalProgressionManager.Instance.RevealPortalForDay(day);
+
+            if (GameStateManager.Instance != null)
+            {
+                GameStateManager.Instance.SetGameMode(
+                    GameStateManager.GameMode.Lobby
+                );
+            }
         }
-
-
-        // -----------------------------------------------------
-        // RETURN TO LOBBY
-        // -----------------------------------------------------
-
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.SetGameMode(
-                GameStateManager.GameMode.Lobby
-            );
-        }
-
 
         if (PlayerStateManager.Instance != null)
         {
@@ -201,7 +197,6 @@ public class ChairPlayController : MonoBehaviour
                 PlayerStateManager.PlayerState.AllMovement
             );
         }
-
 
         if (GameFlowManager.Instance != null)
         {
@@ -270,34 +265,54 @@ public class ChairPlayController : MonoBehaviour
 
     public void SkipCurrentPlay()
     {
-        if (!isPlaying)
+        bool theaterPlayActive =
+            TheaterManager.Instance != null &&
+            TheaterManager.Instance.IsPlayActive();
+
+        if (!isPlaying && !theaterPlayActive)
         {
-            Debug.Log("[ChairPlayController] No theater play is currently playing.");
+            Debug.Log(
+                "[ChairPlayController] No theater play is currently playing."
+            );
             return;
         }
 
-        int day = GameStateManager.Instance != null
-            ? GameStateManager.Instance.GetCurrentDay()
-            : 1;
+        int day =
+            GameStateManager.Instance != null
+                ? GameStateManager.Instance.GetCurrentDay()
+                : 1;
 
         int index = day - 1;
 
-        if (index < 0 || index >= dailyPlayVideos.Count)
+        if (
+            index < 0 ||
+            index >= dailyPlayVideos.Count
+        )
         {
-            Debug.LogError("[ChairPlayController] Cannot skip play. Invalid day index: " + index);
+            Debug.LogError(
+                "[ChairPlayController] Cannot skip play. " +
+                "Invalid day index: " + index
+            );
             return;
         }
 
-        TheaterPlayVideo play = dailyPlayVideos[index];
+        TheaterPlayVideo play =
+            dailyPlayVideos[index];
 
         if (play == null)
         {
-            Debug.LogError("[ChairPlayController] Cannot skip play. TheaterPlayVideo is missing for Day " + day);
+            Debug.LogError(
+                "[ChairPlayController] Cannot skip play. " +
+                "TheaterPlayVideo is missing for Day " + day
+            );
             return;
         }
 
-        Debug.Log("[ChairPlayController] F9 pressed. Skipping Day " + day +
-                  " theater play while allowing progression.");
+        Debug.Log(
+            "[ChairPlayController] F9 pressed. " +
+            "Skipping Day " + day +
+            " theater play while allowing progression."
+        );
 
         play.SkipAndComplete();
     }

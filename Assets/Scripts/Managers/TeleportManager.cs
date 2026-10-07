@@ -51,6 +51,12 @@ public class TeleportManager : MonoBehaviour
 
     private TeleportPortal.TeleportType pendingTeleportType;
 
+    // When a ReturnFromCase portal advances the day, play that day's
+    // screen after the lobby finishes loading (normal progression).
+    private bool pendingReturnPlayDayScreen;
+
+    private int pendingReturnDayScreenDay = -1;
+
 
     // =========================================================
     // LOADING SCREEN
@@ -276,11 +282,22 @@ public class TeleportManager : MonoBehaviour
         // DAY CHANGE
         // -----------------------------------------------------
 
+        pendingReturnPlayDayScreen = false;
+        pendingReturnDayScreenDay = -1;
+
         if (portal.ChangesDay())
         {
             ChangeDay(
                 portal.GetDestinationDay()
             );
+
+            if (portal.GetTeleportType() ==
+                TeleportPortal.TeleportType.ReturnFromCase)
+            {
+                pendingReturnPlayDayScreen = true;
+                pendingReturnDayScreenDay =
+                    portal.GetDestinationDay();
+            }
         }
 
 
@@ -409,10 +426,13 @@ public class TeleportManager : MonoBehaviour
             int caseIDAfterLoad = 0;
 
             if (pendingTeleportType ==
-                    TeleportPortal.TeleportType.EnterCase &&
-                pendingPortal != null)
+                TeleportPortal.TeleportType.EnterCase)
             {
-                caseIDAfterLoad = pendingPortal.GetCaseID();
+                caseIDAfterLoad = ResolveEnterCaseID(
+                    pendingPortal,
+                    pendingSceneName,
+                    pendingDestinationID
+                );
             }
 
             yield return LoadSceneAndFinishTeleport(
@@ -464,6 +484,24 @@ public class TeleportManager : MonoBehaviour
 
 
         // -----------------------------------------------------
+        // SAME-SCENE RETURN FROM CASE
+        // -----------------------------------------------------
+
+        if (pendingTeleportType ==
+                TeleportPortal.TeleportType.ReturnFromCase &&
+            GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.HandleReturnedFromCase(
+                pendingReturnPlayDayScreen,
+                pendingReturnDayScreenDay
+            );
+        }
+
+        pendingReturnPlayDayScreen = false;
+        pendingReturnDayScreenDay = -1;
+
+
+        // -----------------------------------------------------
         // RESET
         // -----------------------------------------------------
 
@@ -475,7 +513,7 @@ public class TeleportManager : MonoBehaviour
     string sceneName,
     string destinationID,
     TeleportPortal.TeleportType teleportType,
-    int debugCaseID = 0)
+    int caseIDAfterLoad = 0)
     {
         // =========================================================
         // VALIDATE SCENE
@@ -884,22 +922,54 @@ public class TeleportManager : MonoBehaviour
 
 
                 // =================================================
-                // START THE DEBUG CASE
+                // START CASE AFTER CROSS-SCENE LOAD
                 // =================================================
-                // Normal level portals start the CaseManager after the
-                // destination scene has loaded. Debug F2/F4/F6 must also
-                // initialise the case, otherwise Level 1/2/3 music will
-                // not start when entering through a debug key.
+                // Both normal level portals and debug level teleports
+                // must start CaseManager only after the destination scene
+                // exists. Previously this branch only handled debug cases,
+                // leaving normal cross-scene portals in Case mode without
+                // an active case/objective.
                 if (teleportType == TeleportPortal.TeleportType.EnterCase &&
-                    debugCaseID > 0 &&
                     CaseManager.Instance != null)
                 {
-                    CaseManager.Instance.RefreshSceneReferences();
-                    CaseManager.Instance.StartCase(debugCaseID);
+                    int caseToStart = caseIDAfterLoad;
 
-                    if (AudioManager.Instance != null)
+                    if (caseToStart > 0)
                     {
-                        AudioManager.Instance.PlayLevelMusic(debugCaseID);
+                        CaseManager.Instance.RefreshSceneReferences();
+                        CaseManager.Instance.StartCase(caseToStart);
+
+                        if (GameFlowManager.Instance != null)
+                        {
+                            GameFlowManager.Instance.SetGameplayHUDVisible(true);
+                        }
+
+                        ObjectiveAndDayOverlay[] overlays =
+                            FindObjectsByType<ObjectiveAndDayOverlay>(
+                                FindObjectsInactive.Include,
+                                FindObjectsSortMode.None
+                            );
+
+                        foreach (ObjectiveAndDayOverlay overlay in overlays)
+                        {
+                            if (overlay != null)
+                            {
+                                overlay.SetOverlayVisible(true);
+                                overlay.RefreshNow();
+                            }
+                        }
+
+                        Debug.Log(
+                            "[Teleport] Started Case "
+                            + caseToStart
+                            + " after cross-scene load."
+                        );
+                    }
+                    else
+                    {
+                        Debug.LogWarning(
+                            "[Teleport] EnterCase portal/debug teleport had no valid Case ID after scene load."
+                        );
                     }
                 }
 
@@ -940,6 +1010,33 @@ public class TeleportManager : MonoBehaviour
                     {
                         CaseManager.Instance.DeactivateCase();
                     }
+
+                    if (GameFlowManager.Instance != null)
+                    {
+                        GameFlowManager.Instance.HandleReturnedFromCase(
+                            pendingReturnPlayDayScreen,
+                            pendingReturnDayScreenDay
+                        );
+                    }
+                    else
+                    {
+                        ObjectiveAndDayOverlay[] overlays =
+                            FindObjectsByType<ObjectiveAndDayOverlay>(
+                                FindObjectsInactive.Include,
+                                FindObjectsSortMode.None
+                            );
+
+                        foreach (ObjectiveAndDayOverlay overlay in overlays)
+                        {
+                            if (overlay != null)
+                            {
+                                overlay.RefreshNow();
+                            }
+                        }
+                    }
+
+                    pendingReturnPlayDayScreen = false;
+                    pendingReturnDayScreenDay = -1;
                 }
 
 
@@ -1278,11 +1375,14 @@ public class TeleportManager : MonoBehaviour
                 return;
             }
 
-            int caseID =
-                portal.GetCaseID();
+            int caseID = ResolveEnterCaseID(
+                portal,
+                portal.GetDestinationSceneName(),
+                portal.GetDestinationID()
+            );
 
 
-            if (caseID < 0)
+            if (caseID <= 0)
             {
                 Debug.LogWarning(
                     "[Teleport] EnterCase portal has no Case ID."
@@ -1297,6 +1397,26 @@ public class TeleportManager : MonoBehaviour
                 CaseManager.Instance.StartCase(
                     caseID
                 );
+
+                if (GameFlowManager.Instance != null)
+                {
+                    GameFlowManager.Instance.SetGameplayHUDVisible(true);
+                }
+
+                ObjectiveAndDayOverlay[] overlays =
+                    FindObjectsByType<ObjectiveAndDayOverlay>(
+                        FindObjectsInactive.Include,
+                        FindObjectsSortMode.None
+                    );
+
+                foreach (ObjectiveAndDayOverlay overlay in overlays)
+                {
+                    if (overlay != null)
+                    {
+                        overlay.SetOverlayVisible(true);
+                        overlay.RefreshNow();
+                    }
+                }
             }
             else
             {
@@ -2242,38 +2362,66 @@ public class TeleportManager : MonoBehaviour
     private void SkipActiveCutscene()
     {
         // -----------------------------------------------------
-        // FIRST-GAME CUTSCENE
+        // DAY SCREEN
         // -----------------------------------------------------
+
+        DayScreenCutscene dayScreen =
+            DayScreenCutscene.Instance != null
+                ? DayScreenCutscene.Instance
+                : FindAnyObjectByType<DayScreenCutscene>(
+                    FindObjectsInactive.Include
+                );
+
+        if (dayScreen != null && dayScreen.IsPlaying)
+        {
+            dayScreen.StopDayScreen();
+
+            DebugTeleport(
+                "Active day screen stopped."
+            );
+        }
+
+
+        // -----------------------------------------------------
+        // FIRST-GAME / INTRO CUTSCENE
+        // -----------------------------------------------------
+
+        bool skippedOpeningSequence = false;
 
         FirstGameCutscene firstGameCutscene =
             FindAnyObjectByType<FirstGameCutscene>();
 
-
-        if (firstGameCutscene != null)
+        if (firstGameCutscene != null &&
+            firstGameCutscene.IsSequenceRunning)
         {
             firstGameCutscene.StopSequence();
+            skippedOpeningSequence = true;
 
             DebugTeleport(
                 "Active first-game cutscene stopped."
             );
         }
 
-
-        // -----------------------------------------------------
-        // INTRO CUTSCENE
-        // -----------------------------------------------------
-
         IntroCutscene introCutscene =
             FindAnyObjectByType<IntroCutscene>();
 
-
-        if (introCutscene != null)
+        if (introCutscene != null && introCutscene.IsPlaying)
         {
             introCutscene.StopCutscene();
+            skippedOpeningSequence = true;
 
             DebugTeleport(
                 "Active intro cutscene stopped."
             );
+        }
+
+        // Match F9: skipping the opening sequence must continue
+        // into Day 1 (lobby music + Day 1 screen).
+        if (skippedOpeningSequence &&
+            GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.IntroFinished();
+            return;
         }
 
 
@@ -2299,6 +2447,89 @@ public class TeleportManager : MonoBehaviour
                 PlayerStateManager.PlayerState.AllMovement
             );
         }
+    }
+
+
+    // =========================================================
+    // ENTER-CASE ID RESOLUTION
+    // =========================================================
+
+    /// <summary>
+    /// Resolves which CaseManager case to start for an EnterCase
+    /// teleport. Portal caseID fields in the lobby were historically
+    /// off-by-one (0/1/2); portalLevel and destination names are 1/2/3.
+    /// </summary>
+    private static int ResolveEnterCaseID(
+        TeleportPortal portal,
+        string sceneName,
+        string destinationID)
+    {
+        if (portal != null)
+        {
+            // portalLevel is the authoritative level index (1/2/3).
+            // Some lobby portals still have stale caseID values that are
+            // off-by-one, so prefer portalLevel whenever it is set.
+            int portalLevel = portal.GetConfiguredPortalLevel();
+            if (portalLevel > 0)
+            {
+                return portalLevel;
+            }
+
+            portalLevel = portal.GetPortalLevel();
+            if (portalLevel > 0)
+            {
+                return portalLevel;
+            }
+
+            int configuredCaseID = portal.GetCaseID();
+            if (configuredCaseID > 0)
+            {
+                return configuredCaseID;
+            }
+        }
+
+        int fromDestination =
+            InferCaseIDFromNames(sceneName, destinationID);
+
+        if (fromDestination > 0)
+        {
+            return fromDestination;
+        }
+
+        return 0;
+    }
+
+
+    private static int InferCaseIDFromNames(
+        string sceneName,
+        string destinationID)
+    {
+        string combined =
+            ((sceneName ?? string.Empty) + " " +
+             (destinationID ?? string.Empty)).ToLowerInvariant();
+
+        if (combined.Contains("level1") ||
+            combined.Contains("level_1") ||
+            combined.Contains("level 1"))
+        {
+            return 1;
+        }
+
+        if (combined.Contains("level2") ||
+            combined.Contains("level_2") ||
+            combined.Contains("level 2"))
+        {
+            return 2;
+        }
+
+        if (combined.Contains("level3") ||
+            combined.Contains("level_3") ||
+            combined.Contains("level 3"))
+        {
+            return 3;
+        }
+
+        return 0;
     }
 
 

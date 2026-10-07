@@ -11563,7 +11563,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8eede159872082744b4f82d94aa1dd42, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CaseSceneBinding
-  caseID: 0
+  caseID: 1
   requiredObject: {fileID: 1464360250}
   sideQuestItem: {fileID: 1464360249}
 --- !u!1 &1442488380
@@ -11813,6 +11813,10 @@ PrefabInstance:
       propertyPath: managedReferences[6564986284336481053].m_Value
       value: 
       objectReference: {fileID: 919132149155446097, guid: 12fda823b1306e04facc3ff4713f891c, type: 3}
+    - target: {fileID: 1868601913336756490, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.05
+      objectReference: {fileID: 0}
     - target: {fileID: 2276432785216696152, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
       propertyPath: m_Range
       value: 6
@@ -11868,6 +11872,14 @@ PrefabInstance:
     - target: {fileID: 2479067389592207240, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: -0.314
+      objectReference: {fileID: 0}
+    - target: {fileID: 2535046464305097979, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2535046464305097979, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1.32
       objectReference: {fileID: 0}
     - target: {fileID: 2788663557029601199, guid: febef9f1f3feb0f4794a86ca32d913b3, type: 3}
       propertyPath: m_LocalPosition.x
@@ -14198,6 +14210,7 @@ MonoBehaviour:
   hardcoreCooldownMultiplier: 0.75
   increaseSpeedOnHardcore: 1
   hardcoreSpeedMultiplier: 1.25
+  deathCause: 1
   playerHealth: {fileID: 0}
   navMeshAgent: {fileID: 2006119300}
   debugAttack: 1

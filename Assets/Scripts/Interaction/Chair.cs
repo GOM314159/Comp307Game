@@ -152,6 +152,11 @@ public class Chair : WorldInteractable
 
     private VideoPlayer currentVideoPlayer;
 
+    // F9 requests a skip without destroying the running coroutine.
+    // The coroutine must clean up its local VideoPlayer event handlers
+    // before running the normal completion sequence.
+    private bool debugSkipRequested = false;
+
 
     // ---------------------------------------------------------
     // DAY TRACKING
@@ -165,6 +170,10 @@ public class Chair : WorldInteractable
     // ---------------------------------------------------------
 
     private bool interactionSuppressed = false;
+
+    // Once the final Day 4 play has completed, this chair must remain
+    // permanently unavailable until a full game/day reset occurs.
+    private bool finalPlayCompleted = false;
 
 
     // ---------------------------------------------------------
@@ -303,6 +312,15 @@ public class Chair : WorldInteractable
         {
             HideInteractionPrompt();
 
+            return;
+        }
+
+        // The final Day 4 play has completed. The player must not be able
+        // to sit in the chair and replay it while the boss sequence is active.
+        if (finalPlayCompleted)
+        {
+            SetInteractionEnabled(false);
+            HideInteractionPrompt();
             return;
         }
 
@@ -494,6 +512,11 @@ public class Chair : WorldInteractable
 
 
         if (interactionSuppressed)
+        {
+            return;
+        }
+
+        if (finalPlayCompleted)
         {
             return;
         }
@@ -718,6 +741,7 @@ public class Chair : WorldInteractable
         // -----------------------------------------------------
 
         isWatchingPlay = true;
+        debugSkipRequested = false;
 
         currentPlayDay = day;
 
@@ -728,7 +752,14 @@ public class Chair : WorldInteractable
         // GAME STATE
         // -----------------------------------------------------
 
-        GameStateManager.Instance.SetCurrentPlay(day);
+        if (TheaterManager.Instance != null)
+        {
+            TheaterManager.Instance.BeginExternalPlayForDay(day);
+        }
+        else
+        {
+            GameStateManager.Instance.SetCurrentPlay(day);
+        }
 
         GameStateManager.Instance.SetGameMode(
             watchingGameMode
@@ -1058,7 +1089,8 @@ public class Chair : WorldInteractable
         while (
             !videoFinished &&
             !videoErrored &&
-            isWatchingPlay
+            isWatchingPlay &&
+            !debugSkipRequested
         )
         {
             LockPlayerTransform();
@@ -1079,6 +1111,23 @@ public class Chair : WorldInteractable
 
         play.errorReceived -=
             HandleVideoError;
+
+
+        // -----------------------------------------------------
+        // DEBUG SKIP
+        // -----------------------------------------------------
+
+        if (debugSkipRequested)
+        {
+            debugSkipRequested = false;
+
+            if (isWatchingPlay)
+            {
+                yield return FinishPlaySequence();
+            }
+
+            yield break;
+        }
 
 
         // -----------------------------------------------------
@@ -1182,27 +1231,6 @@ public class Chair : WorldInteractable
 
 
         // -----------------------------------------------------
-        // REVEAL THE LEVEL PORTAL
-        // -----------------------------------------------------
-        // Chair.cs is the actual theater playback path in this project.
-        // Finishing the chair video must therefore be the authoritative
-        // event that unlocks the portal for the current day.
-
-        if (currentPlayDay > 0 &&
-            PortalProgressionManager.Instance != null)
-        {
-            PortalProgressionManager.Instance
-                .RevealPortalForDay(currentPlayDay);
-
-            DebugChair(
-                "Revealed Level "
-                + currentPlayDay
-                + " portal after successful theater playback."
-            );
-        }
-
-
-        // -----------------------------------------------------
         // FADE TO BLACK
         // -----------------------------------------------------
 
@@ -1227,10 +1255,50 @@ public class Chair : WorldInteractable
 
 
         // -----------------------------------------------------
+        // AUTHORITATIVE THEATER PROGRESSION
+        // -----------------------------------------------------
+
+        bool completedFinalPlay =
+            TheaterManager.Instance != null &&
+            TheaterManager.Instance.IsPlayActive() &&
+            TheaterManager.Instance.IsFinalPlay();
+
+        if (completedFinalPlay)
+        {
+            finalPlayCompleted = true;
+
+            // Keep the chair disabled after Day 4. Do this before restoring
+            // player state so the chair can never become interactable again
+            // during the transition into the boss fight.
+            SuppressChairInteraction();
+
+            DebugChair(
+                "Final Day 4 play completed. Chair permanently disabled " +
+                "until a game reset."
+            );
+        }
+
+        if (TheaterManager.Instance != null &&
+            TheaterManager.Instance.IsPlayActive())
+        {
+            TheaterManager.Instance.CompleteExternalPlay();
+        }
+        else if (currentPlayDay > 0 &&
+                 PortalProgressionManager.Instance != null)
+        {
+            PortalProgressionManager.Instance
+                .RevealPortalForDay(currentPlayDay);
+        }
+
+
+        // -----------------------------------------------------
         // RESTORE STATES
         // -----------------------------------------------------
 
-        RestoreAfterPlay();
+        // Day 4 completion can have just moved the game into BossFight.
+        // Restore the player/reading-chair state, but do not overwrite the
+        // authoritative BossFight game mode with the pre-play Lobby mode.
+        RestoreAfterPlay(!completedFinalPlay);
 
 
         // -----------------------------------------------------
@@ -1286,6 +1354,12 @@ public class Chair : WorldInteractable
         }
 
 
+        if (TheaterManager.Instance != null &&
+            TheaterManager.Instance.IsPlayActive())
+        {
+            TheaterManager.Instance.CancelExternalPlay();
+        }
+
         RestoreAfterPlay();
 
 
@@ -1305,7 +1379,7 @@ public class Chair : WorldInteractable
     // RESTORE AFTER PLAY
     // =========================================================
 
-    private void RestoreAfterPlay()
+    private void RestoreAfterPlay(bool restoreGameMode = true)
     {
         isWatchingPlay = false;
 
@@ -1503,6 +1577,35 @@ public class Chair : WorldInteractable
 
 
     // =========================================================
+    // DEBUG - SKIP CURRENT PLAY
+    // =========================================================
+
+    /// <summary>
+    /// Skips the currently playing chair theater video while still running
+    /// the normal completion pipeline. Returns true when a play was skipped.
+    /// </summary>
+    public bool DebugSkipCurrentPlay()
+    {
+        if (!isWatchingPlay || currentVideoPlayer == null)
+        {
+            return false;
+        }
+
+        DebugChair(
+            "F9 pressed. Skipping the active chair theater play."
+        );
+
+        // Do NOT StopCoroutine here. The play coroutine owns local
+        // VideoPlayer event handlers. Letting it exit through its normal
+        // cleanup path prevents dangling handlers and compiler/scope issues.
+        debugSkipRequested = true;
+
+        currentVideoPlayer.Stop();
+
+        return true;
+    }
+
+    // =========================================================
     // STOP CURRENT PLAY
     // =========================================================
 
@@ -1580,6 +1683,8 @@ public class Chair : WorldInteractable
         isWatchingPlay = false;
 
         currentVideoPlayer = null;
+
+        finalPlayCompleted = false;
 
 
         // Allow interaction again after reset.
