@@ -152,6 +152,11 @@ public class Chair : WorldInteractable
 
     private VideoPlayer currentVideoPlayer;
 
+    // F9 requests a skip without destroying the running coroutine.
+    // The coroutine must clean up its local VideoPlayer event handlers
+    // before running the normal completion sequence.
+    private bool debugSkipRequested = false;
+
 
     // ---------------------------------------------------------
     // DAY TRACKING
@@ -736,6 +741,7 @@ public class Chair : WorldInteractable
         // -----------------------------------------------------
 
         isWatchingPlay = true;
+        debugSkipRequested = false;
 
         currentPlayDay = day;
 
@@ -1083,7 +1089,8 @@ public class Chair : WorldInteractable
         while (
             !videoFinished &&
             !videoErrored &&
-            isWatchingPlay
+            isWatchingPlay &&
+            !debugSkipRequested
         )
         {
             LockPlayerTransform();
@@ -1104,6 +1111,23 @@ public class Chair : WorldInteractable
 
         play.errorReceived -=
             HandleVideoError;
+
+
+        // -----------------------------------------------------
+        // DEBUG SKIP
+        // -----------------------------------------------------
+
+        if (debugSkipRequested)
+        {
+            debugSkipRequested = false;
+
+            if (isWatchingPlay)
+            {
+                yield return FinishPlaySequence();
+            }
+
+            yield break;
+        }
 
 
         // -----------------------------------------------------
@@ -1562,7 +1586,7 @@ public class Chair : WorldInteractable
     /// </summary>
     public bool DebugSkipCurrentPlay()
     {
-        if (!isWatchingPlay)
+        if (!isWatchingPlay || currentVideoPlayer == null)
         {
             return false;
         }
@@ -1571,24 +1595,15 @@ public class Chair : WorldInteractable
             "F9 pressed. Skipping the active chair theater play."
         );
 
-        if (playSequenceCoroutine != null)
-        {
-            StopCoroutine(playSequenceCoroutine);
-            playSequenceCoroutine = null;
-        }
+        // Do NOT StopCoroutine here. The play coroutine owns local
+        // VideoPlayer event handlers. Letting it exit through its normal
+        // cleanup path prevents dangling handlers and compiler/scope issues.
+        debugSkipRequested = true;
 
-        if (currentVideoPlayer != null)
-        {
-            currentVideoPlayer.loopPointReached -= HandleFinished;
-            currentVideoPlayer.errorReceived -= HandleVideoError;
-            currentVideoPlayer.Stop();
-        }
+        currentVideoPlayer.Stop();
 
-        // Use the exact same completion path as a naturally finished play.
-        playSequenceCoroutine = StartCoroutine(FinishPlaySequence());
         return true;
     }
-
 
     // =========================================================
     // STOP CURRENT PLAY
