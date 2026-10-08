@@ -3,11 +3,121 @@ guid: 09bff6593e6839345b47fe7771fa6c46
 ModelImporter:
   serializedVersion: 24501
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: CAP
+    second: {fileID: 2100000, guid: 690c85a0ed7589241977182dc817ad52, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Canvas fabric texture
+    second: {fileID: 2100000, guid: a943cb62960a83a44b6adeff07072ff5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: DETAILS_LIGHT
+    second: {fileID: 2100000, guid: 381aed043898e184bafe7db3b657f896, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: FABRICRED
+    second: {fileID: 2100000, guid: 109b51412e007744e9d0fd5e800c7945, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: GLASSBOTTLE1
+    second: {fileID: 2100000, guid: 865b96aa7dc74574baf94452819b424e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: GLASSBOTTLE2
+    second: {fileID: 2100000, guid: eb30f0bb48070a04eb01073537abdf39, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: GLASSBOTTLE3
+    second: {fileID: 2100000, guid: f235406fb6070f6479d1c3a02e55a29c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: GLASS_MUG
+    second: {fileID: 2100000, guid: e0aa767109d42a34eb69f5db75f5d4a2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: GLASS_cup
+    second: {fileID: 2100000, guid: 0f458f080fb81fe4abb01289ec1e0cb3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LIGHT
+    second: {fileID: 2100000, guid: 6f7eb282634f9654ea7aa5b92ca55645, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LIGHT1
+    second: {fileID: 2100000, guid: e056d139229d3c94994312138248ede3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MARBLEE
+    second: {fileID: 2100000, guid: c4286259ace511a4bbc1c530187128bf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: METAL
+    second: {fileID: 2100000, guid: a03160deba2c50540bcb3b63aadba14b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: PAINEL
+    second: {fileID: 2100000, guid: 19307a1de072f284e9f79d296948d335, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WIRES
+    second: {fileID: 2100000, guid: 1e7839258c46a60499ef429f38b9241b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WOOD1
+    second: {fileID: 2100000, guid: c3a741400c9efa34bb1a7268e78b710a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WOOD2
+    second: {fileID: 2100000, guid: 81d8be6f9ed8408488fe56e2278e96e8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WOOD2.001
+    second: {fileID: 2100000, guid: 611c1d310e2e57a4a8517e8bc312e36a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WOOD3
+    second: {fileID: 2100000, guid: e77fabc9a10a2dd418947e31fdb425d2, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WOOD4
+    second: {fileID: 2100000, guid: f22683c550b87674b85c40f2133bfe82, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WOOD4.001
+    second: {fileID: 2100000, guid: 73b8ac41a49d02c468368683f48be70c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: detail
+    second: {fileID: 2100000, guid: ceba299a918f671408297c7563acde1d, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
-    materialSearch: 1
+    materialSearch: 0
     materialLocation: 1
     searchTexturesGlobally: 0
   animations:
