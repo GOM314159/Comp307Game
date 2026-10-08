@@ -65,8 +65,10 @@ public static class LobbyDay2DecayBuilder
             return;
         }
 
+        // The day roots moved under Lobby/Changes when main was merged,
+        // so a direct-child Find no longer sees them. Search deep.
         Transform dayRoot =
-            lobby.transform.Find(DayRootName);
+            FindDeep(lobby.transform, DayRootName);
 
         if (dayRoot == null)
         {
@@ -130,6 +132,40 @@ public static class LobbyDay2DecayBuilder
     }
 
 
+    // Command-line entry point. Opens the lobby scene, builds the
+    // Day 2 decay, and SAVES the scene and materials.
+    //   Unity.exe -batchmode -quit -projectPath <repo>
+    //       -executeMethod LobbyDay2DecayBuilder.BuildAndSaveBatch
+    // The Unity editor must be closed on this project first.
+    public static void BuildAndSaveBatch()
+    {
+        EditorSceneManager.OpenScene(LobbyScenePath);
+
+        Build();
+
+        GameObject lobby = FindLobby();
+
+        Transform dayRoot = lobby != null
+            ? FindDeep(lobby.transform, DayRootName) : null;
+
+        if (dayRoot == null || dayRoot.childCount == 0)
+        {
+            Debug.LogError("[Day2Decay] Batch build produced nothing.");
+
+            EditorApplication.Exit(1);
+
+            return;
+        }
+
+        EditorSceneManager.SaveOpenScenes();
+
+        AssetDatabase.SaveAssets();
+
+        Debug.Log("[Day2Decay] Saved " + LobbyScenePath + " with "
+            + dayRoot.childCount + " day-2 group(s).");
+    }
+
+
     [MenuItem("Tools/Strings and Statutes/Lobby/Clear Day 2 Decay")]
     public static void Clear()
     {
@@ -140,7 +176,7 @@ public static class LobbyDay2DecayBuilder
             return;
         }
 
-        Transform dayRoot = lobby.transform.Find(DayRootName);
+        Transform dayRoot = FindDeep(lobby.transform, DayRootName);
 
         if (dayRoot == null)
         {
@@ -164,7 +200,7 @@ public static class LobbyDay2DecayBuilder
     // the moment anything is loaded additively or the root has been
     // toggled off. Walk every loaded scene instead, inactive
     // objects included.
-    private static GameObject FindLobby()
+    internal static GameObject FindLobby()
     {
         for (int i = 0; i < SceneManager.sceneCount; i++)
         {
@@ -198,7 +234,7 @@ public static class LobbyDay2DecayBuilder
     }
 
 
-    private static Transform FindDeep(Transform parent, string target)
+    internal static Transform FindDeep(Transform parent, string target)
     {
         for (int i = 0; i < parent.childCount; i++)
         {
@@ -262,7 +298,7 @@ public static class LobbyDay2DecayBuilder
 
 
     // Everything the theatre renders, minus the day roots themselves.
-    private static Bounds MeasureLobby(GameObject lobby)
+    internal static Bounds MeasureLobby(GameObject lobby)
     {
         Bounds b = new Bounds();
 
@@ -294,12 +330,20 @@ public static class LobbyDay2DecayBuilder
     }
 
 
-    private static bool IsInsideADayRoot(Transform t)
+    internal static bool IsInsideADayRoot(Transform t)
     {
         while (t != null)
         {
-            if (t.name.StartsWith("Day") &&
-                t.name.EndsWith("Changes"))
+            // Day2Changes..Day4Changes, their parent "Changes" and
+            // BossChanges - none of it is the room itself.
+            if (t.name.EndsWith("Changes"))
+            {
+                return true;
+            }
+
+            // The city seen through the window is scenery, not part
+            // of the room - keep it out of the room measurement.
+            if (t.name.StartsWith("LobbyCity"))
             {
                 return true;
             }
@@ -358,13 +402,30 @@ public static class LobbyDay2DecayBuilder
             "M_Day2_Cobweb",
             new Color(0.78f, 0.78f, 0.75f, 0.22f));
 
+        // Give the flat-colour squares real shapes: a soft water stain,
+        // an actual web, and paint that peels in ragged patches. Applied
+        // every build, so materials made by an older run are upgraded.
+        LobbyDecayShared.EnsureFolders();
+
+        LobbyDecayShared.MakeBlended(m.damp,
+            new Color(0.17f, 0.16f, 0.14f, 0.75f),
+            LobbyDecayShared.StainTexture(), true);
+
+        LobbyDecayShared.MakeBlended(m.web,
+            new Color(0.78f, 0.78f, 0.75f, 0.45f),
+            LobbyDecayShared.WebTexture(), true);
+
+        LobbyDecayShared.MakeCutout(m.peel,
+            new Color(0.40f, 0.37f, 0.33f),
+            LobbyDecayShared.PeelTexture(), 0.05f);
+
         AssetDatabase.SaveAssets();
 
         return m;
     }
 
 
-    private static Shader LitShader()
+    internal static Shader LitShader()
     {
         Shader s = Shader.Find(
             "Universal Render Pipeline/Lit");
@@ -378,7 +439,7 @@ public static class LobbyDay2DecayBuilder
     }
 
 
-    private static void SetBaseColour(Material m, Color colour)
+    internal static void SetBaseColour(Material m, Color colour)
     {
         if (m.HasProperty("_BaseColor"))
         {
@@ -391,7 +452,7 @@ public static class LobbyDay2DecayBuilder
     }
 
 
-    private static Color GetBaseColour(Material m)
+    internal static Color GetBaseColour(Material m)
     {
         if (m.HasProperty("_BaseColor"))
         {
@@ -407,7 +468,7 @@ public static class LobbyDay2DecayBuilder
     }
 
 
-    private static Material GetOrCreateOpaque(
+    internal static Material GetOrCreateOpaque(
         string name,
         Color colour,
         float smoothness)
@@ -442,7 +503,7 @@ public static class LobbyDay2DecayBuilder
     }
 
 
-    private static Material GetOrCreateTransparent(
+    internal static Material GetOrCreateTransparent(
         string name,
         Color colour)
     {
@@ -632,13 +693,11 @@ public static class LobbyDay2DecayBuilder
 
             RaycastHit hit;
 
-            if (!Physics.Raycast(
+            if (!LobbyDecayShared.Cast(
                     probe,
                     Vector3.down,
-                    out hit,
                     room.size.y * 1.5f,
-                    ~0,
-                    QueryTriggerInteraction.Ignore))
+                    out hit))
             {
                 continue;
             }
@@ -726,13 +785,11 @@ public static class LobbyDay2DecayBuilder
 
             RaycastHit hit;
 
-            if (!Physics.Raycast(
+            if (!LobbyDecayShared.Cast(
                     probe,
                     Vector3.up,
-                    out hit,
                     room.size.y * 1.5f,
-                    ~0,
-                    QueryTriggerInteraction.Ignore))
+                    out hit))
             {
                 continue;
             }
@@ -799,13 +856,11 @@ public static class LobbyDay2DecayBuilder
 
             RaycastHit hit;
 
-            if (!Physics.Raycast(
+            if (!LobbyDecayShared.Cast(
                     from,
                     dir,
-                    out hit,
                     Mathf.Max(room.size.x, room.size.z),
-                    ~0,
-                    QueryTriggerInteraction.Ignore))
+                    out hit))
             {
                 continue;
             }
@@ -826,9 +881,8 @@ public static class LobbyDay2DecayBuilder
                 PrimitiveType.Quad,
                 "Peel_" + made,
                 hit.point + hit.normal * 0.015f,
-                Quaternion.LookRotation(hit.normal)
-                    * Quaternion.Euler(0f, 0f,
-                        Random.Range(-10f, 10f)),
+                LobbyDecayShared.Facing(hit.normal,
+                    Random.Range(0f, 360f)),
                 new Vector3(w, h, 1f),
                 mats.peel);
 
@@ -876,13 +930,11 @@ public static class LobbyDay2DecayBuilder
 
             RaycastHit hit;
 
-            if (!Physics.Raycast(
+            if (!LobbyDecayShared.Cast(
                     from,
                     dir,
-                    out hit,
                     Mathf.Max(room.size.x, room.size.z),
-                    ~0,
-                    QueryTriggerInteraction.Ignore))
+                    out hit))
             {
                 continue;
             }
@@ -901,8 +953,8 @@ public static class LobbyDay2DecayBuilder
                 PrimitiveType.Quad,
                 "Web_" + made,
                 hit.point + hit.normal * 0.02f,
-                Quaternion.LookRotation(hit.normal)
-                    * Quaternion.Euler(0f, 0f, 45f),
+                LobbyDecayShared.Facing(hit.normal,
+                    Random.Range(0f, 360f)),
                 new Vector3(s, s, 1f),
                 mats.web);
 
