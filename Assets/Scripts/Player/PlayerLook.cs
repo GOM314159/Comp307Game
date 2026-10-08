@@ -172,7 +172,7 @@ public class PlayerLook : MonoBehaviour
             Quaternion.Euler(
                 xRotation,
                 0f,
-                1.5f
+                0f
             );
 
 

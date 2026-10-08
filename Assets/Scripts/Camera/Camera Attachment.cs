@@ -7,81 +7,115 @@ public class CameraAttachment : MonoBehaviour
     public Transform playerCamera;
 
     [Tooltip("Adjust this to move the camera slightly forward so you don't see the inside of the neck")]
-    public Vector3 cameraOffset = new Vector3(0f, 0.1f, 0.15f);
-
-    [Tooltip("Adjust this if the bone's default rotation makes the camera look off-center")]
-    public Vector3 rotationOffset = Vector3.zero;
+    public Vector3 cameraOffset = new Vector3(0f, 0f, 0.15f);
 
     [Header("Rig Settings")]
     [Tooltip("Check this if your models use Unity's Humanoid Rig type")]
     public bool isHumanoidRig = true;
 
-    [Tooltip("If not Humanoid, type the exact name of the head bone (e.g., 'mixamorig:Head')")]
+    [Tooltip("If not Humanoid, type the exact name of the head bone")]
     public string genericHeadBoneName = "head";
 
+    [Header("Procedural Headbob")]
+    [Tooltip("Enable to simulate footstep impact mathematically")]
+    public bool useProceduralBob = true;
 
+    [Tooltip("How fast the camera bounces. Should match your footstep audio interval.")]
+    public float walkBobSpeed = 12f;
 
-    /// <summary>
-    /// Call this method from your model spawning script right after Instantiate().
-    /// </summary>
-    /// <param name="spawnedModel">The newly instantiated character model prefab.</param>
+    [Tooltip("How high the camera bounces vertically in meters.")]
+    public float bobAmount = 0.04f;
+
+    // References
+    private Transform headBone = null;
+    private PlayerMovement playerMovement;
+    private float bobTimer = 0f;
+
     public void AttachCameraToHead(GameObject spawnedModel)
     {
         if (playerCamera == null)
         {
-            Debug.LogError("Player Camera is not assigned in the inspector!");
+            Debug.LogError("Player Camera is not assigned!");
             return;
         }
 
-        Transform headBone = null;
+        // Grab the movement script so we know when the player is walking vs sprinting
+        playerMovement = GetComponent<PlayerMovement>();
 
-        // METHOD 1: Cleanest approach for Humanoid rigs
+        // Find the bone
         if (isHumanoidRig)
         {
             Animator anim = spawnedModel.GetComponent<Animator>();
             if (anim != null && anim.isHuman)
             {
                 headBone = anim.GetBoneTransform(HumanBodyBones.Head);
-                Debug.Log("Camera attached to Humanoid head bone: " + headBone.name); 
             }
             else
             {
-                Debug.LogWarning("Model does not have a Humanoid Animator. Trying generic search...");
                 headBone = FindBoneByName(spawnedModel.transform, genericHeadBoneName);
             }
         }
-        //Fallback for Generic rigs
         else
         {
             headBone = FindBoneByName(spawnedModel.transform, genericHeadBoneName);
-            Debug.Log("Camera attached to Generic head bone: " + headBone?.name);
         }
 
-        // Parent and Reset
         if (headBone != null)
         {
-            playerCamera.SetParent(headBone);
-
-            // Snap to the bone's pivot, then apply the offset to avoid rendering the neck gap
-            playerCamera.localPosition = cameraOffset;
-            playerCamera.localRotation = Quaternion.identity;
-            playerCamera.localRotation = Quaternion.Euler(rotationOffset);
-
-            Debug.Log("Camera successfully locked to: " + headBone.name);
+            // Magnet setup: Parent to root, not the bone
+            playerCamera.SetParent(transform);
+            Debug.Log("Camera successfully tracking position of: " + headBone.name);
         }
         else
         {
-            Debug.LogError("Could not find the Head bone on the spawned model. Check rig settings or bone name.");
+            Debug.LogError("Could not find the Head bone on the spawned model.");
         }
     }
 
-    // Helper method to recursively search for a bone by string name
+    private void LateUpdate()
+    {
+        if (headBone != null && playerCamera != null)
+        {
+            // 1. Base Position from Bone (Maintains crouch drops)
+            Vector3 targetPosition = headBone.position;
+
+            // 2. Procedural Headbob (Adds the realism back)
+            if (useProceduralBob && playerMovement != null)
+            {
+                // Only bob if we are actively providing input and on the floor
+                if (playerMovement.IsMoving() && playerMovement.IsGrounded())
+                {
+                    // Sprinting makes the bob faster and slightly more aggressive
+                    float currentSpeed = playerMovement.IsSprinting() ? walkBobSpeed * 1.4f : walkBobSpeed;
+                    float currentAmount = playerMovement.IsSprinting() ? bobAmount * 1.2f : bobAmount;
+
+                    bobTimer += Time.deltaTime * currentSpeed;
+
+                    // Sine wave creates a smooth, continuous up-and-down arc
+                    targetPosition.y += Mathf.Sin(bobTimer) * currentAmount;
+                }
+                else
+                {
+                    // Smoothly reset the timer so it doesn't snap abruptly when stopping
+                    bobTimer = 0f;
+                }
+            }
+
+            playerCamera.position = targetPosition;
+
+            // 3. Apply Offset Directionally
+            playerCamera.position += playerCamera.forward * cameraOffset.z;
+            playerCamera.position += playerCamera.up * cameraOffset.y;
+            playerCamera.position += playerCamera.right * cameraOffset.x;
+        }
+    }
+
     private Transform FindBoneByName(Transform parent, string name)
     {
         Transform[] allChildren = parent.GetComponentsInChildren<Transform>();
         foreach (Transform child in allChildren)
         {
-            if (child.name == name)
+            if (child.name.ToLower() == name.ToLower())
             {
                 return child;
             }
