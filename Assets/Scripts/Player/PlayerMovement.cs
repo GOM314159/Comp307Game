@@ -77,6 +77,14 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField]
     private Animator animator;
 
+    [Header("Equipment Anim")]
+
+    [SerializeField]
+    private PlayerEquipmentManager equipmentManager;
+    private PlayerStateManager playerStateManager; 
+[SerializeField]
+    private PlayerAttackController playerAttackController;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -353,26 +361,66 @@ public class PlayerMovement : MonoBehaviour
 
         if (animator != null)
         {
-            if (IsMoving() && isCrouching)
-            {
-                animator.SetTrigger("CrouchWalk");
-            }
-            else if (isCrouching)
-            {
-                animator.SetTrigger("Crouch");
-            }
-            else if (canPlayerSprint)
-            {
-                animator.SetTrigger("Run");
-            }
-            else if (IsMoving() && !isCrouching)
-            {
-                animator.SetTrigger("Walk");
+            //to complete
+            if (equipmentManager.GetCurrentWeapon() != null){
+
+                if (playerAttackController.getisAttacking() == true)
+                {
+                    animator.SetTrigger("SwingWeapon");
+                }
+                else
+                {
+                    if (IsMoving() && isCrouching)
+                    {
+                        animator.SetTrigger("CrouchWalk");
+                    }
+                    else if (isCrouching)
+                    {
+                        animator.SetTrigger("Crouch");
+                    }
+                    else if (canPlayerSprint)
+                    {
+                        animator.SetTrigger("Run");
+                    }
+                    else if (IsMoving() && !isCrouching)
+                    {
+                        animator.SetTrigger("Walk");
+                    }
+                    else
+                    {
+                        animator.SetTrigger("HasAxeIdle");
+                    }
+                }
+
+                
             }
             else
             {
-                animator.SetTrigger("Idle");
+                if (IsMoving() && isCrouching)
+                {
+                    animator.SetTrigger("CrouchWalk");
+                }
+                else if (isCrouching)
+                {
+                    animator.SetTrigger("Crouch");
+                }
+                else if (canPlayerSprint)
+                {
+                    animator.SetTrigger("Run");
+                }
+                else if (IsMoving() && !isCrouching)
+                {
+                    animator.SetTrigger("Walk");
+                }
+                else
+                {
+                    animator.SetTrigger("Idle");
+                }
+
+
             }
+            
+            
         }
 
 
