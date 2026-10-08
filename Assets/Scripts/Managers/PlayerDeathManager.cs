@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 public class PlayerDeathManager : MonoBehaviour
@@ -8,6 +9,12 @@ public class PlayerDeathManager : MonoBehaviour
     [SerializeField] private GameObject deathScreen;
     [SerializeField] private GameObject normalPanel;
     [SerializeField] private GameObject hardcorePanel;
+
+    [Header("Death Delay")]
+    [Tooltip("Delay before the death screen becomes visible.")]
+    [SerializeField, Min(0f)] private float deathScreenDelay = 5f;
+
+    private Coroutine deathRoutine;
 
     private void Awake()
     {
@@ -40,6 +47,12 @@ public class PlayerDeathManager : MonoBehaviour
         {
             GameStateManager.Instance.OnLoss -= HandleLoss;
         }
+
+        if (deathRoutine != null)
+        {
+            StopCoroutine(deathRoutine);
+            deathRoutine = null;
+        }
     }
 
     private void HandleLoss(GameStateManager.LossReason reason)
@@ -49,10 +62,53 @@ public class PlayerDeathManager : MonoBehaviour
             return;
         }
 
-        ShowDeathScreen();
+        if (deathRoutine != null)
+        {
+            StopCoroutine(deathRoutine);
+        }
+
+        deathRoutine = StartCoroutine(ShowDeathScreenAfterDelay());
     }
 
-    private void ShowDeathScreen()
+    private IEnumerator ShowDeathScreenAfterDelay()
+    {
+        if (deathScreenDelay > 0f)
+        {
+            yield return new WaitForSecondsRealtime(deathScreenDelay);
+        }
+
+        deathRoutine = null;
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[PlayerDeathManager] GameStateManager is missing."
+            );
+            yield break;
+        }
+
+        bool bossFightDeath =
+            GameStateManager.Instance.GetGameMode() ==
+            GameStateManager.GameMode.BossFight;
+
+        DeathScreen ui =
+            FindAnyObjectByType<DeathScreen>(
+                FindObjectsInactive.Include
+            );
+
+        if (ui != null)
+        {
+            ui.SetBossFightDeath(bossFightDeath);
+            ui.ShowDeathScreen();
+            yield break;
+        }
+
+        // Fallback for a scene that does not contain the dedicated
+        // DeathScreen component.
+        ShowDeathScreenFallback(bossFightDeath);
+    }
+
+    private void ShowDeathScreenFallback(bool bossFightDeath)
     {
         if (deathScreen != null)
         {
@@ -61,47 +117,12 @@ public class PlayerDeathManager : MonoBehaviour
 
         if (normalPanel != null)
         {
-            normalPanel.SetActive(false);
+            normalPanel.SetActive(!GameStateManager.Instance.IsHardcore());
         }
 
         if (hardcorePanel != null)
         {
-            hardcorePanel.SetActive(false);
-        }
-
-        if (GameStateManager.Instance == null)
-        {
-            Debug.LogError(
-                "[PlayerDeathManager] GameStateManager is missing."
-            );
-            return;
-        }
-
-        bool bossFightDeath =
-            GameStateManager.Instance.GetGameMode() ==
-            GameStateManager.GameMode.BossFight;
-
-        DeathScreen ui =
-            FindAnyObjectByType<DeathScreen>(FindObjectsInactive.Include);
-
-        if (ui != null)
-        {
-            ui.SetBossFightDeath(bossFightDeath);
-        }
-
-        if (GameStateManager.Instance.IsHardcore())
-        {
-            if (hardcorePanel != null)
-            {
-                hardcorePanel.SetActive(true);
-            }
-        }
-        else
-        {
-            if (normalPanel != null)
-            {
-                normalPanel.SetActive(true);
-            }
+            hardcorePanel.SetActive(GameStateManager.Instance.IsHardcore());
         }
 
         if (bossFightDeath)
@@ -123,7 +144,6 @@ public class PlayerDeathManager : MonoBehaviour
             return;
         }
 
-        // A boss-fight death is always a complete run restart.
         if (GameStateManager.Instance.GetGameMode() ==
             GameStateManager.GameMode.BossFight)
         {

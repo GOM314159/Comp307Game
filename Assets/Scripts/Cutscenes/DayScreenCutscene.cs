@@ -28,6 +28,7 @@ public class DayScreenCutscene : MonoBehaviour
     private AudioSource audioSource;
     private Coroutine playRoutine;
     private bool isPlaying;
+    private int playingDay = -1;
 
     private GameStateManager.GameMode previousGameMode =
         GameStateManager.GameMode.Lobby;
@@ -194,7 +195,7 @@ public class DayScreenCutscene : MonoBehaviour
 
         if (!prepared || preparationFailed)
         {
-            Finish();
+            Finish(day);
             yield break;
         }
 
@@ -228,10 +229,10 @@ public class DayScreenCutscene : MonoBehaviour
         videoPlayer.loopPointReached -= Finished;
         videoPlayer.errorReceived -= PlaybackError;
 
-        Finish();
+        Finish(day);
     }
 
-    private void Finish()
+    private void Finish(int day)
     {
         if (videoPlayer != null)
         {
@@ -291,7 +292,17 @@ public class DayScreenCutscene : MonoBehaviour
             );
         }
 
+        // Day 1 is followed by the interactive tutorial. It starts only
+        // after the day video has completely finished and lobby state/music
+        // have been restored.
+        if (day == 1 &&
+            TutorialManager.Instance != null)
+        {
+            TutorialManager.Instance.BeginDay1Tutorial();
+        }
+
         playRoutine = null;
+        playingDay = -1;
     }
 
     private void BuildPresentation()
@@ -365,7 +376,7 @@ public class DayScreenCutscene : MonoBehaviour
 
         if (isPlaying)
         {
-            Finish();
+            Finish(playingDay);
         }
         else
         {

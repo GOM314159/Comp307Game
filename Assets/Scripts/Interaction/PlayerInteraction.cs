@@ -244,6 +244,13 @@ public class PlayerInteraction : MonoBehaviour
         // NORMAL INTERACTION CHECK
         // =========================================================
 
+        // The Day 1 tutorial blocks all world interaction until its final
+        // tutorial audio has completed.
+        if (TutorialManager.IsInteractionLocked)
+        {
+            return;
+        }
+
         if (stateManager != null &&
             !stateManager.CanInteract())
         {

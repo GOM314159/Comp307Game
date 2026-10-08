@@ -218,15 +218,31 @@ public class PlayerInventory : MonoBehaviour
         {
             CloseInventory();
 
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            if (GameUICursorController.Instance != null)
+            {
+                GameUICursorController.Instance.HideCursorForGameplay();
+            }
+            else
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
         }
         else
         {
             OpenInventory();
 
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            // The inventory is a real UI state: release the gameplay mouse
+            // lock for BOTH mouse/keyboard and controller users.
+            if (GameUICursorController.Instance != null)
+            {
+                GameUICursorController.Instance.ShowCursorForUI();
+            }
+            else
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
         }
     }
 
@@ -315,14 +331,17 @@ public class PlayerInventory : MonoBehaviour
 
         inventoryOpen = true;
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        if (GameUICursorController.Instance != null &&
-            GameInputDevice.LastUsedDeviceIsGamepad())
+        // Always release the gameplay cursor lock when Inventory opens.
+        // Previously this only reset the persistent cursor for gamepads,
+        // leaving mouse users locked until they moved the mouse.
+        if (GameUICursorController.Instance != null)
         {
-            GameUICursorController.Instance
-                .ResetControllerCursorForUI();
+            GameUICursorController.Instance.ShowCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
         Debug.Log(
@@ -367,8 +386,16 @@ public class PlayerInventory : MonoBehaviour
         }
 
         inventoryOpen = false;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
 
         Debug.Log(
             "[Inventory] Closed."

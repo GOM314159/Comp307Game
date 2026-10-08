@@ -37,20 +37,6 @@ public class DeathScreen : MonoBehaviour
 
     private void Start()
     {
-        // GameStateManager has finished Awake() by this point.
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.OnLoss += HandleLoss;
-
-            Debug.Log("[DeathScreen] Successfully subscribed to GameStateManager OnLoss.");
-        }
-        else
-        {
-            Debug.LogError(
-                "[DeathScreen] GameStateManager.Instance is missing."
-            );
-        }
-
         // Connect buttons.
         if (normalRespawnButton != null)
         {
@@ -66,30 +52,6 @@ public class DeathScreen : MonoBehaviour
         {
             hardcoreMainMenuButton.onClick.AddListener(OnMainMenuPressed);
         }
-    }
-
-
-    private void OnDestroy()
-    {
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.OnLoss -= HandleLoss;
-        }
-    }
-
-
-    private void HandleLoss(GameStateManager.LossReason reason)
-    {
-        Debug.Log(
-            "[DeathScreen] Loss received: " + reason
-        );
-
-        if (reason != GameStateManager.LossReason.PlayerDeath)
-        {
-            return;
-        }
-
-        ShowDeathScreen();
     }
 
 

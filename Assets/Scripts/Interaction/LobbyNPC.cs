@@ -135,7 +135,15 @@ public class LobbyNPC : WorldInteractable
         // the NPC itself must disappear completely on Day 4.
         if (day >= 4)
         {
+            // Day 4 has no Lobby NPC at all. Disable the whole root so its
+            // collider, prompt and audio cannot remain in the lobby.
             SetAllModelsActive(false);
+
+            if (gameObject.activeSelf)
+            {
+                gameObject.SetActive(false);
+            }
+
             return;
         }
 
@@ -210,6 +218,16 @@ public class LobbyNPC : WorldInteractable
                 dayModels[i].SetActive(active);
             }
         }
+    }
+
+
+    public override void ResetInteraction()
+    {
+        base.ResetInteraction();
+
+        // GameResetManager resets inactive WorldInteractables too. Re-apply
+        // the current day so a Day 4 NPC cannot reappear after a reset.
+        RefreshDayState();
     }
 
 

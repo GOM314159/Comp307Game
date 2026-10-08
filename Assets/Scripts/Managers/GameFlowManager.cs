@@ -535,6 +535,11 @@ public class GameFlowManager : MonoBehaviour
 
     private void FinishReturnToMainMenu()
     {
+        if (TutorialManager.Instance != null)
+        {
+            TutorialManager.Instance.ResetTutorial();
+        }
+
         DebugFlow(
             "Returning to Main Menu. Resetting entire game."
         );
@@ -722,6 +727,11 @@ public class GameFlowManager : MonoBehaviour
         GameStateManager.DifficultyMode difficulty,
         GameStateManager.PlayerGender gender)
     {
+        if (TutorialManager.Instance != null)
+        {
+            TutorialManager.Instance.ResetTutorial();
+        }
+
         DebugFlow(
             "Starting new game. Difficulty: "
             + difficulty

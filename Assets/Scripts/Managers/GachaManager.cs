@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -50,6 +52,9 @@ public class GachaManager : MonoBehaviour
     [SerializeField] private bool debugGacha = true;
 
     private GachaReward lastReward;
+    private bool delayedRollInProgress;
+
+    public bool IsDelayedRollInProgress() => delayedRollInProgress;
 
     public int StartingLevelPoints => startingLevelPoints;
     public int PointsLostPerMinute => pointsLostPerMinute;
@@ -250,6 +255,128 @@ public class GachaManager : MonoBehaviour
         return reward;
     }
 
+    /// <summary>
+    /// Starts the interaction-based gacha roll. Currency is paid immediately,
+    /// but the item is not added to the inventory until the delay completes.
+    /// </summary>
+    public bool TryStartDelayedRoll(
+        MonoBehaviour runner,
+        float delaySeconds,
+        Action<GachaReward, bool> completed)
+    {
+        if (runner == null || delayedRollInProgress)
+        {
+            return false;
+        }
+
+        if (GameStateManager.Instance == null)
+        {
+            return false;
+        }
+
+        List<GachaReward> availableRewards = GetAvailableRewards();
+
+        if (availableRewards.Count == 0)
+        {
+            DebugGacha("No rewards remain.");
+            return false;
+        }
+
+        if (GameStateManager.Instance.GetGachaCurrency() < rollCost)
+        {
+            DebugGacha("Not enough points for a spin.");
+            return false;
+        }
+
+        GachaReward reward = SelectWeightedReward(availableRewards);
+
+        if (reward == null || reward.item == null)
+        {
+            return false;
+        }
+
+        if (!GameStateManager.Instance.SpendGachaCurrency(rollCost))
+        {
+            return false;
+        }
+
+        delayedRollInProgress = true;
+
+        runner.StartCoroutine(
+            CompleteDelayedRoll(
+                reward,
+                delaySeconds,
+                completed
+            )
+        );
+
+        DebugGacha(
+            "Gacha started. Reward '" +
+            reward.displayName +
+            "' will be awarded after " +
+            delaySeconds +
+            " seconds."
+        );
+
+        return true;
+    }
+
+    private IEnumerator CompleteDelayedRoll(
+        GachaReward reward,
+        float delaySeconds,
+        Action<GachaReward, bool> completed)
+    {
+        float remaining = Mathf.Max(0f, delaySeconds);
+
+        while (remaining > 0f)
+        {
+            remaining -= Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        delayedRollInProgress = false;
+
+        PlayerInventory inventory =
+            FindAnyObjectByType<PlayerInventory>();
+
+        bool success =
+            inventory != null &&
+            inventory.AddItem(reward.item, 1);
+
+        if (!success)
+        {
+            // Do not make the player lose their currency if the inventory
+            // becomes full while waiting for the ten-second reward.
+            GameStateManager.Instance.AddGachaCurrency(rollCost);
+
+            DebugGacha(
+                "Delayed reward could not be added. Currency refunded."
+            );
+
+            completed?.Invoke(reward, false);
+            yield break;
+        }
+
+        if (reward.unique)
+        {
+            GameStateManager.Instance.MarkGachaRewardCollected(
+                reward.rewardID
+            );
+        }
+
+        lastReward = reward;
+
+        DebugGacha(
+            "Delayed gacha reward awarded: " +
+            reward.displayName
+        );
+
+        CheckDragonBalls();
+
+        completed?.Invoke(reward, true);
+    }
+
+
     public List<GachaReward> RollMultiple(int amount)
     {
         List<GachaReward> results = new List<GachaReward>();
@@ -312,7 +439,7 @@ public class GachaManager : MonoBehaviour
             return null;
         }
 
-        float randomValue = Random.Range(0f, totalWeight);
+        float randomValue = UnityEngine.Random.Range(0f, totalWeight);
         float currentWeight = 0f;
 
         foreach (GachaReward reward in availableRewards)
