@@ -3,7 +3,302 @@ guid: 96fe0d52a26b49041ab8383ff60dd6de
 ModelImporter:
   serializedVersion: 24501
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_BrickPainted.mat
+    second: {fileID: 2100000, guid: e8b1efa19c0342b47a68afc5c0456054, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_BrickPainted_DarkGrey.mat
+    second: {fileID: 2100000, guid: 75e6c634aca8e544d974c76694ad6766, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_CameraDepthFade1.mat
+    second: {fileID: 2100000, guid: 87fc50a3364680847a80ce3f7442d523, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Carpet_Brown.mat
+    second: {fileID: 2100000, guid: 38c4825b657dbbe4c944a87e0a567f6e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Castle_Tower.mat
+    second: {fileID: 2100000, guid: d797772ec8ec4a34f8cf4bbde4e7513f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_CurtainBlack.mat
+    second: {fileID: 2100000, guid: b49db6129f8b1ac4faf206b60e4e0d06, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_CurtainDarkRed.mat
+    second: {fileID: 2100000, guid: 5ef6ecfd711e2f84784e8018ee0ef340, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_CurtainTrim.mat
+    second: {fileID: 2100000, guid: 64221bbc956863740b78cd665b49a5e4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_CustomerFacingStairs.mat
+    second: {fileID: 2100000, guid: 9a3f03252c3f0054a985210e6a2bb444, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_DataDiverPort.mat
+    second: {fileID: 2100000, guid: b455e9a7f0edf0d449339ec276b54059, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_DataDiverPort.mat.001
+    second: {fileID: 2100000, guid: 3f2aec4085bd1de4e9c7b8207b709833, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_DataDiverReceiver_03.mat
+    second: {fileID: 2100000, guid: c8c445e87baa57e48b82b1c15d4d2550, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Decal_Rubble01.mat
+    second: {fileID: 2100000, guid: 0088166b3beae8244bb6dcc0a1001e3b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_ElectrialConduit.mat
+    second: {fileID: 2100000, guid: 1a5258afaa0e9a6449860a07796ce1e3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_ElectricalPanel_Glass.mat
+    second: {fileID: 2100000, guid: ff492d0ba364b984c8c5184f5b2fd16a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_FactoryCords_Black.mat
+    second: {fileID: 2100000, guid: 1f789c7a33b8fab48aa10665b295d8bf, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_FactoryCords_Green.mat
+    second: {fileID: 2100000, guid: 69d5f0c406ca8d245839dc5594116c69, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_FactoryCords_Red.mat
+    second: {fileID: 2100000, guid: 42235d18476608847af687b23484c1e9, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_FactoryCords_Yellow.mat
+    second: {fileID: 2100000, guid: 532beaa2763269d4aa9e579c90a9bd58, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Glass_Blue.mat
+    second: {fileID: 2100000, guid: c1596c6e654e59844aa62349d44d6ba5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_InventorHouseTrim1.mat
+    second: {fileID: 2100000, guid: 33105e684a0d5cf43bf89e23acc33748, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_LightBox_05_ON_Dimmer.mat
+    second: {fileID: 2100000, guid: 0a172a290ba30f8438c58fe8b406764d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_LightBox_05_ON_Red.mat
+    second: {fileID: 2100000, guid: 980272fb71255204b93bedad070cb347, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Light_Wall_01a_OFF.mat
+    second: {fileID: 2100000, guid: 209a9a99b06c1c745825914094b3cde1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Light_Wall_01a_ON.mat
+    second: {fileID: 2100000, guid: 6073ea75c0ae9f24f92a537ca5a982a5, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_LobbyWoodFloor.mat
+    second: {fileID: 2100000, guid: ff6a94992e8dade4db0c1e1912993863, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Metal_Beams.mat
+    second: {fileID: 2100000, guid: fc7049778095d2b4e8170e4829feb7e0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_OrangeEmissive.mat
+    second: {fileID: 2100000, guid: 826ec9d58e3a00742967818df79779b3, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Pallet.mat
+    second: {fileID: 2100000, guid: d6e25caae90adc74d80ec1d58c7405fd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_PeelingPaint_Decal_Red.mat
+    second: {fileID: 2100000, guid: 7103ee6b0e2fd2e4f9ef91353a605b99, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Plaster1.mat
+    second: {fileID: 2100000, guid: 453e67ed5c640424aa4bec5b2aa1a802, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Plaster_Black_Inst.mat
+    second: {fileID: 2100000, guid: 41000ec742a00d44f9c77606d2de4989, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Plaster_LightBlue.mat
+    second: {fileID: 2100000, guid: bd3e32da0adf5b047a893c0cd6d38424, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Plaster_Red.mat
+    second: {fileID: 2100000, guid: cf8f1aac00157a14bbe20582f01d256e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Plastic_Black.mat
+    second: {fileID: 2100000, guid: 03a1b0b7d7e336b438277841b3c2877f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Spotlight.mat
+    second: {fileID: 2100000, guid: 96dd6c6526547ad459dfc724e613d3a1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Stage_Fence.mat
+    second: {fileID: 2100000, guid: 018cee86749f4bb4eaa34a9f58f20622, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_StairsRailing01.mat
+    second: {fileID: 2100000, guid: 1eb01c419e0958e40ae6d1543f73a204, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Steel.mat
+    second: {fileID: 2100000, guid: 287257120ee5b0245b41f4eed1be5607, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_TV.mat
+    second: {fileID: 2100000, guid: 46292b71211c0f941af11e58e92f6f6b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_TVCart_01a.mat
+    second: {fileID: 2100000, guid: 4c385130ca5174c49aabf9700dc0b00d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Target_Blue.mat
+    second: {fileID: 2100000, guid: d97f47aa53bba2a408a698ed8788a2bc, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Terminal.mat
+    second: {fileID: 2100000, guid: 030a14dff99d15146bf6e37e27f89908, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_TheatreAttachments.mat
+    second: {fileID: 2100000, guid: 01693513c22306d4a90d4bbbc76cdbf7, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_TheatreCamera.mat
+    second: {fileID: 2100000, guid: e5f54702f4e16284d8cb036ac9ff1359, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_TheatreChairs.mat
+    second: {fileID: 2100000, guid: 8cee6c69b98a3bd43a0e0dfdd9b70561, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_TheatreStageFloor.mat
+    second: {fileID: 2100000, guid: a72ddcf30270cb547b64ac946932544c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_TheatreStage_Bottom.mat
+    second: {fileID: 2100000, guid: e486fc580aa610346818ef24c634e56b, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_TheatreTrim.mat
+    second: {fileID: 2100000, guid: 21c6bb76c1cbf504dbaec76986840a68, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_UtilityPipes.mat
+    second: {fileID: 2100000, guid: 946e9b9dc1d74f34bac6a80b93e2d58f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Vents.mat
+    second: {fileID: 2100000, guid: 7ac9e578c588ec240979cd5e7ef981ac, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Vertical_Wood_Panels_Small.mat
+    second: {fileID: 2100000, guid: 8f31fda014eac1343b6c3c088043ded1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_VictorianWood.mat
+    second: {fileID: 2100000, guid: 034ca41a5f57636428794eb3d71708ff, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_Wall_Corrugated_Metal_Red.mat
+    second: {fileID: 2100000, guid: f213b57489dc5f440bf47aa1525a644a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_WoodPlank.mat
+    second: {fileID: 2100000, guid: ebf56aded5c5c5c49b6c34727d5cdeed, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_electrical_panel_skin1_on.mat
+    second: {fileID: 2100000, guid: 8c92b2f389ab18049b18e6414daccc97, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MI_woodplanks_Inst.mat
+    second: {fileID: 2100000, guid: 6a0d1aa2c8775874e9262f25729d4971, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: M_CrackDecal_01.mat
+    second: {fileID: 2100000, guid: ab1807cc35d77574ea1546c923daf064, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: WorldGridMaterial.mat.001
+    second: {fileID: 2100000, guid: be5c0a79aa4613746a2e0d3fb682ef2c, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
