@@ -494,7 +494,7 @@ Transform:
   m_GameObject: {fileID: 111017867}
   serializedVersion: 2
   m_LocalRotation: {x: -0.5000001, y: -0.49999985, z: -0.49999988, w: 0.5000001}
-  m_LocalPosition: {x: 15.94, y: 7.2415323, z: -56.11}
+  m_LocalPosition: {x: 15.94, y: 7.2415323, z: -55.83}
   m_LocalScale: {x: 112.5, y: 100, z: 206.0085}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -912,7 +912,7 @@ Transform:
   m_GameObject: {fileID: 257669509}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 8.06802, y: -7.54294, z: -10.214769}
+  m_LocalPosition: {x: 7.454, y: -7.54294, z: -10.214769}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1004,7 +1004,7 @@ Transform:
   m_GameObject: {fileID: 280068144}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -1.102, y: -10.852, z: -5.607}
+  m_LocalPosition: {x: -1.102, y: -8.812, z: -5.607}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1445,7 +1445,7 @@ Transform:
   m_GameObject: {fileID: 475055908}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 8.06802, y: -7.54294, z: -1.4647696}
+  m_LocalPosition: {x: 7.152, y: -7.54294, z: -1.465}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1475,13 +1475,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0038c16c34866b4f9e25c9c0dc0f7e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.Behavior::Unity.Behavior.BehaviorGraphAgent
-  m_Graph: {fileID: 2074062547898412286, guid: 710c39484b6488b45bd5ba6e417af76f, type: 2}
+  m_Graph: {fileID: 2409037870813218755, guid: 707c5339806d8aa4387dbf77d4d75b13, type: 2}
   m_BlackboardVariableOverridesList:
   - rid: 2807900947896598707
-  - rid: 2807900950919381533
-  - rid: 2807900968505574232
-  - rid: 2807901088445629124
-  - rid: 2807901009230431061
   m_OriginalGraph: {fileID: 2074062547898412286, guid: 710c39484b6488b45bd5ba6e417af76f, type: 2}
   m_IsInitialised: 0
   m_IsStarted: 0
@@ -1494,45 +1490,8 @@ MonoBehaviour:
         GUID:
           m_Value0: 1
           m_Value1: 0
-        Name: Lvl2 Miniboss
+        Name: Doll
         m_Value: {fileID: 1554827549}
-    - rid: 2807900950919381533
-      type: {class: 'BlackboardVariable`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
-      data:
-        GUID:
-          m_Value0: 8185738989751884993
-          m_Value1: 16482463284100580752
-        Name: Chandelier
-        m_Value: {fileID: 1185006523}
-    - rid: 2807900968505574232
-      type: {class: 'BlackboardVariable`1[[System.Collections.Generic.List`1[[UnityEngine.GameObject, UnityEngine.CoreModule]], mscorlib]]', ns: Unity.Behavior, asm: Unity.Behavior}
-      data:
-        GUID:
-          m_Value0: 12611671802620804285
-          m_Value1: 9833998463919388084
-        Name: WaypointList
-        m_Value:
-        - {fileID: 257669509}
-        - {fileID: 475055908}
-        - {fileID: 1530283262}
-        - {fileID: 280068144}
-        - {fileID: 599131614}
-    - rid: 2807901009230431061
-      type: {class: 'BlackboardVariable`1[[System.Boolean, mscorlib]]', ns: Unity.Behavior, asm: Unity.Behavior}
-      data:
-        GUID:
-          m_Value0: 5456129994965110444
-          m_Value1: 12324048165482763684
-        Name: HasCableCutter
-        m_Value: 0
-    - rid: 2807901088445629124
-      type: {class: 'BlackboardVariable`1[[UnityEngine.Vector3, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
-      data:
-        GUID:
-          m_Value0: 4701728336384580968
-          m_Value1: 9508868036961400229
-        Name: Under Chandelier
-        m_Value: {x: -33.29, y: -10.88, z: -4.68}
 --- !u!195 &552892942
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -1541,9 +1500,9 @@ NavMeshAgent:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1554827549}
   m_Enabled: 1
-  m_AgentTypeID: -1372625422
+  m_AgentTypeID: 1479372276
   m_Radius: 2
-  m_Speed: 1
+  m_Speed: 3
   m_Acceleration: 2
   avoidancePriority: 50
   m_AngularSpeed: 120
@@ -1567,16 +1526,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d98c4854c39aee44c8ec8b66292f77b9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyAttack
-  damage: 50
+  damage: 10
   attackRange: 2
-  attackCooldown: 0.2
+  attackCooldown: 1
   hardcoreDamageMultiplier: 1.5
   hardcoreCooldownMultiplier: 0.75
   increaseSpeedOnHardcore: 1
   hardcoreSpeedMultiplier: 1.25
   deathCause: 1
   playerHealth: {fileID: 0}
-  navMeshAgent: {fileID: 0}
+  navMeshAgent: {fileID: 552892942}
   debugAttack: 1
 --- !u!114 &552892944
 MonoBehaviour:
@@ -1590,8 +1549,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3433af0d1da973b40bdd47df3a9d7d1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Health
-  maxHealth: 10000
-  currentHealth: 10000
+  maxHealth: 100
+  currentHealth: 100
   hardcoreHealthMultiplier: 2
   destroyOnDeath: 0
 --- !u!1 &577337036
@@ -1872,6 +1831,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 593970222}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 593970225}
     - targetCorrespondingSourceObject: {fileID: -2883320503873995422, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       insertIndex: -1
       addedObject: {fileID: 599423019}
@@ -1983,18 +1945,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.Behavior::Unity.Behavior.BehaviorGraphAgent
   m_Graph: {fileID: 2074062547898412286, guid: 710c39484b6488b45bd5ba6e417af76f, type: 2}
   m_BlackboardVariableOverridesList:
-  - rid: 2807900947896598707
-  - rid: 2807900950919381533
-  - rid: 2807900968505574232
-  - rid: 2807901088445629124
-  - rid: 2807901009230431061
+  - rid: 2807901106051220461
+  - rid: 2807901106051220462
+  - rid: 2807901106051220463
+  - rid: 2807901106051220464
+  - rid: 2807901106051220465
+  - rid: 2807901111944217175
   m_OriginalGraph: {fileID: 2074062547898412286, guid: 710c39484b6488b45bd5ba6e417af76f, type: 2}
   m_IsInitialised: 0
   m_IsStarted: 0
   references:
     version: 2
     RefIds:
-    - rid: 2807900947896598707
+    - rid: 2807901106051220461
       type: {class: 'BlackboardVariable`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
       data:
         GUID:
@@ -2002,7 +1965,7 @@ MonoBehaviour:
           m_Value1: 0
         Name: Lvl2 Miniboss
         m_Value: {fileID: 593970215}
-    - rid: 2807900950919381533
+    - rid: 2807901106051220462
       type: {class: 'BlackboardVariable`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
       data:
         GUID:
@@ -2010,7 +1973,7 @@ MonoBehaviour:
           m_Value1: 16482463284100580752
         Name: Chandelier
         m_Value: {fileID: 1185006523}
-    - rid: 2807900968505574232
+    - rid: 2807901106051220463
       type: {class: 'BlackboardVariable`1[[System.Collections.Generic.List`1[[UnityEngine.GameObject, UnityEngine.CoreModule]], mscorlib]]', ns: Unity.Behavior, asm: Unity.Behavior}
       data:
         GUID:
@@ -2023,15 +1986,7 @@ MonoBehaviour:
         - {fileID: 1530283262}
         - {fileID: 280068144}
         - {fileID: 599131614}
-    - rid: 2807901009230431061
-      type: {class: 'BlackboardVariable`1[[System.Boolean, mscorlib]]', ns: Unity.Behavior, asm: Unity.Behavior}
-      data:
-        GUID:
-          m_Value0: 5456129994965110444
-          m_Value1: 12324048165482763684
-        Name: HasCableCutter
-        m_Value: 0
-    - rid: 2807901088445629124
+    - rid: 2807901106051220464
       type: {class: 'BlackboardVariable`1[[UnityEngine.Vector3, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
       data:
         GUID:
@@ -2039,6 +1994,22 @@ MonoBehaviour:
           m_Value1: 9508868036961400229
         Name: Under Chandelier
         m_Value: {x: -33.29, y: -10.88, z: -4.68}
+    - rid: 2807901106051220465
+      type: {class: 'BlackboardVariable`1[[System.Boolean, mscorlib]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 5456129994965110444
+          m_Value1: 12324048165482763684
+        Name: HasCableCutter
+        m_Value: 0
+    - rid: 2807901111944217175
+      type: {class: 'BlackboardVariable`1[[UnityEngine.GameObject, UnityEngine.CoreModule]]', ns: Unity.Behavior, asm: Unity.Behavior}
+      data:
+        GUID:
+          m_Value0: 1705502859167026949
+          m_Value1: 14131148251689948615
+        Name: Waypoint Front
+        m_Value: {fileID: 280068144}
 --- !u!114 &593970222
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2056,6 +2027,21 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
   m_PrefabInstance: {fileID: 593970213}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &593970225
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 593970215}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6eaf5c2490d84a4d9b393153cb9232d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BossDeath
+  bossHealth: {fileID: 593970219}
+  returnPortal: {fileID: 1562663324}
+  debugBossDeath: 1
 --- !u!1 &599131614
 GameObject:
   m_ObjectHideFlags: 0
@@ -2221,15 +2207,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ddea010b7697f7d4f8a56cf6988aa5e7, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -41.176
+      value: -42.751
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ddea010b7697f7d4f8a56cf6988aa5e7, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -11.10531
+      value: -11.965
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ddea010b7697f7d4f8a56cf6988aa5e7, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.497
+      value: -4.637
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: ddea010b7697f7d4f8a56cf6988aa5e7, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2271,6 +2257,10 @@ PrefabInstance:
       propertyPath: m_Controller
       value: 
       objectReference: {fileID: 9100000, guid: 17c68775ec023e945abe2f03ea9b80d4, type: 2}
+    - target: {fileID: 5866666021909216657, guid: ddea010b7697f7d4f8a56cf6988aa5e7, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -8727,7 +8717,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.036
+      value: -1.237
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       propertyPath: m_LocalPosition.y
@@ -8735,7 +8725,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 2.3
+      value: 2.6
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       propertyPath: m_LocalRotation.w
@@ -8775,12 +8765,12 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5866666021909216657, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 21fc588b06a2b4845a159ad53dd6d9d1, type: 2}
+      objectReference: {fileID: 9100000, guid: 177f16c80104cb24f9b69dec6e8b405b, type: 2}
     - target: {fileID: 5866666021909216657, guid: 5b08902a5d9b676419a83210a730afe3, type: 3}
       propertyPath: m_WarningMessage
       value: 
@@ -14578,9 +14568,21 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 210130344}
     - target: {fileID: 935173995627926614, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: behaviorGraphAgent
+      value: 
+      objectReference: {fileID: 593970221}
+    - target: {fileID: 935173995627926614, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: level2ReturnPortal
       value: 
       objectReference: {fileID: 1562663324}
+    - target: {fileID: 1235269670908665426, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -58.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1540286880337957211, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 24.13
+      objectReference: {fileID: 0}
     - target: {fileID: 1644506925560739824, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -14589,13 +14591,21 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 2323013352580636839, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 9.093264
+      objectReference: {fileID: 0}
+    - target: {fileID: 2323013352580636839, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -7.93
+      objectReference: {fileID: 0}
     - target: {fileID: 2428150229234899059, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: destinationID
       value: Level2_Start
       objectReference: {fileID: 0}
     - target: {fileID: 2705765813431046408, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2709067709668082304, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -14649,10 +14659,22 @@ PrefabInstance:
       propertyPath: miniboss
       value: 
       objectReference: {fileID: 593970215}
+    - target: {fileID: 6396594985756435584, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: agentMini
+      value: 
+      objectReference: {fileID: 552892941}
     - target: {fileID: 6446060552358465401, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: 'm_Materials.Array.data[1]'
       value: 
       objectReference: {fileID: 2100000, guid: 934d542c75de7c74b9f6b4cb47384f51, type: 2}
+    - target: {fileID: 6820303111860307494, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 24.13
+      objectReference: {fileID: 0}
+    - target: {fileID: 7399171190484248553, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 24.13
+      objectReference: {fileID: 0}
     - target: {fileID: 8628332988408875604, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: m_Name
       value: Level 2 Root
@@ -16933,7 +16955,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.16666667
   m_MinRegionArea: 0
-  m_NavMeshData: {fileID: 23800000, guid: e77e196380f28db42b6fd66f7948a42e, type: 2}
+  m_NavMeshData: {fileID: 23800000, guid: 0b561268bb5ada34ea8b1b266047eb6c, type: 2}
   m_BuildHeightMesh: 0
 --- !u!4 &1961804113
 Transform:
@@ -17353,7 +17375,7 @@ MonoBehaviour:
   m_OverrideVoxelSize: 0
   m_VoxelSize: 0.33333334
   m_MinRegionArea: 0
-  m_NavMeshData: {fileID: 23800000, guid: 08b5625a0d4d6534297ceb80b4e265fb, type: 2}
+  m_NavMeshData: {fileID: 0}
   m_BuildHeightMesh: 0
 --- !u!4 &2126416812
 Transform:

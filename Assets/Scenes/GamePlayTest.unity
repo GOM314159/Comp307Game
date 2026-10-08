@@ -26280,12 +26280,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHeadBob
   playerMovement: {fileID: 1442830817}
   cameraTransform: {fileID: 281335103}
-  walkBobFrequency: 8
-  walkBobAmount: 0.04
-  sprintBobFrequency: 12
-  sprintBobAmount: 0.07
-  crouchBobFrequency: 6
-  crouchBobAmount: 0.025
+  walkBobFrequency: 24
+  walkBobAmount: 10
+  sprintBobFrequency: 24
+  sprintBobAmount: 20
+  crouchBobFrequency: 20
+  crouchBobAmount: 8
   returnSpeed: 8
 --- !u!114 &1442830823
 MonoBehaviour:
@@ -26435,7 +26435,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CameraAttachment
   playerCamera: {fileID: 281335103}
   cameraOffset: {x: 0.055, y: 0.1, z: 0}
-  rotationOffset: {x: 0, y: 0, z: 0}
   isHumanoidRig: 1
   genericHeadBoneName: Head
 --- !u!1 &1444877658

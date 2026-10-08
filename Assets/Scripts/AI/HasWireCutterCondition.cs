@@ -16,7 +16,6 @@ public partial class HasWireCutterCondition : Condition
 
     public override void OnStart()
     {
-        Flag.Value = true;
         Debug.Log($"HasCableCutter: {HasCableCutter.Value}, Flag: {Flag.Value}");
     }
 

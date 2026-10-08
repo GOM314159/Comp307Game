@@ -22,9 +22,13 @@ public class CableCutterInteractable : WorldInteractable
     [SerializeField]
     private PlayerInventory playerInventory;
 
-    [Tooltip("The AI Behavior Agent.")]
+    [Tooltip("The MiniBoss AI")]
     [SerializeField]
     private BehaviorGraphAgent agent;
+
+    [Tooltip("The mini AI")]
+    [SerializeField]
+    private BehaviorGraphAgent agentMini;
 
     [Tooltip("The Miniboss")]
     [SerializeField]
@@ -84,6 +88,9 @@ public class CableCutterInteractable : WorldInteractable
     // INTERACTION
     // =========================================================
 
+    /// <summary>
+    /// 
+    /// </summary>
     public override void Interact()
     {
         if (!CanInteract())
@@ -244,19 +251,18 @@ public class CableCutterInteractable : WorldInteractable
                 "HasCableCutter",
                 true
             );
+
             DebugCableCutter(
-                "Behavior graph agent updated."
+                "Behavior graph agents updated."
             );
         }
         else
         {
             Debug.LogWarning(
-                "[Cable Cutter] Behavior Graph Agent is not assigned."
+                "[Cable Cutter] Behavior Graph Agent Miniboss is not assigned."
             );
         }
-
-
-        gameObject.SetActive(false);
+            gameObject.SetActive(false);
     }
 
 
