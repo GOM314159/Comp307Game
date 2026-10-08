@@ -2078,6 +2078,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Vashin
       objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: ddea010b7697f7d4f8a56cf6988aa5e7, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 17c68775ec023e945abe2f03ea9b80d4, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
