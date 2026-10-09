@@ -1,0 +1,6 @@
+using System.Collections; using UnityEngine; using UnityEngine.UI;
+public class PlayerHitOverlay:MonoBehaviour { [SerializeField] private PlayerHealth playerHealth; [SerializeField] private Image overlayImage; [SerializeField,Min(.05f)] private float flashDuration=1f; [SerializeField] private Color hitColor=new Color(1,0,0,.35f); private float lastHealth=-1; private Coroutine routine;
+ private void Awake(){if(playerHealth==null)playerHealth=GetComponentInParent<PlayerHealth>();if(overlayImage!=null){overlayImage.raycastTarget=false;SetAlpha(0);}}
+ private void Update(){if(playerHealth==null){GameObject p=GameObject.FindGameObjectWithTag("Player");if(p!=null)playerHealth=p.GetComponentInParent<PlayerHealth>();if(playerHealth==null)return;}float h=playerHealth.GetCurrentHealth();if(lastHealth<0)lastHealth=h;else if(h<lastHealth)Flash();lastHealth=h;}
+ public void Flash(){if(overlayImage==null)return;if(routine!=null)StopCoroutine(routine);routine=StartCoroutine(FlashRoutine());}
+ private IEnumerator FlashRoutine(){overlayImage.color=hitColor;overlayImage.enabled=true;yield return new WaitForSecondsRealtime(flashDuration);SetAlpha(0);routine=null;} private void SetAlpha(float a){if(overlayImage==null)return;Color c=overlayImage.color;c.a=a;overlayImage.color=c;overlayImage.enabled=a>0;} }

@@ -1,3 +1,28 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:619ce78f4a3337b78052a62c421850f0070cba555b45dce314a5e0e65d7d9cc5
-size 757
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 211a441873a84c87b7f86c37e983568b, type: 3}
+  m_Name: Stormbreaker
+  m_EditorClassIdentifier: Assembly-CSharp::StormbreakerItem
+  itemName: Stormbreaker
+  description: 
+  icon: {fileID: 21300000, guid: e48a87b021a6a5c46962fdc6ee328bd8, type: 3}
+  itemType: 0
+  Image: {fileID: 0}
+  baseDamage: 1
+  stackable: 0
+  maxStackSize: 1
+  weaponType: 0
+  weaponDamage: 40
+  attackRange: 7
+  attackCooldown: 0.5
+  stormbreakerDamage: 40
+  stormbreakerRange: 7

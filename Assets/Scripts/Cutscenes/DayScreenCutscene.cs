@@ -295,10 +295,12 @@ public class DayScreenCutscene : MonoBehaviour
         // Day 1 is followed by the interactive tutorial. It starts only
         // after the day video has completely finished and lobby state/music
         // have been restored.
-        if (day == 1 &&
-            TutorialManager.Instance != null)
+        if (day == 1)
         {
-            TutorialManager.Instance.BeginDay1Tutorial();
+            TutorialManager tutorial = TutorialManager.Instance;
+            if (tutorial == null) tutorial = FindAnyObjectByType<TutorialManager>(FindObjectsInactive.Include);
+            if (tutorial != null) tutorial.BeginDay1Tutorial();
+            else Debug.LogError("[DayScreenCutscene] Day 1 ended, but no TutorialManager exists in the loaded scene or persistent managers.");
         }
 
         playRoutine = null;

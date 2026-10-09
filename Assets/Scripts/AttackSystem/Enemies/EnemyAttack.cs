@@ -168,6 +168,12 @@ public class EnemyAttack : MonoBehaviour
         }
     }
 
+    public void ConfigureAttack(float newDamage, float newRange, float newCooldown)
+    {
+        damage = Mathf.Max(0f, newDamage); attackRange = Mathf.Max(0.1f, newRange); attackCooldown = Mathf.Max(0.1f, newCooldown);
+        baseDamage = damage; baseAttackCooldown = attackCooldown; ApplyDifficulty();
+    }
+
     private void Attack()
     {
         if (playerHealth == null)

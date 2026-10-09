@@ -94,7 +94,12 @@ public class TutorialManager : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null &&
+        bool debugKeysEnabled =
+            GameStateManager.Instance == null ||
+            GameStateManager.Instance.AreDebugKeysEnabled();
+
+        if (debugKeysEnabled &&
+            Keyboard.current != null &&
             Keyboard.current.f12Key.wasPressedThisFrame &&
             tutorialRunning)
         {

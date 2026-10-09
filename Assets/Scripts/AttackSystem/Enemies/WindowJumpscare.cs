@@ -1,78 +1,79 @@
+
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Video;
 
-/// <summary>
-/// Plays a window jumpscare (audio + optional visual) when the player
-/// enters a trigger volume. Attach to a GameObject with a trigger Collider.
-/// Not wired into any scene by default — add it manually where needed.
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public class WindowJumpscare : MonoBehaviour
 {
-    // =========================================================
     // TRIGGER SETTINGS
-    // =========================================================
 
     [Header("Trigger Settings")]
-
-    [Tooltip("Only objects with this tag can fire the jumpscare.")]
+    [Tooltip("Only objects with this tag can trigger the jumpscare.")]
     [SerializeField]
     private string playerTag = "Player";
 
-    [Tooltip("If enabled, this jumpscare can only fire once.")]
+    [Tooltip("If enabled, the jumpscare can only trigger once.")]
     [SerializeField]
     private bool triggerOnce = true;
 
 
-    // =========================================================
     // AUDIO
-    // =========================================================
 
     [Header("Jumpscare Audio")]
-
     [Tooltip("AudioSource used to play the jumpscare sound.")]
     [SerializeField]
     private AudioSource jumpscareAudioSource;
 
-    [Tooltip("Clip played when the jumpscare triggers.")]
+    [Tooltip("Audio clip played when the jumpscare triggers.")]
     [SerializeField]
     private AudioClip jumpscareClip;
 
-    [Tooltip("If true, creates a temporary AudioSource when none is assigned.")]
+    [Tooltip("Create an AudioSource automatically if none is assigned.")]
     [SerializeField]
     private bool createAudioSourceIfMissing = true;
 
 
-    // =========================================================
-    // VISUAL (OPTIONAL)
-    // =========================================================
+    // OPTIONAL VISUAL
 
     [Header("Jumpscare Visual (Optional)")]
-
-    [Tooltip("Optional object enabled for the duration of the scare (e.g. face at window).")]
+    [Tooltip("Optional object enabled while the jumpscare is active.")]
     [SerializeField]
     private GameObject jumpscareVisual;
 
-    [Tooltip("How long the visual stays active after triggering.")]
+    [Tooltip("How long the visual stays active.")]
     [SerializeField, Min(0.05f)]
     private float scareDuration = 1.5f;
 
-    [Tooltip("Disable the visual again after scareDuration.")]
+    [Tooltip("Disable the visual after the scare duration.")]
     [SerializeField]
     private bool hideVisualAfterDuration = true;
 
 
-    // =========================================================
+    // WINDOW VIDEO
+
+    [Header("Window Video")]
+    [Tooltip("VideoPlayer on the window jumpscare screen.")]
+    [SerializeField]
+    private VideoPlayer windowVideoPlayer;
+
+    [Tooltip("Optional video clip. If empty, uses the VideoPlayer's assigned clip.")]
+    [SerializeField]
+    private VideoClip windowVideoClip;
+
+    [Tooltip("Stop the video after the scare duration. Disable to play the whole clip.")]
+    [SerializeField]
+    private bool stopVideoAfterScareDuration = true;
+
+
     // RUNTIME
-    // =========================================================
 
     private bool hasTriggered;
     private Coroutine scareRoutine;
+    private Coroutine stopVideoRoutine;
 
 
-    // =========================================================
     // UNITY
-    // =========================================================
 
     private void Reset()
     {
@@ -84,7 +85,6 @@ public class WindowJumpscare : MonoBehaviour
         }
     }
 
-
     private void Awake()
     {
         if (jumpscareVisual != null)
@@ -93,8 +93,20 @@ public class WindowJumpscare : MonoBehaviour
         }
 
         EnsureAudioSource();
-    }
 
+        // Try to find a VideoPlayer on this object or its children
+        // if one has not been assigned in the Inspector.
+        if (windowVideoPlayer == null)
+        {
+            windowVideoPlayer = GetComponentInChildren<VideoPlayer>(true);
+        }
+
+        if (windowVideoPlayer != null)
+        {
+            windowVideoPlayer.playOnAwake = false;
+            windowVideoPlayer.isLooping = false;
+        }
+    }
 
     private void OnTriggerEnter(Collider other)
     {
@@ -108,9 +120,10 @@ public class WindowJumpscare : MonoBehaviour
             return;
         }
 
-        if (!other.CompareTag(playerTag))
+        bool isPlayer = other.CompareTag(playerTag);
+
+        if (!isPlayer)
         {
-            // Also accept child colliders under a tagged player root.
             Transform root = other.transform.root;
 
             if (root == null || !root.CompareTag(playerTag))
@@ -123,9 +136,7 @@ public class WindowJumpscare : MonoBehaviour
     }
 
 
-    // =========================================================
     // JUMPSCARE
-    // =========================================================
 
     public void TriggerJumpscare()
     {
@@ -137,6 +148,7 @@ public class WindowJumpscare : MonoBehaviour
         hasTriggered = true;
 
         PlayJumpscareAudio();
+        PlayWindowVideo();
 
         if (scareRoutine != null)
         {
@@ -146,15 +158,72 @@ public class WindowJumpscare : MonoBehaviour
         scareRoutine = StartCoroutine(ScareSequence());
     }
 
+    private void PlayWindowVideo()
+    {
+        if (windowVideoPlayer == null)
+        {
+            Debug.LogWarning(
+                "[WindowJumpscare] No VideoPlayer assigned or found.",
+                this
+            );
+
+            return;
+        }
+
+        if (windowVideoClip != null)
+        {
+            windowVideoPlayer.clip = windowVideoClip;
+        }
+
+        if (windowVideoPlayer.clip == null)
+        {
+            Debug.LogWarning(
+                "[WindowJumpscare] No video clip assigned.",
+                this
+            );
+
+            return;
+        }
+
+        if (stopVideoRoutine != null)
+        {
+            StopCoroutine(stopVideoRoutine);
+            stopVideoRoutine = null;
+        }
+
+        windowVideoPlayer.playOnAwake = false;
+        windowVideoPlayer.isLooping = false;
+
+        windowVideoPlayer.Stop();
+        windowVideoPlayer.Play();
+
+        if (stopVideoAfterScareDuration)
+        {
+            stopVideoRoutine = StartCoroutine(
+                StopWindowVideoAfterDelay()
+            );
+        }
+    }
+
+    private IEnumerator StopWindowVideoAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(scareDuration);
+
+        if (windowVideoPlayer != null)
+        {
+            windowVideoPlayer.Stop();
+        }
+
+        stopVideoRoutine = null;
+    }
 
     private void PlayJumpscareAudio()
     {
         if (jumpscareClip == null)
         {
             Debug.LogWarning(
-                "[WindowJumpscare] No jumpscareClip assigned on '"
-                + gameObject.name
-                + "'."
+                "[WindowJumpscare] No jumpscare audio clip assigned.",
+                this
             );
 
             return;
@@ -162,14 +231,11 @@ public class WindowJumpscare : MonoBehaviour
 
         EnsureAudioSource();
 
-        if (jumpscareAudioSource == null)
+        if (jumpscareAudioSource != null)
         {
-            return;
+            jumpscareAudioSource.PlayOneShot(jumpscareClip);
         }
-
-        jumpscareAudioSource.PlayOneShot(jumpscareClip);
     }
-
 
     private IEnumerator ScareSequence()
     {
@@ -187,7 +253,6 @@ public class WindowJumpscare : MonoBehaviour
 
         scareRoutine = null;
     }
-
 
     private void EnsureAudioSource()
     {
@@ -214,13 +279,8 @@ public class WindowJumpscare : MonoBehaviour
     }
 
 
-    // =========================================================
     // PUBLIC HELPERS
-    // =========================================================
 
-    /// <summary>
-    /// Allows the jumpscare to fire again when triggerOnce is enabled.
-    /// </summary>
     public void ResetTrigger()
     {
         hasTriggered = false;

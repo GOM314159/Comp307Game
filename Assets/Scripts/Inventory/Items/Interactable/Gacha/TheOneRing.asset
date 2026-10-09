@@ -1,3 +1,22 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:02093e1201aabc5ae47350299fa8f8a5378d9b5041a12e136d389aeb5dfaf8de
-size 657
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 640a2584847c438eb04f12e9ff193500, type: 3}
+  m_Name: TheOneRing
+  m_EditorClassIdentifier: Assembly-CSharp::OneRingItem
+  itemName: The One Ring
+  description: 
+  icon: {fileID: 21300000, guid: aa142909b44e55b4987a3e861dc81c78, type: 3}
+  itemType: 2
+  Image: {fileID: 0}
+  baseDamage: 1
+  stackable: 0
+  maxStackSize: 1

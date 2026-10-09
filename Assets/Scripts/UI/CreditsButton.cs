@@ -1,0 +1,2 @@
+using UnityEngine; using UnityEngine.SceneManagement;
+public class CreditsButton:MonoBehaviour { [SerializeField] private string creditsSceneName="Credits"; public void OpenCredits(){if(GameFlowManager.Instance!=null)GameFlowManager.Instance.OpenCredits();if(!string.IsNullOrWhiteSpace(creditsSceneName)&&SceneManager.GetActiveScene().name!=creditsSceneName)SceneManager.LoadScene(creditsSceneName);} }

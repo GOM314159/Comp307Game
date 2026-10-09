@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using System;
 using Unity.Behavior;
@@ -276,6 +276,15 @@ public class GameStateManager : MonoBehaviour
     [Header("Behaviour Tree")]
     [SerializeField]
     private BehaviorGraphAgent behaviourAgent;
+
+    [Header("Debug Hotkeys")]
+    [Tooltip("Master switch for all F1-F12 debug hotkeys, including debug teleports, theater skip, tutorial skip, portal override and achievement reset.")]
+    [SerializeField] private bool enableDebugKeys = true;
+
+    public bool AreDebugKeysEnabled()
+    {
+        return enableDebugKeys;
+    }
 
     [Header("Persistent Manager Transform")]
     [Tooltip("GameStateManager is a logic-only persistent manager. Keep its transform at the origin so it cannot accidentally be moved/fall with a scene object.")]

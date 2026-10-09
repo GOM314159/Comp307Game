@@ -1,3 +1,28 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:7b18f78f5ec9d59074dedae32458cf68653a5f6d8a7289bbbd4d5963251ad3d7
-size 727
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cd1c83f749634a34ac295fae5918452c, type: 3}
+  m_Name: Katana
+  m_EditorClassIdentifier: Assembly-CSharp::KatanaItem
+  itemName: Katana
+  description: 
+  icon: {fileID: 21300000, guid: 6beec7b871c536544a904c3563402971, type: 3}
+  itemType: 0
+  Image: {fileID: 0}
+  baseDamage: 1
+  stackable: 0
+  maxStackSize: 1
+  weaponType: 0
+  weaponDamage: 25
+  attackRange: 6
+  attackCooldown: 0.5
+  katanaDamage: 25
+  katanaRange: 6
