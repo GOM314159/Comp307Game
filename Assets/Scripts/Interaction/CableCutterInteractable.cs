@@ -262,7 +262,26 @@ public class CableCutterInteractable : WorldInteractable
                 "[Cable Cutter] Behavior Graph Agent Miniboss is not assigned."
             );
         }
-            gameObject.SetActive(false);
+
+        if (agentMini != null)
+        {
+            agentMini.SetVariableValue(
+                "HasCableCutter",
+                true
+            );
+            DebugCableCutter(
+                "Behavior graph agents updated."
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Cable Cutter] Behavior Graph Agent Mini is not assigned."
+            );
+
+            
+        }
+        gameObject.SetActive(false);
     }
 
 
