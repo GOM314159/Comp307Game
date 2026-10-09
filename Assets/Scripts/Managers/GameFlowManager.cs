@@ -2486,6 +2486,14 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
+        // F9 is a cutscene/play debug control, never a tutorial skip.
+        if (TutorialManager.Instance != null &&
+            TutorialManager.Instance.IsTutorialRunning)
+        {
+            Debug.Log("[GameFlowManager] F9 ignored while the tutorial is active.");
+            return;
+        }
+
         Debug.Log(
             "[GameFlowManager] F9 debug skip requested."
         );

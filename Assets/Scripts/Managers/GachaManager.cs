@@ -200,8 +200,13 @@ public class GachaManager : MonoBehaviour
 
         if (availableRewards.Count == 0)
         {
-            Debug.LogWarning("[Gacha] Nothing left to roll.");
-            return null;
+            availableRewards = GetValidRewardsForFallback();
+            if (availableRewards.Count == 0)
+            {
+                Debug.LogWarning("[Gacha] No valid rewards are configured. Add reward entries with an Item assigned in the GachaManager Inspector.");
+                return null;
+            }
+            DebugGacha("All unique rewards were previously collected; allowing a repeat reward.");
         }
 
         if (GameStateManager.Instance.GetGachaCurrency() < rollCost)
@@ -278,8 +283,13 @@ public class GachaManager : MonoBehaviour
 
         if (availableRewards.Count == 0)
         {
-            DebugGacha("No rewards remain.");
-            return false;
+            availableRewards = GetValidRewardsForFallback();
+            if (availableRewards.Count == 0)
+            {
+                DebugGacha("No valid rewards are configured. Add reward entries with an Item assigned in the GachaManager Inspector.");
+                return false;
+            }
+            DebugGacha("All unique rewards were previously collected; allowing a repeat reward.");
         }
 
         if (GameStateManager.Instance.GetGachaCurrency() < rollCost)
@@ -423,6 +433,17 @@ public class GachaManager : MonoBehaviour
         }
 
         return available;
+    }
+
+    private List<GachaReward> GetValidRewardsForFallback()
+    {
+        List<GachaReward> valid = new List<GachaReward>();
+        foreach (GachaReward reward in rewards)
+        {
+            if (reward != null && reward.item != null && reward.weight > 0f)
+                valid.Add(reward);
+        }
+        return valid;
     }
 
     private GachaReward SelectWeightedReward(List<GachaReward> availableRewards)

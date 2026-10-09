@@ -19,6 +19,7 @@ public class TutorialManager : MonoBehaviour
     [SerializeField] private AudioClip[] tutorialAudio = new AudioClip[7];
 
     [SerializeField, Min(0f)] private float fadeInDuration = 2f;
+    [SerializeField, Min(0f)] private float delayAfterAction = 4f;
     [SerializeField] private float fadeCanvasAlpha = 1f;
     [SerializeField] private bool debugTutorial = true;
 
@@ -41,6 +42,26 @@ public class TutorialManager : MonoBehaviour
     private bool jumpDetected;
     private bool sprintDetected;
     private bool inventoryInputDetected;
+    private bool audioPaused;
+    public void SetTutorialAudioPaused(bool paused)
+    {
+        audioPaused = paused;
+        AudioSource source = GetComponent<AudioSource>();
+        if (source == null) return;
+        if (paused) source.Pause();
+        else source.UnPause();
+    }
+
+    private IEnumerator WaitAfterAction()
+    {
+        float elapsed = 0f;
+        while (tutorialRunning && elapsed < delayAfterAction)
+        {
+            if (!audioPaused)
+                elapsed += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
 
     private bool moveLeft;
     private bool moveRight;
@@ -216,9 +237,6 @@ public class TutorialManager : MonoBehaviour
         SetBarrier(true);
         HideGameplayCursor();
 
-        if (GameFlowManager.Instance != null)
-            GameFlowManager.Instance.SetGameplayHUDVisible(false);
-
         SetFadeAlpha(1f);
 
         if (fadeInDuration > 0f)
@@ -253,6 +271,9 @@ public class TutorialManager : MonoBehaviour
 
         if (!tutorialRunning) yield break;
 
+        yield return WaitAfterAction();
+        if (!tutorialRunning) yield break;
+
         // ---------------------------------------------------------
         // 2. LOOK
         // ---------------------------------------------------------
@@ -262,6 +283,9 @@ public class TutorialManager : MonoBehaviour
         while (tutorialRunning && !lookDetected)
             yield return null;
 
+        if (!tutorialRunning) yield break;
+
+        yield return WaitAfterAction();
         if (!tutorialRunning) yield break;
 
         // ---------------------------------------------------------
@@ -279,6 +303,9 @@ public class TutorialManager : MonoBehaviour
             yield return null;
         }
 
+        if (!tutorialRunning) yield break;
+
+        yield return WaitAfterAction();
         if (!tutorialRunning) yield break;
 
         // ---------------------------------------------------------
@@ -316,6 +343,9 @@ public class TutorialManager : MonoBehaviour
 
         if (!tutorialRunning) yield break;
 
+        yield return WaitAfterAction();
+        if (!tutorialRunning) yield break;
+
         // ---------------------------------------------------------
         // 5. TOOLBAR SLOT
         // ---------------------------------------------------------
@@ -345,6 +375,9 @@ public class TutorialManager : MonoBehaviour
 
         if (!tutorialRunning) yield break;
 
+        yield return WaitAfterAction();
+        if (!tutorialRunning) yield break;
+
         // ---------------------------------------------------------
         // 6. ATTACK
         // ---------------------------------------------------------
@@ -354,6 +387,9 @@ public class TutorialManager : MonoBehaviour
         while (tutorialRunning && !attackDetected)
             yield return null;
 
+        if (!tutorialRunning) yield break;
+
+        yield return WaitAfterAction();
         if (!tutorialRunning) yield break;
 
         // ---------------------------------------------------------
@@ -390,6 +426,7 @@ public class TutorialManager : MonoBehaviour
         source.Stop();
         source.clip = clip;
         source.Play();
+        if (audioPaused) source.Pause();
 
         if (debugTutorial)
             Debug.Log("[Tutorial] Playing audio step " + index + ": " + clip.name);
@@ -398,7 +435,8 @@ public class TutorialManager : MonoBehaviour
 
         while (tutorialRunning && elapsed < clip.length)
         {
-            elapsed += Time.unscaledDeltaTime;
+            if (!audioPaused)
+                elapsed += Time.unscaledDeltaTime;
             yield return null;
         }
 
@@ -413,9 +451,6 @@ public class TutorialManager : MonoBehaviour
         SetBarrier(false);
         SetFadeAlpha(0f);
         ShowGameplayCursor();
-
-        if (GameFlowManager.Instance != null)
-            GameFlowManager.Instance.SetGameplayHUDVisible(true);
 
         tutorialRoutine = null;
 
@@ -444,9 +479,6 @@ public class TutorialManager : MonoBehaviour
         SetBarrier(false);
         SetFadeAlpha(0f);
         ShowGameplayCursor();
-
-        if (GameFlowManager.Instance != null)
-            GameFlowManager.Instance.SetGameplayHUDVisible(true);
 
         if (debugTutorial)
             Debug.Log("[Tutorial] Skipped with F12.");

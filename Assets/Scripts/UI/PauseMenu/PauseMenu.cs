@@ -187,6 +187,9 @@ public class PauseMenu : MonoBehaviour
 
         Time.timeScale = 0f;
 
+        if (TutorialManager.Instance != null)
+            TutorialManager.Instance.SetTutorialAudioPaused(true);
+
         if (container != null)
         {
             container.SetActive(true);
@@ -246,6 +249,9 @@ public class PauseMenu : MonoBehaviour
         }
 
         Time.timeScale = 1f;
+
+        if (TutorialManager.Instance != null)
+            TutorialManager.Instance.SetTutorialAudioPaused(false);
 
         if (AudioManager.Instance != null)
         {
