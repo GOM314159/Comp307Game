@@ -12492,8 +12492,8 @@ MonoBehaviour:
   creakClips:
   - {fileID: 8300000, guid: b72f5185ed65a0d4cae9ff9ff3a8108e, type: 3}
   volume: 0.676
-  minInterval: 50
-  maxInterval: 140
+  minInterval: 10
+  maxInterval: 50
   playChance: 0.45
 --- !u!1 &936071159
 GameObject:
