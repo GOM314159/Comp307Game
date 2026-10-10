@@ -1330,9 +1330,9 @@ public class GameFlowManager : MonoBehaviour
             firstGameCutscene.IsSequenceRunning
         )
         {
-            firstGameCutscene.StopSequence();
-
-            skippedOpeningSequence = true;
+            // Skip only the currently playing video, not the whole sequence.
+            firstGameCutscene.SkipCurrentVideo();
+            return;
         }
         else if (
             introCutscene != null &&
@@ -1342,23 +1342,13 @@ public class GameFlowManager : MonoBehaviour
             introCutscene.StopCutscene();
 
             skippedOpeningSequence = true;
+            IntroFinished(true);
         }
-        else
+        // No active cutscene means F9 does nothing. Never forcibly complete
+        // the opening sequence or bypass the tutorial.
+        if (!skippedOpeningSequence)
         {
-            if (introCutscene != null)
-            {
-                introCutscene.StopCutscene();
-            }
-
-            if (firstGameCutscene != null)
-            {
-                firstGameCutscene.StopSequence();
-            }
-        }
-
-        if (skippedOpeningSequence)
-        {
-            IntroFinished(false);
+            Debug.Log("[GameFlowManager] F9 found no skippable active cutscene.");
         }
     }
 

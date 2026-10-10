@@ -94,6 +94,8 @@ public class DayScreenCutscene : MonoBehaviour
 
     private IEnumerator PlayAfterLobbyLoad(VideoClip clip, int day)
     {
+        playingDay = day;
+
         // GameFlow hides LoadingScreenManager before this call. Waiting one
         // frame plus EndOfFrame guarantees the day screen appears afterward.
         yield return null;
@@ -303,6 +305,14 @@ public class DayScreenCutscene : MonoBehaviour
             else Debug.LogError("[DayScreenCutscene] Day 1 ended, but no TutorialManager exists in the loaded scene or persistent managers.");
         }
 
+        // Reassert gameplay mouse focus after state and UI callbacks finish.
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.HideCursorForGameplay();
+        }
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
         playRoutine = null;
         playingDay = -1;
     }
@@ -314,18 +324,34 @@ public class DayScreenCutscene : MonoBehaviour
 
         canvas = canvasObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.pixelPerfect = false;
         canvas.sortingOrder = 7000;
+
+        CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+
         canvasObject.AddComponent<GraphicRaycaster>();
 
         GameObject imageObject = new GameObject("DayScreenVideoImage");
         imageObject.transform.SetParent(canvasObject.transform, false);
 
         rawImage = imageObject.AddComponent<RawImage>();
+        rawImage.raycastTarget = false;
+
         RectTransform rect = rawImage.rectTransform;
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = Vector2.zero;
         rect.offsetMin = Vector2.zero;
         rect.offsetMax = Vector2.zero;
+        rect.localScale = Vector3.one;
+        rect.localRotation = Quaternion.identity;
+        rect.SetAsLastSibling();
 
         renderTexture = new RenderTexture(
             1920,
@@ -344,6 +370,7 @@ public class DayScreenCutscene : MonoBehaviour
         videoPlayer.isLooping = false;
         videoPlayer.renderMode = VideoRenderMode.RenderTexture;
         videoPlayer.targetTexture = renderTexture;
+        videoPlayer.aspectRatio = VideoAspectRatio.Stretch;
 
         audioSource = videoObject.AddComponent<AudioSource>();
         audioSource.playOnAwake = false;

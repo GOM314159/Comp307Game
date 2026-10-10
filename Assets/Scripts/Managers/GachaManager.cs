@@ -223,7 +223,7 @@ public class GachaManager : MonoBehaviour
             return null;
         }
 
-        PlayerInventory inventory = FindAnyObjectByType<PlayerInventory>();
+        PlayerInventory inventory = FindAnyObjectByType<PlayerInventory>(FindObjectsInactive.Include);
 
         if (inventory == null)
         {
@@ -347,7 +347,7 @@ public class GachaManager : MonoBehaviour
         delayedRollInProgress = false;
 
         PlayerInventory inventory =
-            FindAnyObjectByType<PlayerInventory>();
+            FindAnyObjectByType<PlayerInventory>(FindObjectsInactive.Include);
 
         bool success =
             inventory != null &&
@@ -417,7 +417,7 @@ public class GachaManager : MonoBehaviour
 
         foreach (GachaReward reward in rewards)
         {
-            if (reward == null || reward.item == null || reward.weight <= 0f)
+            if (reward == null || reward.item == null)
             {
                 continue;
             }
@@ -440,7 +440,7 @@ public class GachaManager : MonoBehaviour
         List<GachaReward> valid = new List<GachaReward>();
         foreach (GachaReward reward in rewards)
         {
-            if (reward != null && reward.item != null && reward.weight > 0f)
+            if (reward != null && reward.item != null)
                 valid.Add(reward);
         }
         return valid;
@@ -450,14 +450,24 @@ public class GachaManager : MonoBehaviour
     {
         float totalWeight = 0f;
 
+        // A zero weight in the Inspector is a common accidental configuration.
+        // If at least one positive weight exists, zero-weight entries stay out
+        // of the draw. If all weights are zero, treat each valid item equally.
+        bool hasPositiveWeight = false;
         foreach (GachaReward reward in availableRewards)
         {
-            totalWeight += reward.weight;
+            if (reward != null && reward.weight > 0f)
+            {
+                hasPositiveWeight = true;
+                totalWeight += reward.weight;
+            }
         }
 
-        if (totalWeight <= 0f)
+        if (!hasPositiveWeight)
         {
-            return null;
+            return availableRewards.Count > 0
+                ? availableRewards[UnityEngine.Random.Range(0, availableRewards.Count)]
+                : null;
         }
 
         float randomValue = UnityEngine.Random.Range(0f, totalWeight);
@@ -465,6 +475,9 @@ public class GachaManager : MonoBehaviour
 
         foreach (GachaReward reward in availableRewards)
         {
+            if (reward == null || reward.weight <= 0f)
+                continue;
+
             currentWeight += reward.weight;
 
             if (randomValue <= currentWeight)
