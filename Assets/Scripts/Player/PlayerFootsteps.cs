@@ -3,108 +3,69 @@ using UnityEngine;
 public class PlayerFootsteps : MonoBehaviour
 {
     [Header("References")]
-
-    // Drag the Player Movement component here
     [SerializeField] private PlayerMovement playerMovement;
-
-    // Drag the Main Camera here
     [SerializeField] private Transform playerCamera;
-
-    // Audio source used to play footsteps
     [SerializeField] private AudioSource audioSource;
 
-    // FOOTSTEP SETTINGS
-
     [Header("Footstep Settings")]
-
-    // How far below the player we check for a surface
-    // Adjust ground detection distance here
-    [SerializeField] private float groundCheckDistance = 1.5f;
-
-    // Layers that count as walkable surfaces
+    [SerializeField] private float groundCheckDistance = 2.5f;
     [SerializeField] private LayerMask groundMask;
-
-    // Adjust the time between footsteps here
     [SerializeField] private float walkStepInterval = 0.5f;
-
-    // Adjust the time between sprint footsteps here
     [SerializeField] private float sprintStepInterval = 0.32f;
-
-    // Adjust the time between crouching footsteps here
     [SerializeField] private float crouchStepInterval = 0.65f;
-
-    // Adjust how loud footsteps are here
     [SerializeField] private float footstepVolume = 1f;
 
-    // FOOTSTEP AUDIO
+    // =====================================
+    // SURFACE AUDIO: FOOTSTEPS & LANDINGS
+    // =====================================
 
-    [Header("Concrete Footsteps")]
-
+    [Header("Concrete")]
     [SerializeField] private AudioClip[] concreteFootsteps;
+    [SerializeField] private AudioClip[] concreteLandings;
 
-
-    [Header("Wood Footsteps")]
-
+    [Header("Wood")]
     [SerializeField] private AudioClip[] woodFootsteps;
+    [SerializeField] private AudioClip[] woodLandings;
 
-
-    [Header("Grass Footsteps")]
-
+    [Header("Grass")]
     [SerializeField] private AudioClip[] grassFootsteps;
+    [SerializeField] private AudioClip[] grassLandings;
 
-
-    [Header("Dirt Footsteps")]
-
+    [Header("Dirt")]
     [SerializeField] private AudioClip[] dirtFootsteps;
+    [SerializeField] private AudioClip[] dirtLandings;
 
-
-    [Header("Metal Footsteps")]
-
+    [Header("Metal")]
     [SerializeField] private AudioClip[] metalFootsteps;
+    [SerializeField] private AudioClip[] metalLandings;
 
-
-    [Header("Stone Footsteps")]
-
+    [Header("Stone")]
     [SerializeField] private AudioClip[] stoneFootsteps;
+    [SerializeField] private AudioClip[] stoneLandings;
 
-
-    [Header("Carpet Footsteps")]
-
+    [Header("Carpet")]
     [SerializeField] private AudioClip[] carpetFootsteps;
+    [SerializeField] private AudioClip[] carpetLandings;
 
-
-    [Header("Water Footsteps")]
-
+    [Header("Water")]
     [SerializeField] private AudioClip[] waterFootsteps;
+    [SerializeField] private AudioClip[] waterLandings;
 
     [Header("Gravel")]
-
     [SerializeField] private AudioClip[] gravel;
+    [SerializeField] private AudioClip[] gravelLandings;
 
     [Header("Ground")]
-
     [SerializeField] private AudioClip[] ground;
-
-
-    // =====================================
-    // DEBUG
-    // =====================================
+    [SerializeField] private AudioClip[] groundLandings;
 
     [Header("Debug")]
-
     [SerializeField] private bool debugFootsteps = true;
 
     private float footstepTimer;
-
     private int lastClipIndex = -1;
-
     private PlayerStateManager stateManager;
-
-    private void Start()
-    {
-        Debug.Log("[Footsteps] PlayerFootsteps script has started.");
-    }
-
+    private bool wasGrounded = true;
 
     private void Awake()
     {
@@ -112,33 +73,43 @@ public class PlayerFootsteps : MonoBehaviour
 
         if (stateManager == null)
         {
-            Debug.LogError(
-                "[PlayerFootsteps] PlayerStateManager is missing from the Player!");
+            Debug.LogError("[PlayerFootsteps] PlayerStateManager is missing from the Player!", this);
+        }
+
+        if (playerMovement == null)
+        {
+            playerMovement = GetComponent<PlayerMovement>();
+        }
+
+        if (audioSource == null)
+        {
+            audioSource = GetComponentInChildren<AudioSource>();
         }
     }
 
     private void Update()
     {
         HandleFootsteps();
+        CheckLanding();
     }
 
+    // =====================================
     // FOOTSTEP LOGIC
-
+    // =====================================
 
     private void HandleFootsteps()
     {
-
-        if (!stateManager.CanMove()) //StateManager check
+        if (stateManager == null || !stateManager.CanMove())
         {
             footstepTimer = 0f;
             return;
         }
-        // Check whether the player is trying to move
-        Vector3 velocity = playerMovement.GetHorizontalVelocity();
 
+        if (playerMovement == null) return;
+
+        Vector3 velocity = playerMovement.GetHorizontalVelocity();
         float movementAmount = velocity.magnitude;
 
-        // Player isn't moving
         if (movementAmount < 0.1f)
         {
             footstepTimer = 0f;
@@ -150,21 +121,16 @@ public class PlayerFootsteps : MonoBehaviour
             footstepTimer = 0f;
             return;
         }
-        float stepInterval;
 
-        // Crouching has its own slower footsteps
+        float stepInterval;
         if (playerMovement.IsCrouching())
         {
             stepInterval = crouchStepInterval;
         }
-
-        // Sprinting has faster footsteps
         else if (playerMovement.IsSprinting())
         {
             stepInterval = sprintStepInterval;
         }
-
-        // Normal walking
         else
         {
             stepInterval = walkStepInterval;
@@ -175,130 +141,132 @@ public class PlayerFootsteps : MonoBehaviour
         if (footstepTimer >= stepInterval)
         {
             PlayFootstep();
-
             footstepTimer = 0f;
         }
     }
 
-    // PLAY FOOTSTEP
-
     private void PlayFootstep()
     {
         SurfaceType.Surface surface = DetectSurface();
-
         AudioClip[] clips = GetClipsForSurface(surface);
 
-        if (clips == null || clips.Length == 0)
-        {
-            if (debugFootsteps)
-            {
-                Debug.Log(
-                    "[Footsteps] No audio clips assigned for: "
-                    + surface);
-            }
-
-            return;
-        }
+        if (clips == null || clips.Length == 0) return;
 
         AudioClip clip = GetRandomClip(clips);
+        if (clip == null) return;
 
-        audioSource.PlayOneShot(
-            clip,
-            footstepVolume);
+        audioSource.PlayOneShot(clip, footstepVolume);
 
         if (debugFootsteps)
         {
-            Debug.Log(
-                "[Footsteps] Played: "
-                + surface);
+            Debug.Log($"[Footsteps] Played: {surface} ({clip.name})");
         }
     }
 
-    // DETECT SURFACE
+    // =====================================
+    // LANDING LOGIC
+    // =====================================
+
+    private void CheckLanding()
+    {
+        if (playerMovement == null || stateManager == null) return;
+        if (!stateManager.CanMove()) return;
+
+        bool isGroundedNow = playerMovement.IsGrounded();
+
+        // Detect transition: airborne last frame (!wasGrounded) and grounded now (isGroundedNow)
+        if (!wasGrounded && isGroundedNow)
+        {
+            PlayLanding();
+        }
+
+        wasGrounded = isGroundedNow;
+    }
+
+    private void PlayLanding()
+    {
+        SurfaceType.Surface surface = DetectSurface();
+        AudioClip[] landingClips = GetLandingsForSurface(surface);
+
+        // Fallback: if landing clips aren't assigned for a surface, use normal footstep clips as a fallback
+        if (landingClips == null || landingClips.Length == 0)
+        {
+            landingClips = GetClipsForSurface(surface);
+        }
+
+        if (landingClips == null || landingClips.Length == 0) return;
+
+        AudioClip clip = GetRandomClip(landingClips);
+        if (clip == null) return;
+
+        // Play landing impact slightly louder
+        audioSource.PlayOneShot(clip, footstepVolume * 1.25f);
+
+        if (debugFootsteps)
+        {
+            Debug.Log($"[Footsteps] LANDED on {surface} ({clip.name})");
+        }
+    }
+
+    // =====================================
+    // SURFACE DETECTION & MAPPING
+    // =====================================
 
     private SurfaceType.Surface DetectSurface()
     {
         RaycastHit hit;
-
-        // Start slightly above the player's feet
         Vector3 origin = transform.position + Vector3.up * 0.1f;
 
-        if (Physics.Raycast(
-            origin,
-            Vector3.down,
-            out hit,
-            groundCheckDistance,
-            groundMask))
+        if (Physics.Raycast(origin, Vector3.down, out hit, groundCheckDistance, groundMask))
         {
-            if (debugFootsteps)
-            {
-                Debug.Log(
-                    "[Footsteps] Raycast HIT: "
-                    + hit.collider.gameObject.name);
-            }
-
-            SurfaceType surfaceType =
-                hit.collider.GetComponent<SurfaceType>();
+            SurfaceType surfaceType = hit.collider.GetComponentInParent<SurfaceType>();
 
             if (surfaceType != null)
             {
                 return surfaceType.GetSurface();
             }
 
-            // Temporary default until we implement
-            // the actual surface system.
             return SurfaceType.Surface.Concrete;
-        }
-
-        if (debugFootsteps)
-        {
-            Debug.Log("[Footsteps] Raycast MISSED the ground.");
         }
 
         return SurfaceType.Surface.Concrete;
     }
 
-    // GET AUDIO CLIPS
-
-    private AudioClip[] GetClipsForSurface(
-        SurfaceType.Surface surface)
+    private AudioClip[] GetClipsForSurface(SurfaceType.Surface surface)
     {
         switch (surface)
         {
-            case SurfaceType.Surface.Concrete:
-                return concreteFootsteps;
-
-            case SurfaceType.Surface.Wood:
-                return woodFootsteps;
-
-            case SurfaceType.Surface.Grass:
-                return grassFootsteps;
-
-            case SurfaceType.Surface.Dirt:
-                return dirtFootsteps;
-
-            case SurfaceType.Surface.Metal:
-                return metalFootsteps;
-
-            case SurfaceType.Surface.Stone:
-                return stoneFootsteps;
-
-            case SurfaceType.Surface.Carpet:
-                return carpetFootsteps;
-
-            case SurfaceType.Surface.Water:
-                return waterFootsteps;
-
-            case SurfaceType.Surface.Gravel:
-                return gravel;
-
-            case SurfaceType.Surface.Ground:
-                return ground;
+            case SurfaceType.Surface.Concrete: return concreteFootsteps;
+            case SurfaceType.Surface.Wood: return woodFootsteps;
+            case SurfaceType.Surface.Grass: return grassFootsteps;
+            case SurfaceType.Surface.Dirt: return dirtFootsteps;
+            case SurfaceType.Surface.Metal: return metalFootsteps;
+            case SurfaceType.Surface.Stone: return stoneFootsteps;
+            case SurfaceType.Surface.Carpet: return carpetFootsteps;
+            case SurfaceType.Surface.Water: return waterFootsteps;
+            case SurfaceType.Surface.Gravel: return gravel;
+            case SurfaceType.Surface.Ground: return ground;
         }
-
         return concreteFootsteps;
     }
-    // RANDOM CLIP
+
+    private AudioClip[] GetLandingsForSurface(SurfaceType.Surface surface)
+    {
+        switch (surface)
+        {
+            case SurfaceType.Surface.Concrete: return concreteLandings;
+            case SurfaceType.Surface.Wood: return woodLandings;
+            case SurfaceType.Surface.Grass: return grassLandings;
+            case SurfaceType.Surface.Dirt: return dirtLandings;
+            case SurfaceType.Surface.Metal: return metalLandings;
+            case SurfaceType.Surface.Stone: return stoneLandings;
+            case SurfaceType.Surface.Carpet: return carpetLandings;
+            case SurfaceType.Surface.Water: return waterLandings;
+            case SurfaceType.Surface.Gravel: return gravelLandings;
+            case SurfaceType.Surface.Ground: return groundLandings;
+        }
+        return concreteLandings;
+    }
 
     private AudioClip GetRandomClip(AudioClip[] clips)
     {
@@ -308,7 +276,6 @@ public class PlayerFootsteps : MonoBehaviour
         }
 
         int index;
-
         do
         {
             index = Random.Range(0, clips.Length);
