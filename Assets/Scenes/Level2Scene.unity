@@ -11660,8 +11660,36 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 61d9cb4d19fc4534bbefc8c03183f16e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1690651781}
   m_SourcePrefab: {fileID: 100100000, guid: 61d9cb4d19fc4534bbefc8c03183f16e, type: 3}
+--- !u!1 &1690651780 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 61d9cb4d19fc4534bbefc8c03183f16e, type: 3}
+  m_PrefabInstance: {fileID: 1690651779}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1690651781
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1690651780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f02553b4a4b0c34d943f5d2722a2e84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CheeseInteractable
+  interactionPrompt: Interact
+  canInteract: 1
+  interactOnlyOnce: 1
+  interactionText: {fileID: 0}
+  automaticallyFindText: 1
+  cheeseItem: {fileID: 11400000, guid: f94cc7327d9141e4fae8b63f6fb7d76f, type: 2}
+  amount: 1
+  playerInventory: {fileID: 0}
 --- !u!1001 &1709014403
 PrefabInstance:
   m_ObjectHideFlags: 0
