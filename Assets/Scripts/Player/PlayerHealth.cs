@@ -111,6 +111,17 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         }
     }
 
+    /// <summary>Restores health without exceeding maxHealth.</summary>
+    public void Heal(float amount)
+    {
+        if (isDead || amount <= 0f) return;
+
+        float previousHealth = currentHealth;
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+        Debug.Log("[PlayerHealth] Healed " + (currentHealth - previousHealth) +
+                  " health. Current health: " + currentHealth + "/" + maxHealth);
+    }
+
     public void ResetHealth()
     {
         currentHealth = maxHealth;

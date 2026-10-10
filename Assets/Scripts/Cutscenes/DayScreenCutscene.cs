@@ -21,11 +21,24 @@ public class DayScreenCutscene : MonoBehaviour
     [SerializeField] private bool playAudio = true;
     [SerializeField] private bool debugDayScreens = true;
 
+    [Header("Optional Inspector-Owned Video Presentation")]
+    [Tooltip("Assign a dedicated full-screen overlay Canvas here. If assigned, the script will use it instead of creating a Canvas at runtime.")]
+    [SerializeField] private Canvas assignedCanvas;
+    [Tooltip("RawImage under the Canvas, anchored to all four screen edges.")]
+    [SerializeField] private RawImage assignedVideoImage;
+    [Tooltip("VideoPlayer attached to this day-screen presentation.")]
+    [SerializeField] private VideoPlayer assignedVideoPlayer;
+    [Tooltip("RenderTexture used by the VideoPlayer and RawImage.")]
+    [SerializeField] private RenderTexture assignedRenderTexture;
+    [Tooltip("AudioSource for the assigned VideoPlayer; optional if audio is disabled.")]
+    [SerializeField] private AudioSource assignedAudioSource;
+
     private Canvas canvas;
     private RawImage rawImage;
     private RenderTexture renderTexture;
     private VideoPlayer videoPlayer;
     private AudioSource audioSource;
+    private bool ownsRenderTexture;
     private Coroutine playRoutine;
     private bool isPlaying;
     private int playingDay = -1;
@@ -50,7 +63,29 @@ public class DayScreenCutscene : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        BuildPresentation();
+        // Prefer explicitly attached Inspector objects. This lets the Canvas/RawImage
+        // use Unity's RectTransform stretch anchors rather than relying on runtime sizing.
+        if (assignedCanvas != null && assignedVideoImage != null && assignedVideoPlayer != null)
+        {
+            canvas = assignedCanvas;
+            rawImage = assignedVideoImage;
+            videoPlayer = assignedVideoPlayer;
+            renderTexture = assignedRenderTexture != null ? assignedRenderTexture : videoPlayer.targetTexture;
+            if (renderTexture == null)
+            {
+                renderTexture = new RenderTexture(Screen.width > 0 ? Screen.width : 1920,
+                    Screen.height > 0 ? Screen.height : 1080, 0, RenderTextureFormat.ARGB32);
+                renderTexture.name = "DayScreenVideo_RenderTexture_Runtime";
+                renderTexture.Create();
+                ownsRenderTexture = true;
+            }
+            audioSource = assignedAudioSource != null ? assignedAudioSource : videoPlayer.GetComponent<AudioSource>();
+            ConfigureAssignedPresentation();
+        }
+        else
+        {
+            BuildPresentation();
+        }
         Hide();
     }
 
@@ -61,7 +96,7 @@ public class DayScreenCutscene : MonoBehaviour
             Instance = null;
         }
 
-        if (renderTexture != null)
+        if (ownsRenderTexture && renderTexture != null)
         {
             renderTexture.Release();
             Destroy(renderTexture);
@@ -317,6 +352,41 @@ public class DayScreenCutscene : MonoBehaviour
         playingDay = -1;
     }
 
+    private void ConfigureAssignedPresentation()
+    {
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 7000;
+        canvas.pixelPerfect = false;
+
+        RectTransform rect = rawImage.rectTransform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.sizeDelta = Vector2.zero;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.localScale = Vector3.one;
+        rect.localRotation = Quaternion.identity;
+        rawImage.raycastTarget = false;
+        // This RawImage is only the UI surface that displays the live video output,
+        // not a still-image asset. The VideoPlayer writes each video frame to this texture.
+        rawImage.texture = renderTexture;
+        rawImage.color = Color.white;
+        rawImage.gameObject.SetActive(false);
+
+        videoPlayer.playOnAwake = false;
+        videoPlayer.isLooping = false;
+        videoPlayer.renderMode = VideoRenderMode.RenderTexture;
+        videoPlayer.targetTexture = renderTexture;
+        videoPlayer.aspectRatio = VideoAspectRatio.Stretch;
+        if (audioSource != null)
+        {
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0f;
+        }
+    }
+
     private void BuildPresentation()
     {
         GameObject canvasObject = new GameObject("DayScreenCanvas");
@@ -360,6 +430,7 @@ public class DayScreenCutscene : MonoBehaviour
             RenderTextureFormat.ARGB32
         );
         renderTexture.Create();
+        ownsRenderTexture = true;
         rawImage.texture = renderTexture;
 
         GameObject videoObject = new GameObject("DayScreenVideoPlayer");
