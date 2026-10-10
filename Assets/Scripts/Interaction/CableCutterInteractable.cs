@@ -26,9 +26,9 @@ public class CableCutterInteractable : WorldInteractable
     [SerializeField]
     private BehaviorGraphAgent agent;
 
-    [Tooltip("The mini AI")]
+    [Tooltip("The minis")]
     [SerializeField]
-    private BehaviorGraphAgent agentMini;
+    private GameObject[] DollMinis;
 
     [Tooltip("The Miniboss")]
     [SerializeField]
@@ -240,6 +240,35 @@ public class CableCutterInteractable : WorldInteractable
             );
         }
 
+        // =====================================
+        // ACTIVATE & UPDATE MINI DOLLS
+        // =====================================
+        if (DollMinis != null)
+        {
+            foreach (GameObject miniDoll in DollMinis)
+            {
+                if (miniDoll != null)
+                {
+                    // 1. Wake up the GameObject
+                    miniDoll.SetActive(true);
+
+                    // 2. Grab the AI agent directly off the object we just woke up
+                    BehaviorGraphAgent miniAgent = miniDoll.GetComponent<BehaviorGraphAgent>();
+
+                    if (miniAgent != null)
+                    {
+                        // 3. Update the AI variable automatically
+                        miniAgent.SetVariableValue("HasCableCutter", true);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[Cable Cutter] A Mini Doll is missing its BehaviorGraphAgent component.");
+                    }
+                }
+            }
+            DebugCableCutter("All dolls activated and variables updated.");
+        }
+
 
         // -----------------------------------------------------
         // Update the behavior graph agent to reflect the new state
@@ -263,24 +292,6 @@ public class CableCutterInteractable : WorldInteractable
             );
         }
 
-        if (agentMini != null)
-        {
-            agentMini.SetVariableValue(
-                "HasCableCutter",
-                true
-            );
-            DebugCableCutter(
-                "Behavior graph agents updated."
-            );
-        }
-        else
-        {
-            Debug.LogWarning(
-                "[Cable Cutter] Behavior Graph Agent Mini is not assigned."
-            );
-
-            
-        }
         gameObject.SetActive(false);
     }
 
