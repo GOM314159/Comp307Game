@@ -190,6 +190,9 @@ public class PauseMenu : MonoBehaviour
         if (TutorialManager.Instance != null)
             TutorialManager.Instance.SetTutorialAudioPaused(true);
 
+        SetLobbyNpcAudioPaused(true);
+        SetVashinAudioPaused(true);
+
         if (container != null)
         {
             container.SetActive(true);
@@ -252,6 +255,9 @@ public class PauseMenu : MonoBehaviour
 
         if (TutorialManager.Instance != null)
             TutorialManager.Instance.SetTutorialAudioPaused(false);
+
+        SetLobbyNpcAudioPaused(false);
+        SetVashinAudioPaused(false);
 
         if (AudioManager.Instance != null)
         {
@@ -489,6 +495,39 @@ public class PauseMenu : MonoBehaviour
 #endif
     }
 
+
+
+    private void SetVashinAudioPaused(bool paused)
+    {
+        VashinInteractable[] interactables = FindObjectsByType<VashinInteractable>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (VashinInteractable interactable in interactables)
+        {
+            if (interactable != null)
+                interactable.SetAudioPaused(paused);
+        }
+    }
+
+
+    private void SetLobbyNpcAudioPaused(bool paused)
+    {
+        // Lobby NPCs may live in a different scene than the persistent pause
+        // manager. Find active and inactive instances each time rather than
+        // keeping fragile Inspector references across scene transitions.
+        LobbyNPC[] npcs = FindObjectsByType<LobbyNPC>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (LobbyNPC npc in npcs)
+        {
+            if (npc != null)
+                npc.SetDialogueAudioPaused(paused);
+        }
+    }
 
     private void ClearUISelection()
     {

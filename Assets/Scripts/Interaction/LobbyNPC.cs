@@ -255,6 +255,25 @@ public class LobbyNPC : WorldInteractable
         return true;
     }
 
+    public void SetDialogueAudioPaused(bool paused)
+    {
+        if (audioSource == null)
+            audioSource = GetComponent<AudioSource>();
+
+        if (audioSource == null)
+            return;
+
+        if (paused)
+        {
+            if (audioSource.isPlaying)
+                audioSource.Pause();
+        }
+        else
+        {
+            audioSource.UnPause();
+        }
+    }
+
     public override void Interact()
     {
         if (!CanInteract()) return;

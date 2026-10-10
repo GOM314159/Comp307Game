@@ -10,7 +10,7 @@ public class PlayerHitOverlay : MonoBehaviour
     [SerializeField, Min(0.05f)] private float flashDuration = 0.65f;
     [SerializeField] private Color hitColor = new Color(1f, 0.03f, 0.03f, 0.62f);
     [SerializeField] private bool forceFullScreenOverlay = true;
-    [SerializeField] private int overlaySortingOrder = 9000;
+    [SerializeField] private int overlaySortingOrder = 32760;
 
     private float lastHealth = -1f;
     private Coroutine routine;
@@ -57,6 +57,14 @@ public class PlayerHitOverlay : MonoBehaviour
 
         if (overlayImage == null)
         {
+            // Common setup: this component is attached directly to the Image
+            // object. Previously that Image was explicitly excluded below,
+            // leaving overlayImage null and making every hit flash invisible.
+            overlayImage = GetComponent<Image>();
+        }
+
+        if (overlayImage == null)
+        {
             Image[] images = GetComponentsInChildren<Image>(true);
             foreach (Image candidate in images)
             {
@@ -84,8 +92,10 @@ public class PlayerHitOverlay : MonoBehaviour
             Canvas canvas = overlayImage.GetComponentInParent<Canvas>();
             if (canvas != null)
             {
+                canvas.enabled = true;
                 canvas.overrideSorting = true;
                 canvas.sortingOrder = overlaySortingOrder;
+                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             }
         }
     }
@@ -95,8 +105,27 @@ public class PlayerHitOverlay : MonoBehaviour
         ResolveReferences();
         if (overlayImage == null)
         {
-            Debug.LogWarning("[PlayerHitOverlay] Assign an Image on a Screen Space Overlay Canvas.", this);
+            Debug.LogWarning("[PlayerHitOverlay] No overlay Image found. Assign the hit-overlay Image to Overlay Image.", this);
             return;
+        }
+
+        // A persistent UI parent can be disabled during scene transitions.
+        // Reactivate the image hierarchy before attempting to display a hit.
+        Transform parent = overlayImage.transform;
+        while (parent != null)
+        {
+            if (!parent.gameObject.activeSelf)
+                parent.gameObject.SetActive(true);
+            parent = parent.parent;
+        }
+
+        Canvas canvas = overlayImage.GetComponentInParent<Canvas>(true);
+        if (canvas != null)
+        {
+            canvas.enabled = true;
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = overlaySortingOrder;
         }
 
         if (routine != null)
