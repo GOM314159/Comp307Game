@@ -1,28 +1,3 @@
-%YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ab838008e3f3bb1448c3395cb528f5bd, type: 3}
-  m_Name: Axe
-  m_EditorClassIdentifier: Assembly-CSharp::AxeItem
-  itemName: Axe
-  description: 
-  icon: {fileID: 21300000, guid: 83a59ae961cbf694aa3eb103584800fb, type: 3}
-  itemType: 0
-  Image: {fileID: 0}
-  baseDamage: 1
-  stackable: 0
-  maxStackSize: 1
-  weaponType: 0
-  weaponDamage: 10
-  attackRange: 2
-  attackCooldown: 0.5
-  equippedPrefab: {fileID: 0}
-  axeDamage: 10
+version https://git-lfs.github.com/spec/v1
+oid sha256:435f06c063144fb0b01bc162091b819dc7cfe9c9859f798b36f584dd962d3e4b
+size 756
