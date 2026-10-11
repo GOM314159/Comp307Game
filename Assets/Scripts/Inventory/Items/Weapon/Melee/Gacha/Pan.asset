@@ -1,28 +1,3 @@
-%YAML 1.1
-%TAG !u! tag:unity3d.com,2011:
---- !u!114 &11400000
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 544752274b5d41679d8cb1803ada15ec, type: 3}
-  m_Name: Pan
-  m_EditorClassIdentifier: Assembly-CSharp::PanItem
-  itemName: Pan
-  description: 
-  icon: {fileID: 21300000, guid: 0f69eb6f95b9b1d4a8cc2f6d721dee7c, type: 3}
-  itemType: 0
-  Image: {fileID: 0}
-  baseDamage: 1
-  stackable: 0
-  maxStackSize: 1
-  weaponType: 0
-  weaponDamage: 999999
-  attackRange: 3.5
-  attackCooldown: 0.5
-  panDamage: 999999
-  panRange: 3.5
+version https://git-lfs.github.com/spec/v1
+oid sha256:27495bfbbf2ad8e5baa4d840f95275809ceac4f3f37d41804c0ca0e58cbe3ec2
+size 752
