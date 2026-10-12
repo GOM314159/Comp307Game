@@ -82,6 +82,19 @@ public class GachaWinCutscene : MonoBehaviour
         }
     }
 
+    /// <summary>Allows GachaManager to provide the VideoPlayer through its Inspector field.</summary>
+    public void SetVideoPlayer(VideoPlayer assignedPlayer)
+    {
+        if (assignedPlayer == null) return;
+        if (videoPlayer != null)
+            videoPlayer.loopPointReached -= OnVideoFinished;
+        videoPlayer = assignedPlayer;
+        videoPlayer.playOnAwake = false;
+        videoPlayer.isLooping = false;
+        videoPlayer.loopPointReached -= OnVideoFinished;
+        videoPlayer.loopPointReached += OnVideoFinished;
+    }
+
     public void Play()
     {
         if (isPlaying) return;
