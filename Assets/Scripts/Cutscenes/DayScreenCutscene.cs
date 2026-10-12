@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,6 +21,14 @@ public class DayScreenCutscene : MonoBehaviour
     [Header("Playback")]
     [SerializeField] private bool playAudio = true;
     [SerializeField] private bool debugDayScreens = true;
+
+    [Header("After Day Screen")]
+    [Tooltip("Optional points indicator object to show briefly once the day-screen video finishes.")]
+    [SerializeField] private GameObject pointsIndicator;
+    [SerializeField, Min(0f)] private float pointsIndicatorDuration = 4f;
+    private Coroutine pointsIndicatorRoutine;
+
+    public static event Action<int> OnDayScreenFinished;
 
     [Header("Optional Inspector-Owned Video Presentation")]
     [Tooltip("Assign a dedicated full-screen overlay Canvas here. If assigned, the script will use it instead of creating a Canvas at runtime.")]
@@ -62,6 +71,7 @@ public class DayScreenCutscene : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        if (pointsIndicator != null) pointsIndicator.SetActive(false);
 
         // Prefer explicitly attached Inspector objects. This lets the Canvas/RawImage
         // use Unity's RectTransform stretch anchors rather than relying on runtime sizing.
@@ -329,6 +339,18 @@ public class DayScreenCutscene : MonoBehaviour
             );
         }
 
+        if (pointsIndicatorRoutine != null)
+            StopCoroutine(pointsIndicatorRoutine);
+        if (pointsIndicator != null)
+        {
+            pointsIndicator.SetActive(true);
+            pointsIndicatorRoutine = StartCoroutine(HidePointsIndicatorAfterDelay());
+        }
+
+        // Notify post-return lobby systems only after the day-screen has ended
+        // and the player has been restored to lobby control.
+        OnDayScreenFinished?.Invoke(day);
+
         // Day 1 is followed by the interactive tutorial. It starts only
         // after the day video has completely finished and lobby state/music
         // have been restored.
@@ -350,6 +372,13 @@ public class DayScreenCutscene : MonoBehaviour
 
         playRoutine = null;
         playingDay = -1;
+    }
+
+    private IEnumerator HidePointsIndicatorAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(pointsIndicatorDuration);
+        if (pointsIndicator != null) pointsIndicator.SetActive(false);
+        pointsIndicatorRoutine = null;
     }
 
     private void ConfigureAssignedPresentation()

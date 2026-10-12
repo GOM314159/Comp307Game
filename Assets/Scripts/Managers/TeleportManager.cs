@@ -1741,6 +1741,12 @@ public class TeleportManager : MonoBehaviour
 
     private void HandleDebugFKeys()
     {
+        // Debug teleports must never interrupt the first-day tutorial.
+        // F12 is handled by TutorialManager and remains available to skip it.
+        if (TutorialManager.Instance != null &&
+            TutorialManager.Instance.IsTutorialRunning)
+            return;
+
         if (GameFlowManager.Instance != null &&
             !GameFlowManager.Instance.AreDebugHotkeysEnabled())
         {

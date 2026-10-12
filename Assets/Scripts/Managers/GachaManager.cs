@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Video;
 using System.Collections.Generic;
 
 public class GachaManager : MonoBehaviour
@@ -46,7 +47,13 @@ public class GachaManager : MonoBehaviour
     [SerializeField, Min(0)] private int normalDeathPenalty = 10;
 
     [Header("Dragon Ball win")]
+    [Tooltip("Assign the VideoPlayer that contains the Dragon Ball ending clip. The manager passes it to GachaWinCutscene automatically.")]
+    [SerializeField] private VideoPlayer dragonBallWinVideoPlayer;
+    [Tooltip("Optional cutscene controller. If empty, the manager searches the loaded scene for one.")]
     [SerializeField] private GachaWinCutscene dragonBallWinCutscene;
+    [SerializeField, Min(0f)] private float dragonBallEndingDelay = 1.5f;
+    private bool dragonBallEndingStarted;
+    private Coroutine dragonBallEndingRoutine;
 
     [Header("Debug")]
     [SerializeField] private bool debugGacha = true;
@@ -200,13 +207,8 @@ public class GachaManager : MonoBehaviour
 
         if (availableRewards.Count == 0)
         {
-            availableRewards = GetValidRewardsForFallback();
-            if (availableRewards.Count == 0)
-            {
-                Debug.LogWarning("[Gacha] No valid rewards are configured. Add reward entries with an Item assigned in the GachaManager Inspector.");
-                return null;
-            }
-            DebugGacha("All unique rewards were previously collected; allowing a repeat reward.");
+            DebugGacha("All unique rewards have been collected. No repeat reward will be issued.");
+            return null;
         }
 
         if (GameStateManager.Instance.GetGachaCurrency() < rollCost)
@@ -283,13 +285,8 @@ public class GachaManager : MonoBehaviour
 
         if (availableRewards.Count == 0)
         {
-            availableRewards = GetValidRewardsForFallback();
-            if (availableRewards.Count == 0)
-            {
-                DebugGacha("No valid rewards are configured. Add reward entries with an Item assigned in the GachaManager Inspector.");
-                return false;
-            }
-            DebugGacha("All unique rewards were previously collected; allowing a repeat reward.");
+            DebugGacha("All unique rewards have been collected. Further rolls are disabled.");
+            return false;
         }
 
         if (GameStateManager.Instance.GetGachaCurrency() < rollCost)
@@ -563,20 +560,44 @@ public class GachaManager : MonoBehaviour
 
     private void CheckDragonBalls()
     {
-        if (GameStateManager.Instance == null ||
+        if (dragonBallEndingStarted ||
+            GameStateManager.Instance == null ||
             !GameStateManager.Instance.HasAllDragonBalls())
-        {
             return;
+
+        dragonBallEndingStarted = true;
+        if (dragonBallEndingRoutine != null)
+            StopCoroutine(dragonBallEndingRoutine);
+        dragonBallEndingRoutine = StartCoroutine(PlayDragonBallEndingAfterDelay());
+    }
+
+    private IEnumerator PlayDragonBallEndingAfterDelay()
+    {
+        float remaining = dragonBallEndingDelay;
+        while (remaining > 0f)
+        {
+            remaining -= Time.unscaledDeltaTime;
+            yield return null;
         }
 
-        if (dragonBallWinCutscene != null)
+        GachaWinCutscene cutscene = dragonBallWinCutscene;
+        if (cutscene == null)
+            cutscene = FindAnyObjectByType<GachaWinCutscene>();
+
+        if (cutscene != null)
         {
-            dragonBallWinCutscene.Play();
+            if (dragonBallWinVideoPlayer != null)
+                cutscene.SetVideoPlayer(dragonBallWinVideoPlayer);
+            cutscene.Play();
         }
-        else if (GameFlowManager.Instance != null)
+        else
         {
-            GameFlowManager.Instance.StartGachaWin();
+            Debug.LogError("[GachaManager] No GachaWinCutscene component was found. Assign one to Dragon Ball Win Cutscene Controller.", this);
+            if (GameFlowManager.Instance != null)
+                GameFlowManager.Instance.StartGachaWin();
         }
+
+        dragonBallEndingRoutine = null;
     }
 
     public GachaReward GetLastReward()

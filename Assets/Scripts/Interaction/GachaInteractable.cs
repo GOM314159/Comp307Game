@@ -22,6 +22,8 @@ public class GachaInteractable : WorldInteractable
     [SerializeField] private GameObject rewardUI;
 
     [SerializeField] private TMP_Text rewardText;
+    [SerializeField, Min(0f)] private float rewardMessageDuration = 4f;
+    private Coroutine rewardMessageRoutine;
 
     [Header("Debug")]
     [SerializeField] private bool debugGacha = true;
@@ -112,6 +114,8 @@ public class GachaInteractable : WorldInteractable
         if (success)
         {
             SetRewardUI(true);
+            if (rewardMessageRoutine != null) StopCoroutine(rewardMessageRoutine);
+            rewardMessageRoutine = StartCoroutine(HideRewardMessageAfterDelay());
 
             if (rewardText != null && reward != null)
             {
@@ -142,6 +146,14 @@ public class GachaInteractable : WorldInteractable
         }
     }
 
+    private IEnumerator HideRewardMessageAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(rewardMessageDuration);
+        SetRewardUI(false);
+        if (rewardText != null) rewardText.text = string.Empty;
+        rewardMessageRoutine = null;
+    }
+
     private void SetWaitingUI(bool active)
     {
         if (waitingUI != null)
@@ -164,6 +176,7 @@ public class GachaInteractable : WorldInteractable
         waitingForReward = false;
 
         StopAllCoroutines();
+        rewardMessageRoutine = null;
 
         SetWaitingUI(false);
         SetRewardUI(false);

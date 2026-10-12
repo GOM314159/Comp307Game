@@ -142,6 +142,22 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
+        // Never apply gravity while a cutscene/theater play owns player control.
+        // Previously the movement script kept applying gravity even when input
+        // was locked, allowing the persistent player to fall out of the map.
+        if ((GameStateManager.Instance != null &&
+             GameStateManager.Instance.CurrentGameMode == GameStateManager.GameMode.Cutscene) ||
+            (stateManager != null &&
+             stateManager.GetCurrentState() == PlayerStateManager.PlayerState.Cutscene))
+        {
+            velocity = Vector3.zero;
+            moveInput = Vector2.zero;
+            isSprinting = false;
+            if (controller != null && controller.enabled)
+                controller.Move(Vector3.zero);
+            return;
+        }
+
         mainMenuPositionApplied = false;
 
         CheckGround();
