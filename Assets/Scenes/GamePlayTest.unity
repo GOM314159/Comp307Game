@@ -6078,7 +6078,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4021741854642739721, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
   m_PrefabInstance: {fileID: 948586649}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 948586650}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b0e0309846f0f94eb83a37fe89db026, type: 3}
@@ -21469,30 +21469,7 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9156954397234015292, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1760072195}
-    - targetCorrespondingSourceObject: {fileID: 5214643853618973801, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 948586651}
   m_SourcePrefab: {fileID: 100100000, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
---- !u!1 &948586650 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5214643853618973801, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
-  m_PrefabInstance: {fileID: 948586649}
-  m_PrefabAsset: {fileID: 0}
---- !u!114 &948586651
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 948586650}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.7607843, g: 0.12156861, b: 0.15047593, a: 1}
-  m_EffectDistance: {x: 7, y: 7}
-  m_UseGraphicAlpha: 1
 --- !u!1 &956808663
 GameObject:
   m_ObjectHideFlags: 0
@@ -40008,7 +39985,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2051030788
 RectTransform:
   m_ObjectHideFlags: 0
@@ -40589,7 +40566,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &2101823728
 RectTransform:
   m_ObjectHideFlags: 0
@@ -41499,15 +41476,7 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9156954397234015292, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3490530598082086225}
-    - targetCorrespondingSourceObject: {fileID: 5214643853618973801, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 7664049315717122692}
   m_SourcePrefab: {fileID: 100100000, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
---- !u!1 &1406283813125896664 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 5214643853618973801, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
-  m_PrefabInstance: {fileID: 1406283813125896663}
-  m_PrefabAsset: {fileID: 0}
 --- !u!23 &1687293178661828281
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -41966,7 +41935,7 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4021741854642739721, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
   m_PrefabInstance: {fileID: 1406283813125896663}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1406283813125896664}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b0e0309846f0f94eb83a37fe89db026, type: 3}
@@ -41977,27 +41946,12 @@ MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 608752154912160605, guid: be95d527bc8ee3045b8da5066ca2bfee, type: 3}
   m_PrefabInstance: {fileID: 1406283813125896663}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1406283813125896664}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
---- !u!114 &7664049315717122692
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1406283813125896664}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e19747de3f5aca642ab2be37e372fb86, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Outline
-  m_EffectColor: {r: 0.7607843, g: 0.12156861, b: 0.15047593, a: 1}
-  m_EffectDistance: {x: 7, y: 7}
-  m_UseGraphicAlpha: 1
 --- !u!1 &7949491929821060431
 GameObject:
   m_ObjectHideFlags: 0
