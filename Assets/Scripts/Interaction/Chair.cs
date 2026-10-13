@@ -1506,6 +1506,7 @@ public class Chair : WorldInteractable
 
         lockedPlayerPosition =
             player.transform.position;
+        lockedPlayerPosition.y += 1;
 
         lockedPlayerRotation =
             player.transform.rotation;
