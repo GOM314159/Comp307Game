@@ -101,6 +101,25 @@ public class GachaManager : MonoBehaviour
 
         SyncLevelTimerSettings();
         BuildDefaultRewardsIfNeeded();
+        NormalizeDragonBallRewardIDs();
+    }
+
+    private void NormalizeDragonBallRewardIDs()
+    {
+        // Inspector-authored reward lists can contain stale numeric IDs.
+        // Dragon Ball completion uses stable names, so always derive these
+        // IDs from the assigned DragonBallItem asset.
+        foreach (GachaReward reward in rewards)
+        {
+            if (reward == null)
+                continue;
+
+            DragonBallItem dragonBall = reward.item as DragonBallItem;
+            if (dragonBall == null)
+                continue;
+
+            reward.rewardID = "DragonBall" + dragonBall.dragonBallNumber;
+        }
     }
 
     private void OnDisable()
@@ -575,6 +594,7 @@ public class GachaManager : MonoBehaviour
             return;
 
         dragonBallEndingStarted = true;
+        DebugGacha("All seven Dragon Balls collected; ending video starts in 2 seconds.");
         StartCoroutine(PlayDragonBallEndingAfterDelay());
     }
 
@@ -623,6 +643,7 @@ public class GachaManager : MonoBehaviour
         dragonBallWinVideoPlayer.loopPointReached -= OnDragonBallVideoFinished;
         dragonBallWinVideoPlayer.loopPointReached += OnDragonBallVideoFinished;
         dragonBallWinVideoPlayer.Stop();
+        dragonBallWinVideoPlayer.targetCameraAlpha = 1f;
         dragonBallWinVideoPlayer.Play();
     }
 

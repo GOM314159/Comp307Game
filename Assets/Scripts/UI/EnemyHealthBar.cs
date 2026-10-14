@@ -49,9 +49,18 @@ public class EnemyHealthBar : MonoBehaviour
 
             if (health == null || healthSlider == null)
             {
+                SetHealthTargetVisibility(false);
                 return;
             }
         }
+
+        // World-space bars can sit outside an inactive boss prefab and stay
+        // enabled during theater/day transitions. Tie visibility to the
+        // actual Health owner so the bar appears only when that enemy spawns.
+        bool targetIsSpawned = health.gameObject.activeInHierarchy;
+        SetHealthTargetVisibility(targetIsSpawned);
+        if (!targetIsSpawned)
+            return;
 
         float max = health.GetMaxHealth();
 
@@ -101,6 +110,29 @@ public class EnemyHealthBar : MonoBehaviour
                 graphic.enabled = shouldShow;
         }
         bossFightVisibilityApplied = true;
+    }
+
+    private void SetHealthTargetVisibility(bool visible)
+    {
+        if (visibilityCanvasGroup == null)
+        {
+            visibilityCanvasGroup = GetComponent<CanvasGroup>();
+            if (visibilityCanvasGroup == null)
+                visibilityCanvasGroup = GetComponentInParent<CanvasGroup>();
+            if (visibilityCanvasGroup == null)
+                visibilityCanvasGroup = GetComponentInChildren<CanvasGroup>(true);
+        }
+
+        if (visibilityCanvasGroup != null)
+        {
+            visibilityCanvasGroup.alpha = visible ? 1f : 0f;
+            visibilityCanvasGroup.interactable = visible;
+            visibilityCanvasGroup.blocksRaycasts = visible;
+            return;
+        }
+
+        foreach (UnityEngine.UI.Graphic graphic in GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
+            graphic.enabled = visible;
     }
 
     private void ResolveReferences()

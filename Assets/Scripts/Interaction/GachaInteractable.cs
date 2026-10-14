@@ -136,11 +136,40 @@ public class GachaInteractable : WorldInteractable
                 {
                     if (!parent.gameObject.activeSelf)
                         parent.gameObject.SetActive(true);
+
+                    Canvas canvas = parent.GetComponent<Canvas>();
+                    if (canvas != null)
+                        canvas.enabled = true;
+
+                    CanvasGroup group = parent.GetComponent<CanvasGroup>();
+                    if (group != null)
+                    {
+                        group.alpha = 1f;
+                    }
                     parent = parent.parent;
                 }
 
+                rewardText.enabled = true;
+                Color textColor = rewardText.color;
+                textColor.a = 1f;
+                rewardText.color = textColor;
                 rewardText.text = "You received: " + reward.displayName;
                 rewardText.gameObject.SetActive(true);
+                rewardText.transform.SetAsLastSibling();
+
+                RectTransform textRect = rewardText.rectTransform;
+                textRect.anchorMin = new Vector2(0.5f, 0.5f);
+                textRect.anchorMax = new Vector2(0.5f, 0.5f);
+                textRect.anchoredPosition = new Vector2(0f, -350f);
+                textRect.sizeDelta = new Vector2(900f, 90f);
+                rewardText.alignment = TextAlignmentOptions.Center;
+                rewardText.enableAutoSizing = true;
+                rewardText.fontSizeMin = 18f;
+                rewardText.fontSizeMax = 36f;
+                rewardText.enableWordWrapping = false;
+                rewardText.raycastTarget = false;
+                rewardText.ForceMeshUpdate();
+                Canvas.ForceUpdateCanvases();
             }
 
             rewardMessageRoutine = StartCoroutine(HideRewardMessageAfterDelay());
@@ -181,6 +210,15 @@ public class GachaInteractable : WorldInteractable
 
     private void ResolveRewardText()
     {
+        if (PersistentGameplayUI.Instance != null)
+        {
+            TMP_Text persistentText = PersistentGameplayUI.Instance.FindText(rewardTextObjectName);
+            if (persistentText != null)
+            {
+                rewardText = persistentText;
+                return;
+            }
+        }
         if (rewardText != null) return;
         if (string.IsNullOrWhiteSpace(rewardTextObjectName)) return;
 

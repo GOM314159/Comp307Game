@@ -16,6 +16,11 @@ public class CableInteractable : WorldInteractable
     [SerializeField]
     private bool canBeCut = true;
 
+    [Tooltip("Optional cable snip SFX. A short snip is synthesized if this is empty.")]
+    [SerializeField] private AudioClip cableCutSound;
+    [SerializeField, Range(0f, 1f)] private float cableCutSoundVolume = 1f;
+    private static AudioClip generatedCableCutSound;
+
 
     [Tooltip(
         "Optional object to hide when the cable has been cut. " +
@@ -334,6 +339,8 @@ public class CableInteractable : WorldInteractable
 
         canBeCut = false;
 
+        PlayCableCutSound(cableCutSound, cableCutSoundVolume, transform.position);
+
 
         DebugCable(
             "Cable has been cut."
@@ -395,6 +402,59 @@ public class CableInteractable : WorldInteractable
         // -----------------------------------------------------
 
         StartBossCutscene();
+    }
+
+    public static void PlayCableCutSound(AudioClip assignedClip, float volume, Vector3 position, float delay = 0f)
+    {
+        AudioClip clip = assignedClip != null ? assignedClip : GetGeneratedCableCutSound();
+        if (delay > 0f)
+        {
+            DelayedWorldAudioPlayback.PlayThroughAudioManager(clip, delay, volume);
+            return;
+        }
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(clip, volume);
+        }
+        else
+        {
+            AudioSource.PlayClipAtPoint(clip, position, volume);
+        }
+    }
+
+    private static AudioClip GetGeneratedCableCutSound()
+    {
+        if (generatedCableCutSound != null)
+            return generatedCableCutSound;
+
+        const int sampleRate = 44100;
+        const float duration = 0.18f;
+        int sampleCount = Mathf.CeilToInt(sampleRate * duration);
+        float[] samples = new float[sampleCount];
+        uint randomState = 2463534242;
+
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float time = i / (float)sampleRate;
+            float envelope = Mathf.Exp(-time * 32f);
+            randomState ^= randomState << 13;
+            randomState ^= randomState >> 17;
+            randomState ^= randomState << 5;
+            float noise = ((randomState & 0xffff) / 32767.5f) - 1f;
+            float pitch = Mathf.Lerp(1700f, 420f, time / duration);
+            float metallicClick = Mathf.Sin(2f * Mathf.PI * pitch * time);
+            samples[i] = Mathf.Clamp((noise * 0.22f + metallicClick * 0.32f) * envelope, -1f, 1f);
+        }
+
+        generatedCableCutSound = AudioClip.Create(
+            "Generated Cable Cutter Snip",
+            sampleCount,
+            1,
+            sampleRate,
+            false
+        );
+        generatedCableCutSound.SetData(samples, 0);
+        return generatedCableCutSound;
     }
 
 

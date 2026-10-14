@@ -185,7 +185,9 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
             return;
         }
 
-        bool shouldBeVisible = explicitVisibility;
+        bool shouldBeVisible = explicitVisibility ||
+            (GameStateManager.Instance != null &&
+             GameStateManager.Instance.GetGameMode() == GameStateManager.GameMode.Case);
 
         // Menus, pause screens, cutscenes, credits and plays are not
         // gameplay HUD states. Hide the overlay automatically so individual
@@ -250,14 +252,19 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
 
     private void ResolveTexts()
     {
+        PersistentGameplayUI persistentUI = PersistentGameplayUI.Instance;
         if (dayText == null)
         {
-            dayText = FindNamedText(dayTextObjectName);
+            dayText = persistentUI != null
+                ? persistentUI.FindText(dayTextObjectName) as TextMeshProUGUI
+                : FindNamedText(dayTextObjectName);
         }
 
         if (objectiveText == null)
         {
-            objectiveText = FindNamedText(objectiveTextObjectName);
+            objectiveText = persistentUI != null
+                ? persistentUI.FindText(objectiveTextObjectName) as TextMeshProUGUI
+                : FindNamedText(objectiveTextObjectName);
         }
 
         if (objectiveText != null)
@@ -301,6 +308,7 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
 
         if (subscribedGameState != null)
         {
+            subscribedGameState.OnGameModeChanged -= HandleGameModeChanged;
             subscribedGameState.OnDayChanged -= HandleDayChanged;
             subscribedGameState.OnObjectiveChanged -= HandleObjectiveChanged;
             subscribedGameState.OnCaseStarted -= HandleCaseStarted;
@@ -308,6 +316,8 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
         }
 
         subscribedGameState = current;
+        subscribedGameState.OnGameModeChanged -= HandleGameModeChanged;
+        subscribedGameState.OnGameModeChanged += HandleGameModeChanged;
         subscribedGameState.OnDayChanged -= HandleDayChanged;
         subscribedGameState.OnDayChanged += HandleDayChanged;
         subscribedGameState.OnObjectiveChanged -= HandleObjectiveChanged;
@@ -322,11 +332,27 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
     private void Unsubscribe()
     {
         if (subscribedGameState == null) return;
+        subscribedGameState.OnGameModeChanged -= HandleGameModeChanged;
         subscribedGameState.OnDayChanged -= HandleDayChanged;
         subscribedGameState.OnObjectiveChanged -= HandleObjectiveChanged;
         subscribedGameState.OnCaseStarted -= HandleCaseStarted;
         subscribedGameState.OnCaseCompleted -= HandleCaseCompleted;
         subscribedGameState = null;
+    }
+
+
+    private void HandleGameModeChanged(GameStateManager.GameMode mode)
+    {
+        if (mode == GameStateManager.GameMode.Case)
+        {
+            // Case entry starts a fresh objective and must restore the
+            // persistent overlay after any preceding theater/cutscene.
+            explicitVisibility = true;
+            ActivateOverlayHierarchy();
+            RefreshAll();
+        }
+
+        ApplyVisibility();
     }
 
 
@@ -417,7 +443,9 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
         // Do not allow this method to override a menu/cutscene hiding
         // the entire overlay.
         bool overlayAllowed =
-            explicitVisibility &&
+            (explicitVisibility ||
+             (GameStateManager.Instance != null &&
+              GameStateManager.Instance.GetGameMode() == GameStateManager.GameMode.Case)) &&
             (!hideWhilePaused || Time.timeScale > 0f);
 
         if (!overlayAllowed)

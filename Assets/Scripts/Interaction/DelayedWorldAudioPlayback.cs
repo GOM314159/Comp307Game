@@ -21,6 +21,26 @@ public sealed class DelayedWorldAudioPlayback : MonoBehaviour
         instance.StartCoroutine(instance.PlayRoutine(clip, position, Mathf.Max(0f, delay), Mathf.Clamp01(volume)));
     }
 
+    public static void PlayThroughAudioManager(AudioClip clip, float delay, float volume = 1f)
+    {
+        if (clip == null) return;
+        if (instance == null)
+        {
+            var runner = new GameObject("[DelayedWorldAudioPlayback]");
+            DontDestroyOnLoad(runner);
+            instance = runner.AddComponent<DelayedWorldAudioPlayback>();
+        }
+        instance.StartCoroutine(instance.PlaySFXRoutine(clip, Mathf.Max(0f, delay), Mathf.Clamp01(volume)));
+    }
+
+    private IEnumerator PlaySFXRoutine(AudioClip clip, float delay, float volume)
+    {
+        if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
+        if (clip == null) yield break;
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(clip, volume);
+        else AudioSource.PlayClipAtPoint(clip, transform.position, volume);
+    }
+
     private IEnumerator PlayRoutine(AudioClip clip, Vector3 position, float delay, float volume)
     {
         if (delay > 0f) yield return new WaitForSecondsRealtime(delay);

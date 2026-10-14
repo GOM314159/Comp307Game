@@ -77,4 +77,17 @@ public class PersistentGameplayUI : MonoBehaviour
     {
         return interactionText;
     }
+
+    /// <summary>Finds a named TMP label anywhere beneath the persistent UI root.</summary>
+    public TMP_Text FindText(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName)) return null;
+        TMP_Text[] texts = GetComponentsInChildren<TMP_Text>(true);
+        foreach (TMP_Text text in texts)
+        {
+            if (text != null && text.gameObject.name == objectName)
+                return text;
+        }
+        return null;
+    }
 }

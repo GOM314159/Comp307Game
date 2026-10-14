@@ -2806,7 +2806,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &107925308
 MonoBehaviour:
@@ -3120,43 +3120,43 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GachaManager
   rollCost: 30
   rewards:
-  - rewardID: 0
+  - rewardID: DragonBall1
     displayName: DragonBall 1 Star
     rarity: 4
     weight: 0
     item: {fileID: 11400000, guid: 319008c1f8bcbad44b364b95cf543031, type: 2}
     unique: 1
-  - rewardID: 1
+  - rewardID: DragonBall2
     displayName: DragonBall 2 Star
     rarity: 4
     weight: 0
     item: {fileID: 11400000, guid: b0ef950b364c9e64da37fd90a0873123, type: 2}
     unique: 1
-  - rewardID: 2
+  - rewardID: DragonBall3
     displayName: DragonBall 3 Star
     rarity: 4
     weight: 0
     item: {fileID: 11400000, guid: 7fc48db751d10814f8ca527a0c42fb5c, type: 2}
     unique: 1
-  - rewardID: 3
+  - rewardID: DragonBall4
     displayName: DragonBall 4 Star
     rarity: 4
     weight: 0
     item: {fileID: 11400000, guid: f534397e118c968489da8af0a350cb30, type: 2}
     unique: 1
-  - rewardID: 4
+  - rewardID: DragonBall5
     displayName: DragonBall 5 Star
     rarity: 4
     weight: 0
     item: {fileID: 11400000, guid: dedb83b1bcad5e64785c00b08f6482fd, type: 2}
     unique: 1
-  - rewardID: 5
+  - rewardID: DragonBall6
     displayName: DragonBall 6 Star
     rarity: 4
     weight: 0
     item: {fileID: 11400000, guid: 578c435ef168eb947bc4c6b2a9cd3a86, type: 2}
     unique: 1
-  - rewardID: 6
+  - rewardID: DragonBall7
     displayName: DragonBall 7 Star
     rarity: 4
     weight: 0
@@ -5059,7 +5059,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &165773453
 MonoBehaviour:
@@ -5319,7 +5319,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &166467603
 MonoBehaviour:
@@ -13046,7 +13046,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &428987785
 MonoBehaviour:
@@ -23566,7 +23566,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &714777790
 MonoBehaviour:
@@ -26624,7 +26624,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &826379077
 MonoBehaviour:
@@ -30570,7 +30570,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &994594967
 MonoBehaviour:
@@ -31933,7 +31933,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &1049249529
 MonoBehaviour:
@@ -46065,7 +46065,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &1613024734
 MonoBehaviour:
@@ -48173,7 +48173,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &1698518967
 MonoBehaviour:
@@ -50589,7 +50589,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &1777786500
 MonoBehaviour:
@@ -51200,7 +51200,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &1813442307
 MonoBehaviour:
@@ -57817,7 +57817,7 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
-  onlyShowDuringBossFight: 0
+  onlyShowDuringBossFight: 1
   visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &2078883826
 MonoBehaviour:

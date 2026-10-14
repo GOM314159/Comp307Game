@@ -4016,6 +4016,8 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
+  onlyShowDuringBossFight: 0
+  visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &680326505
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13073,6 +13075,8 @@ MonoBehaviour:
   findHealthInParents: 1
   findSliderInChildren: 1
   hideWhenDead: 1
+  onlyShowDuringBossFight: 0
+  visibilityCanvasGroup: {fileID: 0}
 --- !u!114 &1520929761
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13575,6 +13579,10 @@ PrefabInstance:
       propertyPath: agentMini
       value: 
       objectReference: {fileID: 1587671497}
+    - target: {fileID: 264297311381806141, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: pickupSound
+      value: 
+      objectReference: {fileID: 8300000, guid: f70e4a4d8b01d20459659646ca6bc1d0, type: 3}
     - target: {fileID: 264297311381806141, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: theaterOriginal
       value: 
@@ -15658,7 +15666,7 @@ PrefabInstance:
     - target: {fileID: 6396594985756435584, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: pickupSound
       value: 
-      objectReference: {fileID: 8300000, guid: f70e4a4d8b01d20459659646ca6bc1d0, type: 3}
+      objectReference: {fileID: 0}
     - target: {fileID: 6396594985756435584, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: vashinAgent
       value: 
