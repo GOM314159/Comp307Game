@@ -84,6 +84,12 @@ public class Level3PianoInteractable : WorldInteractable
     [SerializeField]
     private string pianoPrompt = "Open Piano";
 
+    [Header("Spawns")]
+
+    [Tooltip("The Dolls Spawn")]
+    [SerializeField]
+    private GameObject allDolls;
+
     private bool pianoOpened;
     private bool bossEventSubscribed;
 
@@ -337,11 +343,7 @@ public class Level3PianoInteractable : WorldInteractable
     private void ActivateDolls()
     {
 
-        foreach (GameObject doll in Dolls)
-        {
-            doll.SetActive(true);
-
-        }
+       allDolls.SetActive(true);
 
     }
 
