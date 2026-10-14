@@ -20,9 +20,6 @@ public class InventorySlotUI : MonoBehaviour, IDropHandler
     [SerializeField, Min(0f)]
     private float outlineDistance = 7f;
 
-    [SerializeField]    
-    private GameObject [] Dolls; 
-
     private Outline slotOutline;
 
     private void Awake()
