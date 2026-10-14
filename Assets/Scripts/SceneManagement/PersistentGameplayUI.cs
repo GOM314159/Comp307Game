@@ -41,6 +41,26 @@ public class PersistentGameplayUI : MonoBehaviour
         if (Instance != null &&
             Instance != this)
         {
+            // A duplicate scene can contain the only live copy of the
+            // objective overlay. Move that subtree under the surviving UI
+            // root before removing the duplicate root, or day transitions
+            // can destroy the HUD along with the duplicate Canvas.
+            ObjectiveAndDayOverlay duplicateOverlay =
+                GetComponentInChildren<ObjectiveAndDayOverlay>(true);
+            if (duplicateOverlay != null &&
+                Instance.GetComponentInChildren<ObjectiveAndDayOverlay>(true) == null)
+            {
+                Canvas persistentCanvas = Instance.GetComponentInChildren<Canvas>(true);
+                Transform destination = persistentCanvas != null
+                    ? persistentCanvas.transform
+                    : Instance.transform;
+                duplicateOverlay.transform.SetParent(destination, false);
+                Debug.Log(
+                    "[PersistentGameplayUI] Adopted ObjectiveAndDayOverlay " +
+                    "from a duplicate UI root before removing it."
+                );
+            }
+
             Destroy(gameObject);
             return;
         }
@@ -89,5 +109,10 @@ public class PersistentGameplayUI : MonoBehaviour
                 return text;
         }
         return null;
+    }
+
+    public ObjectiveAndDayOverlay GetObjectiveOverlay()
+    {
+        return GetComponentInChildren<ObjectiveAndDayOverlay>(true);
     }
 }

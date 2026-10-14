@@ -561,6 +561,16 @@ public class CaseManager : MonoBehaviour
         // Refresh the persistent HUD from the common case-entry point.
         // Day 2/3 may enter through a cross-scene portal, so the overlay
         // cannot rely only on scene-local portal callbacks.
+        ObjectiveAndDayOverlay persistentOverlay =
+            PersistentGameplayUI.Instance != null
+                ? PersistentGameplayUI.Instance.GetObjectiveOverlay()
+                : null;
+        if (persistentOverlay != null)
+        {
+            persistentOverlay.SetOverlayVisible(true);
+            persistentOverlay.RefreshNow();
+        }
+
         ObjectiveAndDayOverlay[] overlays =
             FindObjectsByType<ObjectiveAndDayOverlay>(
                 FindObjectsInactive.Include,
