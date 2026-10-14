@@ -1676,6 +1676,7 @@ MonoBehaviour:
   interactionCollider: {fileID: 64511407}
   automaticallyFindInteractionCollider: 1
   showColliderDebug: 1
+  Dolls: []
   ambientMusic: {fileID: 8300000, guid: fae56c6c9c523534c8dd20e2ac9af1ff, type: 3}
   playAmbientOnStart: 1
   bossToWatchFor: {fileID: 0}
@@ -2491,7 +2492,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 93393ed01e5f0de498ad095b893e7738, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -14.509911
+      value: -14.51
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 93393ed01e5f0de498ad095b893e7738, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2499,7 +2500,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 93393ed01e5f0de498ad095b893e7738, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -2.434173
+      value: -2.441
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 93393ed01e5f0de498ad095b893e7738, type: 3}
       propertyPath: m_LocalRotation.w
