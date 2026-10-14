@@ -64,7 +64,10 @@ public class InventorySlotUI : MonoBehaviour, IDropHandler
         // Intentionally only change the outline. Do not change the slot
         // background Image colour or any InventoryItem/icon colour.
         if (slotOutline != null)
+        {
+            slotOutline.enabled = true;
             slotOutline.effectColor = active ? activeOutlineColour : normalOutlineColour;
+        }
     }
 
     public void OnDrop(PointerEventData eventData)

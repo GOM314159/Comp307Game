@@ -15656,6 +15656,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1587671497}
     - target: {fileID: 6396594985756435584, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: pickupSound
+      value: 
+      objectReference: {fileID: 8300000, guid: f70e4a4d8b01d20459659646ca6bc1d0, type: 3}
+    - target: {fileID: 6396594985756435584, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: vashinAgent
       value: 
       objectReference: {fileID: 863558194}

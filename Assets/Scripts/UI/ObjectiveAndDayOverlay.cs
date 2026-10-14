@@ -48,6 +48,7 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
     // This is separate from Time.timeScale so a cutscene can hide
     // the overlay even if the cutscene does not pause the game.
     private bool explicitVisibility = true;
+    private GameStateManager subscribedGameState;
 
 
     private void Awake()
@@ -77,13 +78,17 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
 
     private void Update()
     {
+        // Scene load ordering can create/replace GameStateManager after this
+        // overlay's Start. Rebind and refresh so CaseStarted isn't missed.
+        Subscribe();
+
         // Scene loads and UI activation order can temporarily leave the
         // text references unresolved. Retry until both are available.
         if (dayText == null || objectiveText == null)
         {
             ResolveTexts();
-            RefreshAll();
         }
+        RefreshAll();
 
         // This catches pause/unpause without requiring the pause system
         // to know anything about this UI.
@@ -291,36 +296,37 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
 
     private void Subscribe()
     {
-        if (GameStateManager.Instance == null)
+        GameStateManager current = GameStateManager.Instance;
+        if (current == null || current == subscribedGameState) return;
+
+        if (subscribedGameState != null)
         {
-            return;
+            subscribedGameState.OnDayChanged -= HandleDayChanged;
+            subscribedGameState.OnObjectiveChanged -= HandleObjectiveChanged;
+            subscribedGameState.OnCaseStarted -= HandleCaseStarted;
+            subscribedGameState.OnCaseCompleted -= HandleCaseCompleted;
         }
 
-        GameStateManager.Instance.OnDayChanged -= HandleDayChanged;
-        GameStateManager.Instance.OnDayChanged += HandleDayChanged;
-
-        GameStateManager.Instance.OnObjectiveChanged -= HandleObjectiveChanged;
-        GameStateManager.Instance.OnObjectiveChanged += HandleObjectiveChanged;
-
-        GameStateManager.Instance.OnCaseStarted -= HandleCaseStarted;
-        GameStateManager.Instance.OnCaseStarted += HandleCaseStarted;
-
-        GameStateManager.Instance.OnCaseCompleted -= HandleCaseCompleted;
-        GameStateManager.Instance.OnCaseCompleted += HandleCaseCompleted;
+        subscribedGameState = current;
+        subscribedGameState.OnDayChanged -= HandleDayChanged;
+        subscribedGameState.OnDayChanged += HandleDayChanged;
+        subscribedGameState.OnObjectiveChanged -= HandleObjectiveChanged;
+        subscribedGameState.OnObjectiveChanged += HandleObjectiveChanged;
+        subscribedGameState.OnCaseStarted -= HandleCaseStarted;
+        subscribedGameState.OnCaseStarted += HandleCaseStarted;
+        subscribedGameState.OnCaseCompleted -= HandleCaseCompleted;
+        subscribedGameState.OnCaseCompleted += HandleCaseCompleted;
     }
 
 
     private void Unsubscribe()
     {
-        if (GameStateManager.Instance == null)
-        {
-            return;
-        }
-
-        GameStateManager.Instance.OnDayChanged -= HandleDayChanged;
-        GameStateManager.Instance.OnObjectiveChanged -= HandleObjectiveChanged;
-        GameStateManager.Instance.OnCaseStarted -= HandleCaseStarted;
-        GameStateManager.Instance.OnCaseCompleted -= HandleCaseCompleted;
+        if (subscribedGameState == null) return;
+        subscribedGameState.OnDayChanged -= HandleDayChanged;
+        subscribedGameState.OnObjectiveChanged -= HandleObjectiveChanged;
+        subscribedGameState.OnCaseStarted -= HandleCaseStarted;
+        subscribedGameState.OnCaseCompleted -= HandleCaseCompleted;
+        subscribedGameState = null;
     }
 
 
@@ -401,13 +407,7 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
             return;
         }
 
-        bool caseActive =
-            GameStateManager.Instance != null &&
-            GameStateManager.Instance.IsCaseActive();
-
-        if ((!caseActive &&
-             state != GameStateManager.ObjectiveState.Complete) ||
-            state == GameStateManager.ObjectiveState.NotStarted)
+        if (state == GameStateManager.ObjectiveState.NotStarted)
         {
             objectiveText.text = string.Empty;
             objectiveText.gameObject.SetActive(false);

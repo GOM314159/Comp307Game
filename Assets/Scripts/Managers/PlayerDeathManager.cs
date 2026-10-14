@@ -1,5 +1,6 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerDeathManager : MonoBehaviour
 {
@@ -15,6 +16,7 @@ public class PlayerDeathManager : MonoBehaviour
     [SerializeField, Min(0f)] private float deathScreenDelay = 5f;
 
     private Coroutine deathRoutine;
+    private GameStateManager subscribedGameState;
 
     private void Awake()
     {
@@ -31,21 +33,40 @@ public class PlayerDeathManager : MonoBehaviour
     private void Start()
     {
         HideDeathScreen();
+        SubscribeToGameState();
+    }
+
+    private void Update()
+    {
+        // This manager persists between scenes and may awaken before the
+        // GameStateManager. Rebind whenever the singleton becomes available.
+        SubscribeToGameState();
+    }
+
+    private void SubscribeToGameState()
+    {
+        GameStateManager current = GameStateManager.Instance;
+        if (current == null || current == subscribedGameState) return;
+
+        if (subscribedGameState != null)
+            subscribedGameState.OnLoss -= HandleLoss;
+
+        subscribedGameState = current;
+        subscribedGameState.OnLoss -= HandleLoss;
+        subscribedGameState.OnLoss += HandleLoss;
     }
 
     private void OnEnable()
     {
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.OnLoss += HandleLoss;
-        }
+        SubscribeToGameState();
     }
 
     private void OnDisable()
     {
-        if (GameStateManager.Instance != null)
+        if (subscribedGameState != null)
         {
-            GameStateManager.Instance.OnLoss -= HandleLoss;
+            subscribedGameState.OnLoss -= HandleLoss;
+            subscribedGameState = null;
         }
 
         if (deathRoutine != null)
@@ -91,10 +112,7 @@ public class PlayerDeathManager : MonoBehaviour
             GameStateManager.Instance.GetGameMode() ==
             GameStateManager.GameMode.BossFight;
 
-        DeathScreen ui =
-            FindAnyObjectByType<DeathScreen>(
-                FindObjectsInactive.Include
-            );
+        DeathScreen ui = FindDeathScreenForCurrentScene();
 
         if (ui != null)
         {
@@ -106,6 +124,29 @@ public class PlayerDeathManager : MonoBehaviour
         // Fallback for a scene that does not contain the dedicated
         // DeathScreen component.
         ShowDeathScreenFallback(bossFightDeath);
+    }
+
+
+    private DeathScreen FindDeathScreenForCurrentScene()
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        DeathScreen[] allScreens = Resources.FindObjectsOfTypeAll<DeathScreen>();
+
+        // Prefer the UI authored in the currently loaded level. A persistent
+        // or inactive DeathScreen from another scene must not mask it.
+        for (int i = 0; i < allScreens.Length; i++)
+        {
+            DeathScreen candidate = allScreens[i];
+            if (candidate == null || !candidate.gameObject.scene.IsValid()) continue;
+            if (candidate.gameObject.scene == activeScene) return candidate;
+        }
+
+        for (int i = 0; i < allScreens.Length; i++)
+        {
+            DeathScreen candidate = allScreens[i];
+            if (candidate != null && candidate.gameObject.scene.IsValid()) return candidate;
+        }
+        return null;
     }
 
     private void ShowDeathScreenFallback(bool bossFightDeath)

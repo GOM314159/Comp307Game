@@ -155,6 +155,8 @@ public class LobbyNPC : WorldInteractable
     {
         if (singleModelOverride != null)
         {
+            // Disable every day-specific skin too; otherwise previously active
+            // models remain visible alongside the override.
             SetAllModelsActive(false);
             singleModelOverride.SetActive(true);
             return;
@@ -189,13 +191,11 @@ public class LobbyNPC : WorldInteractable
             dayModels.Count - 1
         );
 
-        for (int i = 0; i < dayModels.Count; i++)
-        {
-            if (dayModels[i] != null)
-            {
-                dayModels[i].SetActive(i == modelIndex);
-            }
-        }
+        // First turn every skin off, then enable the one selected for this day.
+        // This avoids overlapping models when roots were enabled by another system.
+        SetAllModelsActive(false);
+        if (dayModels[modelIndex] != null)
+            dayModels[modelIndex].SetActive(true);
     }
 
 

@@ -24,16 +24,25 @@ public class EnemyHealthBar : MonoBehaviour
     [SerializeField]
     private bool hideWhenDead = true;
 
+    [Header("Optional boss-fight visibility") ]
+    [Tooltip("Enable this on theater puppet health bars so they remain hidden until GameMode becomes BossFight.")]
+    [SerializeField] private bool onlyShowDuringBossFight = false;
+    private bool bossFightVisibilityApplied;
+    [SerializeField] private CanvasGroup visibilityCanvasGroup;
+
 
     private void Awake()
     {
         ResolveReferences();
         RefreshImmediate();
+        ApplyBossFightVisibility();
     }
 
 
     private void LateUpdate()
     {
+        ApplyBossFightVisibility();
+        if (onlyShowDuringBossFight && !IsBossFightActive()) return;
         if (health == null || healthSlider == null)
         {
             ResolveReferences();
@@ -61,6 +70,38 @@ public class EnemyHealthBar : MonoBehaviour
         }
     }
 
+
+    private bool IsBossFightActive()
+    {
+        return GameStateManager.Instance != null &&
+               GameStateManager.Instance.GetGameMode() == GameStateManager.GameMode.BossFight;
+    }
+
+    private void ApplyBossFightVisibility()
+    {
+        if (!onlyShowDuringBossFight) return;
+        bool shouldShow = IsBossFightActive();
+        if (visibilityCanvasGroup == null)
+        {
+            visibilityCanvasGroup = GetComponent<CanvasGroup>();
+            if (visibilityCanvasGroup == null) visibilityCanvasGroup = GetComponentInParent<CanvasGroup>();
+            if (visibilityCanvasGroup == null) visibilityCanvasGroup = GetComponentInChildren<CanvasGroup>(true);
+        }
+        if (visibilityCanvasGroup != null)
+        {
+            visibilityCanvasGroup.alpha = shouldShow ? 1f : 0f;
+            visibilityCanvasGroup.interactable = shouldShow;
+            visibilityCanvasGroup.blocksRaycasts = shouldShow;
+        }
+        else
+        {
+            // Do not deactivate this component's GameObject: it must keep
+            // running so it can detect when the boss fight begins.
+            foreach (UnityEngine.UI.Graphic graphic in GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
+                graphic.enabled = shouldShow;
+        }
+        bossFightVisibilityApplied = true;
+    }
 
     private void ResolveReferences()
     {

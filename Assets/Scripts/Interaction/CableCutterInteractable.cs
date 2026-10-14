@@ -22,6 +22,14 @@ public class CableCutterInteractable : WorldInteractable
     [SerializeField]
     private PlayerInventory playerInventory;
 
+    [Header("Pickup Sound")]
+    [Tooltip("Sound played shortly after the Cable Cutters are successfully collected.")]
+    [SerializeField] private AudioClip pickupSound;
+    [Tooltip("Delay after pickup before the sound plays.")]
+    [SerializeField, Min(0f)] private float pickupSoundDelay = 0.2f;
+    [Tooltip("Volume for the pickup sound.")]
+    [SerializeField, Range(0f, 1f)] private float pickupSoundVolume = 1f;
+
     [Tooltip("The MiniBoss AI")]
     [SerializeField]
     private BehaviorGraphAgent agent;
@@ -158,6 +166,18 @@ public class CableCutterInteractable : WorldInteractable
             return;
         }
 
+
+        // Play through a persistent runner because this pickup object is
+        // deactivated at the end of Interact().
+        if (pickupSound != null)
+        {
+            DelayedWorldAudioPlayback.Play(
+                pickupSound,
+                transform.position,
+                pickupSoundDelay,
+                pickupSoundVolume
+            );
+        }
 
         // -----------------------------------------------------
         // CHANGE LEVEL 2 MUSIC

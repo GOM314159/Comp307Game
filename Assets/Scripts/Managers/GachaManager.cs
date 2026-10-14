@@ -47,13 +47,11 @@ public class GachaManager : MonoBehaviour
     [SerializeField, Min(0)] private int normalDeathPenalty = 10;
 
     [Header("Dragon Ball win")]
-    [Tooltip("Assign the VideoPlayer that contains the Dragon Ball ending clip. The manager passes it to GachaWinCutscene automatically.")]
+    [Tooltip("The VideoPlayer that plays the Dragon Ball ending video directly.")]
     [SerializeField] private VideoPlayer dragonBallWinVideoPlayer;
-    [Tooltip("Optional cutscene controller. If empty, the manager searches the loaded scene for one.")]
-    [SerializeField] private GachaWinCutscene dragonBallWinCutscene;
-    [SerializeField, Min(0f)] private float dragonBallEndingDelay = 1.5f;
+    [Tooltip("Name of the end screen GameObject to enable when the Dragon Ball video finishes.")]
+    [SerializeField] private string dragonBallEndScreenObjectName = "EndScreen";
     private bool dragonBallEndingStarted;
-    private Coroutine dragonBallEndingRoutine;
 
     [Header("Debug")]
     [SerializeField] private bool debugGacha = true;
@@ -348,6 +346,7 @@ public class GachaManager : MonoBehaviour
 
         bool success =
             inventory != null &&
+            !IsAlreadyOwned(reward) &&
             inventory.AddItem(reward.item, 1);
 
         if (!success)
@@ -408,6 +407,20 @@ public class GachaManager : MonoBehaviour
         return results;
     }
 
+    private bool IsAlreadyOwned(GachaReward reward)
+    {
+        if (reward == null || reward.item == null || GameStateManager.Instance == null)
+            return false;
+
+        if (reward.unique && GameStateManager.Instance.HasGachaRewardBeenCollected(reward.rewardID))
+            return true;
+
+        PlayerInventory inventory = FindAnyObjectByType<PlayerInventory>(FindObjectsInactive.Include);
+        // Item identity is the final duplicate guard even if two reward IDs
+        // happen to point at the same ItemData asset.
+        return inventory != null && inventory.HasItem(reward.item);
+    }
+
     public List<GachaReward> GetAvailableRewards()
     {
         List<GachaReward> available = new List<GachaReward>();
@@ -419,12 +432,8 @@ public class GachaManager : MonoBehaviour
                 continue;
             }
 
-            if (reward.unique &&
-                GameStateManager.Instance != null &&
-                GameStateManager.Instance.HasGachaRewardBeenCollected(reward.rewardID))
-            {
+            if (IsAlreadyOwned(reward))
                 continue;
-            }
 
             available.Add(reward);
         }
@@ -566,38 +575,91 @@ public class GachaManager : MonoBehaviour
             return;
 
         dragonBallEndingStarted = true;
-        if (dragonBallEndingRoutine != null)
-            StopCoroutine(dragonBallEndingRoutine);
-        dragonBallEndingRoutine = StartCoroutine(PlayDragonBallEndingAfterDelay());
+        StartCoroutine(PlayDragonBallEndingAfterDelay());
+    }
+
+    public void ResetDragonBallEndingState()
+    {
+        dragonBallEndingStarted = false;
     }
 
     private IEnumerator PlayDragonBallEndingAfterDelay()
     {
-        float remaining = dragonBallEndingDelay;
-        while (remaining > 0f)
+        // The final Dragon Ball is awarded inside the gacha callback. Give
+        // the inventory/UI and persistent video presentation two seconds to
+        // settle before taking over the screen.
+        yield return new WaitForSecondsRealtime(2f);
+        PlayDragonBallEnding();
+    }
+
+    private void PlayDragonBallEnding()
+    {
+        if (dragonBallWinVideoPlayer == null)
         {
-            remaining -= Time.unscaledDeltaTime;
-            yield return null;
+            Debug.LogError("[GachaManager] Dragon Ball Win Video Player is not assigned.", this);
+            return;
         }
 
-        GachaWinCutscene cutscene = dragonBallWinCutscene;
-        if (cutscene == null)
-            cutscene = FindAnyObjectByType<GachaWinCutscene>();
-
-        if (cutscene != null)
+        if (dragonBallWinVideoPlayer.clip == null)
         {
-            if (dragonBallWinVideoPlayer != null)
-                cutscene.SetVideoPlayer(dragonBallWinVideoPlayer);
-            cutscene.Play();
+            Debug.LogError("[GachaManager] The assigned Dragon Ball VideoPlayer has no VideoClip.", this);
+            return;
+        }
+
+        // Put the game into cutscene mode before playing the video directly.
+        if (GameStateManager.Instance != null)
+            GameStateManager.Instance.SetGameMode(GameStateManager.GameMode.Cutscene);
+
+        if (PlayerStateManager.Instance != null)
+            PlayerStateManager.Instance.SetState(PlayerStateManager.PlayerState.Cutscene);
+
+        if (GameFlowManager.Instance != null)
+            GameFlowManager.Instance.SetGameplayHUDVisible(false);
+
+        dragonBallWinVideoPlayer.playOnAwake = false;
+        dragonBallWinVideoPlayer.isLooping = false;
+        if (!dragonBallWinVideoPlayer.gameObject.activeInHierarchy)
+            dragonBallWinVideoPlayer.gameObject.SetActive(true);
+        dragonBallWinVideoPlayer.loopPointReached -= OnDragonBallVideoFinished;
+        dragonBallWinVideoPlayer.loopPointReached += OnDragonBallVideoFinished;
+        dragonBallWinVideoPlayer.Stop();
+        dragonBallWinVideoPlayer.Play();
+    }
+
+    private void OnDragonBallVideoFinished(VideoPlayer source)
+    {
+        if (source != null)
+            source.loopPointReached -= OnDragonBallVideoFinished;
+
+        GameObject endScreen = null;
+        if (!string.IsNullOrWhiteSpace(dragonBallEndScreenObjectName))
+        {
+            endScreen = GameObject.Find(dragonBallEndScreenObjectName);
+            if (endScreen == null)
+            {
+                Transform[] allTransforms = Resources.FindObjectsOfTypeAll<Transform>();
+                foreach (Transform item in allTransforms)
+                {
+                    if (item == null || !item.gameObject.scene.IsValid())
+                        continue;
+
+                    if (item.name == dragonBallEndScreenObjectName)
+                    {
+                        endScreen = item.gameObject;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (endScreen != null)
+        {
+            endScreen.SetActive(true);
         }
         else
         {
-            Debug.LogError("[GachaManager] No GachaWinCutscene component was found. Assign one to Dragon Ball Win Cutscene Controller.", this);
-            if (GameFlowManager.Instance != null)
-                GameFlowManager.Instance.StartGachaWin();
+            Debug.LogError("[GachaManager] Dragon Ball video finished, but no EndScreen GameObject named '" + dragonBallEndScreenObjectName + "' was found.", this);
         }
-
-        dragonBallEndingRoutine = null;
     }
 
     public GachaReward GetLastReward()

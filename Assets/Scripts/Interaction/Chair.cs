@@ -499,6 +499,15 @@ public class Chair : WorldInteractable
     // INTERACTION
     // =========================================================
 
+    public override bool CanInteract()
+    {
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.GetGameMode() == GameStateManager.GameMode.BossFight)
+            return false;
+        if (interactionSuppressed || finalPlayCompleted || isWatchingPlay) return false;
+        return base.CanInteract();
+    }
+
     public override void Interact()
     {
         // -----------------------------------------------------

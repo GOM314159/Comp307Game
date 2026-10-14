@@ -22,7 +22,10 @@ public class GachaInteractable : WorldInteractable
     [SerializeField] private GameObject rewardUI;
 
     [SerializeField] private TMP_Text rewardText;
-    [SerializeField, Min(0f)] private float rewardMessageDuration = 4f;
+    [SerializeField, Min(0f)] private float rewardMessageDuration = 5f;
+
+    [Tooltip("If Reward Text is not assigned, look for this TMP object name (e.g. Obtained_Gacha_Item_label).")]
+    [SerializeField] private string rewardTextObjectName = "Obtained_Gacha_Item_label";
     private Coroutine rewardMessageRoutine;
 
     [Header("Debug")]
@@ -33,8 +36,14 @@ public class GachaInteractable : WorldInteractable
     protected override void Awake()
     {
         base.Awake();
+        ResolveRewardText();
         SetWaitingUI(false);
         SetRewardUI(false);
+        if (rewardText != null)
+        {
+            rewardText.text = string.Empty;
+            rewardText.gameObject.SetActive(false);
+        }
     }
 
     public override bool CanInteract()
@@ -113,16 +122,28 @@ public class GachaInteractable : WorldInteractable
 
         if (success)
         {
+            ResolveRewardText();
             SetRewardUI(true);
             if (rewardMessageRoutine != null) StopCoroutine(rewardMessageRoutine);
-            rewardMessageRoutine = StartCoroutine(HideRewardMessageAfterDelay());
 
             if (rewardText != null && reward != null)
             {
-                rewardText.text =
-                    "You received: " +
-                    reward.displayName;
+                // The label lives under the persistent Canvas, which may have
+                // been hidden by a previous scene/cutscene. Reactivate its
+                // hierarchy before showing the won-item message.
+                Transform parent = rewardText.transform;
+                while (parent != null)
+                {
+                    if (!parent.gameObject.activeSelf)
+                        parent.gameObject.SetActive(true);
+                    parent = parent.parent;
+                }
+
+                rewardText.text = "You received: " + reward.displayName;
+                rewardText.gameObject.SetActive(true);
             }
+
+            rewardMessageRoutine = StartCoroutine(HideRewardMessageAfterDelay());
 
             if (debugGacha)
             {
@@ -150,8 +171,30 @@ public class GachaInteractable : WorldInteractable
     {
         yield return new WaitForSecondsRealtime(rewardMessageDuration);
         SetRewardUI(false);
-        if (rewardText != null) rewardText.text = string.Empty;
+        if (rewardText != null)
+        {
+            rewardText.text = string.Empty;
+            rewardText.gameObject.SetActive(false);
+        }
         rewardMessageRoutine = null;
+    }
+
+    private void ResolveRewardText()
+    {
+        if (rewardText != null) return;
+        if (string.IsNullOrWhiteSpace(rewardTextObjectName)) return;
+
+        TMP_Text[] allTexts = Resources.FindObjectsOfTypeAll<TMP_Text>();
+        foreach (TMP_Text candidate in allTexts)
+        {
+            if (candidate == null || !candidate.gameObject.scene.IsValid()) continue;
+            if (candidate.gameObject.name == rewardTextObjectName ||
+                candidate.name == rewardTextObjectName)
+            {
+                rewardText = candidate;
+                return;
+            }
+        }
     }
 
     private void SetWaitingUI(bool active)
@@ -180,5 +223,10 @@ public class GachaInteractable : WorldInteractable
 
         SetWaitingUI(false);
         SetRewardUI(false);
+        if (rewardText != null)
+        {
+            rewardText.text = string.Empty;
+            rewardText.gameObject.SetActive(false);
+        }
     }
 }

@@ -125,6 +125,7 @@ public class TeleportManager : MonoBehaviour
 
     // Set while F10 is waiting for its destination teleport to finish.
     private bool pendingDebugFinalBoss;
+    private bool pendingDebugDay1Tutorial;
 
 
     // =========================================================
@@ -1140,6 +1141,8 @@ public class TeleportManager : MonoBehaviour
                     FinishPendingDebugFinalBoss();
                 }
 
+                StartPendingDebugDay1Tutorial();
+
                 // =================================================
                 // RESET
                 // =================================================
@@ -2000,6 +2003,10 @@ public class TeleportManager : MonoBehaviour
         int day,
         bool level)
     {
+        // Match the normal Day 1 transition: return control, then begin the
+        // tutorial once F1 has placed the player in the lobby.
+        pendingDebugDay1Tutorial = !level && day == 1;
+
         // =====================================================
         // STOP ANY ACTIVE CUTSCENE FIRST
         // =====================================================
@@ -2136,6 +2143,26 @@ public class TeleportManager : MonoBehaviour
         if (pendingDebugFinalBoss)
         {
             FinishPendingDebugFinalBoss();
+        }
+
+        StartPendingDebugDay1Tutorial();
+    }
+
+    private void StartPendingDebugDay1Tutorial()
+    {
+        if (!pendingDebugDay1Tutorial)
+            return;
+
+        pendingDebugDay1Tutorial = false;
+        if (TutorialManager.Instance != null)
+        {
+            TutorialManager.Instance.BeginDay1Tutorial();
+        }
+        else
+        {
+            Debug.LogError(
+                "[Debug Teleport] F1 reached Day 1, but no TutorialManager exists."
+            );
         }
     }
 

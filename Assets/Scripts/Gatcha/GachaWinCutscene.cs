@@ -14,7 +14,11 @@ public class GachaWinCutscene : MonoBehaviour
     [SerializeField] private VideoPlayer videoPlayer;
     [Tooltip("Optional full-screen/video presentation root. Leave empty if this GameObject itself is the video presentation.")]
     [SerializeField] private GameObject cutsceneScreen;
-    [SerializeField] private bool openCreditsWhenFinished = true;
+    [SerializeField] private bool openCreditsWhenFinished = false;
+    [Header("Dragon Ball ending destination")]
+    [Tooltip("Optional EndScreen root. If empty, searches loaded objects for exactly 'EndScreen'.") ]
+    [SerializeField] private GameObject endScreen;
+    [SerializeField] private string endScreenObjectName = "EndScreen";
 
     [Header("Persistent interaction prompt lookup")]
     [Tooltip("Optional direct reference. If missing, the script searches active/inactive loaded objects by the name below.")]
@@ -32,6 +36,7 @@ public class GachaWinCutscene : MonoBehaviour
     {
         ResolveVideoPlayer();
         ResolveInteractionText();
+        ResolveEndScreen();
         if (videoPlayer != null)
         {
             videoPlayer.playOnAwake = false;
@@ -40,6 +45,20 @@ public class GachaWinCutscene : MonoBehaviour
         }
         if (cutsceneScreen != null && cutsceneScreen != gameObject)
             cutsceneScreen.SetActive(false);
+    }
+
+
+    private void ResolveEndScreen()
+    {
+        if (endScreen != null) return;
+        if (string.IsNullOrWhiteSpace(endScreenObjectName)) return;
+        GameObject found = GameObject.Find(endScreenObjectName);
+        if (found != null) { endScreen = found; return; }
+        foreach (Transform item in Resources.FindObjectsOfTypeAll<Transform>())
+        {
+            if (item != null && item.gameObject.scene.IsValid() && item.name == endScreenObjectName)
+            { endScreen = item.gameObject; return; }
+        }
     }
 
     private void OnDestroy()
@@ -141,7 +160,15 @@ public class GachaWinCutscene : MonoBehaviour
         if (promptStateCaptured && interactionTextObject != null)
             interactionTextObject.SetActive(promptWasActive);
         promptStateCaptured = false;
-        if (openCreditsWhenFinished && GameFlowManager.Instance != null)
+        ResolveEndScreen();
+        if (endScreen != null)
+        {
+            endScreen.SetActive(true);
+            if (GameFlowManager.Instance != null) GameFlowManager.Instance.SetGameplayHUDVisible(false);
+            if (GameStateManager.Instance != null) GameStateManager.Instance.SetGameMode(GameStateManager.GameMode.Cutscene);
+            if (PlayerStateManager.Instance != null) PlayerStateManager.Instance.SetState(PlayerStateManager.PlayerState.Cutscene);
+        }
+        else if (openCreditsWhenFinished && GameFlowManager.Instance != null)
             GameFlowManager.Instance.OpenCredits();
         else
         {

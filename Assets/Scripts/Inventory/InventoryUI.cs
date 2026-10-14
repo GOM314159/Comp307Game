@@ -39,6 +39,14 @@ public class InventoryUI : MonoBehaviour
     // START
     // =========================================================
 
+    private void LateUpdate()
+    {
+        // Selection can change through keyboard/controller input without a
+        // full inventory refresh. Keep only the currently selected slot purple.
+        ResolvePlayerInventory();
+        if (playerInventory != null) RefreshSelectedSlot();
+    }
+
     private void Start()
     {
         ResolvePlayerInventory();

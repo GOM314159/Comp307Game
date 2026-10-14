@@ -36,6 +36,7 @@ public class TutorialManager : MonoBehaviour
     private Canvas fadeCanvas;
 
     private bool tutorialRunning;
+    private int lastObservedDay = -1;
     private bool tutorialCompleted;
     private bool attackDetected;
     private bool crouchDetected;
@@ -88,6 +89,7 @@ public class TutorialManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
+        lastObservedDay = GameStateManager.Instance != null ? GameStateManager.Instance.GetCurrentDay() : 1;
         controls = new PlayerControls();
 
         controls.Player.Croutch.performed += OnCrouch;
@@ -99,8 +101,8 @@ public class TutorialManager : MonoBehaviour
         BuildFade();
         SetFadeAlpha(0f);
 
-        if (tutorialBarrier != null)
-            tutorialBarrier.SetActive(false);
+        ResolveTutorialBarrier();
+        SetBarrier(false);
     }
 
     private void OnEnable()
@@ -120,6 +122,37 @@ public class TutorialManager : MonoBehaviour
             tutorialRunning)
         {
             SkipTutorial();
+            return;
+        }
+
+        ResolveTutorialBarrier();
+        int currentDay = GameStateManager.Instance != null
+            ? GameStateManager.Instance.GetCurrentDay()
+            : 1;
+
+        if (currentDay != lastObservedDay)
+        {
+            int previousDay = lastObservedDay;
+            lastObservedDay = currentDay;
+            if (currentDay != 1)
+            {
+                // Day 1 tutorial progress is temporary. Leaving Day 1 (including
+                // via a debug teleport) always clears its barrier and seals/state.
+                StopTutorialForDayChange();
+                if (previousDay == 1 && GameResetManager.Instance != null)
+                    GameResetManager.Instance.ResetWorldForDayTransition();
+            }
+            else
+            {
+                tutorialCompleted = false;
+                SetBarrier(false);
+            }
+        }
+
+        if (currentDay != 1)
+        {
+            if (tutorialRunning) StopTutorialForDayChange();
+            else SetBarrier(false);
             return;
         }
 
@@ -506,10 +539,48 @@ public class TutorialManager : MonoBehaviour
         moveBackward = false;
     }
 
+    private void StopTutorialForDayChange()
+    {
+        if (tutorialRoutine != null)
+        {
+            StopCoroutine(tutorialRoutine);
+            tutorialRoutine = null;
+        }
+
+        AudioSource source = GetComponent<AudioSource>();
+        if (source != null) source.Stop();
+
+        tutorialRunning = false;
+        tutorialCompleted = false;
+        SetBarrier(false);
+        SetFadeAlpha(0f);
+    }
+
+    private void ResolveTutorialBarrier()
+    {
+        if (tutorialBarrier != null) return;
+
+        // Serialized scene references can become Unity-null after a scene
+        // transition. Rebind by name so the persistent manager can always
+        // release the current scene's tutorial barrier.
+        Transform[] all = Resources.FindObjectsOfTypeAll<Transform>();
+        foreach (Transform item in all)
+        {
+            if (item == null || !item.gameObject.scene.IsValid()) continue;
+            if (item.name == "TutorialBarrier" || item.name == "TutorialBarriers")
+            {
+                tutorialBarrier = item.gameObject;
+                return;
+            }
+        }
+    }
+
     private void SetBarrier(bool active)
     {
+        ResolveTutorialBarrier();
         if (tutorialBarrier != null)
-            tutorialBarrier.SetActive(active);
+            tutorialBarrier.SetActive(active && GameStateManager.Instance != null &&
+                                     GameStateManager.Instance.GetCurrentDay() == 1);
     }
 
     private void HideGameplayCursor()

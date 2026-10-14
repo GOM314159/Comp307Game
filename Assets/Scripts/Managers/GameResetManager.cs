@@ -824,6 +824,16 @@ public class GameResetManager : MonoBehaviour
         );
     }
 
+    /// <summary>
+    /// Day 1's interactive tutorial and case state is temporary. Clear world
+    /// interactions before the next day is initialized so changed seals and
+    /// pickups from the F1 tutorial shortcut cannot leak forward.
+    /// </summary>
+    public void ResetWorldForDayTransition()
+    {
+        ResetWorldInteractables();
+    }
+
 
     // =========================================================
     // BOSS RESET

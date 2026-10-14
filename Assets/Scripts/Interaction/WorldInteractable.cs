@@ -150,6 +150,18 @@ public class WorldInteractable : MonoBehaviour, IInteractable
 
         if (interactionText == null)
         {
+            // Last-resort lookup supports persistent GUI setups where the UI
+            // exists but PersistentGameplayUI has not finished Awake yet.
+            foreach (TextMeshProUGUI candidate in Resources.FindObjectsOfTypeAll<TextMeshProUGUI>())
+            {
+                if (candidate != null && candidate.gameObject.scene.IsValid() &&
+                    (candidate.name == "InteractionText" || candidate.gameObject.name == "InteractionText"))
+                { interactionText = candidate; break; }
+            }
+        }
+
+        if (interactionText == null)
+        {
             Debug.LogWarning(
                 "[WorldInteractable] No Interaction Text found " +
                 "for: "

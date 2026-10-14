@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 
 public class JumpscareTrigger : MonoBehaviour
@@ -147,6 +147,10 @@ public class JumpscareTrigger : MonoBehaviour
     [SerializeField]
     private CanvasGroup jumpscareOverlay;
 
+    [Tooltip("Name used to re-find the persistent overlay if its Inspector reference is lost.")]
+    [SerializeField]
+    private string jumpscareOverlayObjectName = "JumpscareOverlay";
+
     [Tooltip("How quickly the overlay appears.")]
     [SerializeField, Min(0f)]
     private float overlayFadeIn = 0.15f;
@@ -265,9 +269,12 @@ public class JumpscareTrigger : MonoBehaviour
         // OVERLAY STARTS INVISIBLE
         // -----------------------------------------------------
 
+        ResolveJumpscareOverlay();
         if (jumpscareOverlay != null)
         {
             jumpscareOverlay.alpha = 0f;
+            jumpscareOverlay.interactable = false;
+            jumpscareOverlay.blocksRaycasts = false;
             jumpscareOverlay.gameObject.SetActive(false);
         }
     }
@@ -328,6 +335,26 @@ public class JumpscareTrigger : MonoBehaviour
     }
 
 
+    private void ResolveJumpscareOverlay()
+    {
+        if (jumpscareOverlay != null) return;
+
+        if (!string.IsNullOrWhiteSpace(jumpscareOverlayObjectName))
+        {
+            Transform[] all = Resources.FindObjectsOfTypeAll<Transform>();
+            foreach (Transform item in all)
+            {
+                if (item == null || !item.gameObject.scene.IsValid()) continue;
+                if (item.name != jumpscareOverlayObjectName) continue;
+
+                jumpscareOverlay = item.GetComponent<CanvasGroup>();
+                if (jumpscareOverlay == null)
+                    jumpscareOverlay = item.GetComponentInChildren<CanvasGroup>(true);
+                if (jumpscareOverlay != null) return;
+            }
+        }
+    }
+
     // =========================================================
     // PLAYER ENTERS TRIGGER
     // =========================================================
@@ -368,7 +395,7 @@ public class JumpscareTrigger : MonoBehaviour
         if (GameStateManager.Instance.GetCurrentDay() != requiredDay)
             return;
 
-        hasTriggered = true;
+        // Do not consume the one-shot trigger until the sequence has a valid camera.
         isPlaying = true;
         StartCoroutine(PlayJumpscare());
     }
@@ -380,6 +407,24 @@ public class JumpscareTrigger : MonoBehaviour
 
     private IEnumerator PlayJumpscare()
     {
+        ResolveJumpscareOverlay();
+
+        // Persistent GUI references can be stale after a scene transition.
+        // Activate the overlay's parent chain before trying to fade it in.
+        if (jumpscareOverlay != null)
+        {
+            Transform parent = jumpscareOverlay.transform;
+            while (parent != null)
+            {
+                if (!parent.gameObject.activeSelf) parent.gameObject.SetActive(true);
+                parent = parent.parent;
+            }
+            jumpscareOverlay.gameObject.SetActive(true);
+            jumpscareOverlay.alpha = 0f;
+            jumpscareOverlay.interactable = false;
+            jumpscareOverlay.blocksRaycasts = false;
+        }
+
         // =====================================================
         // FIND THE CURRENT CAMERA AGAIN
         //
@@ -418,6 +463,9 @@ public class JumpscareTrigger : MonoBehaviour
             yield break;
         }
 
+
+        // Camera is valid; this is now a real trigger.
+        hasTriggered = true;
 
         // =====================================================
         // PLAYER STATE

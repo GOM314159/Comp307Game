@@ -1304,6 +1304,10 @@ public class GameStateManager : MonoBehaviour
 
         gachaCurrency = Mathf.Max(0, startingGachaCurrency);
         collectedGachaRewardIDs.Clear();
+        if (GachaManager.Instance != null)
+        {
+            GachaManager.Instance.ResetDragonBallEndingState();
+        }
 
         gameOver = false;
         lastLossReason = LossReason.PlayerDeath;

@@ -56,8 +56,11 @@ public class FinalBossController : MonoBehaviour
         if (finalBoss == null)
         {
             Debug.LogError(
-                "[FinalBossController] Gargamel/FinalBossHealth could not be found."
+                "[FinalBossController] Gargamel/FinalBossHealth could not be found. " +
+                "The spawn sequence can be retried after the boss reference is fixed.",
+                this
             );
+            sequenceStarted = false;
             return;
         }
 
@@ -91,7 +94,13 @@ public class FinalBossController : MonoBehaviour
         if (health != null)
         {
             finalBoss = health.gameObject;
+            return;
         }
+
+        // Compatibility fallback for boss prefabs where the health component
+        // sits on a child but the visible root has the expected name.
+        GameObject namedBoss = GameObject.Find("Gargamel");
+        if (namedBoss != null) finalBoss = namedBoss;
     }
 
     private IEnumerator SpawnBossAfterDelay(float delay)
@@ -103,10 +112,15 @@ public class FinalBossController : MonoBehaviour
 
         if (finalBoss == null)
         {
+            sequenceStarted = false;
+            Debug.LogError("[FinalBossController] Boss reference was lost before spawn.", this);
             yield break;
         }
 
         finalBoss.SetActive(true);
+
+        FinalBossHealth bossHealth = finalBoss.GetComponentInChildren<FinalBossHealth>(true);
+        if (bossHealth != null) bossHealth.ResetBossHealth();
 
         DebugSequence("Gargamel spawned.");
     }

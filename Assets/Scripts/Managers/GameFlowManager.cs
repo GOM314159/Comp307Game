@@ -45,6 +45,7 @@ public class GameFlowManager : MonoBehaviour
 
     private bool playDayScreenAfterLobbyLoad;
     private int pendingDayScreenDay = -1;
+    private bool startDay1TutorialAfterLobbyRespawn;
 
     [Header("Death Menu")]
 
@@ -1579,10 +1580,16 @@ public class GameFlowManager : MonoBehaviour
                     "[GameFlow] DayScreenCutscene is missing; " +
                     "Day screen skipped."
                 );
+                if (pendingDayScreenDay == 1)
+                    startDay1TutorialAfterLobbyRespawn = true;
             }
 
             playDayScreenAfterLobbyLoad = false;
             pendingDayScreenDay = -1;
+        }
+        else if (GameStateManager.Instance.GetCurrentDay() == 1)
+        {
+            startDay1TutorialAfterLobbyRespawn = true;
         }
     }
 
@@ -1701,6 +1708,17 @@ public class GameFlowManager : MonoBehaviour
             }
 
             createDaySnapshotOnLobbyLoad = false;
+        }
+
+        // F9 can skip the day-screen video. Day 1 still always enters the
+        // tutorial once the player is back at the lobby spawn.
+        if (startDay1TutorialAfterLobbyRespawn &&
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.GetCurrentDay() == 1 &&
+            TutorialManager.Instance != null)
+        {
+            startDay1TutorialAfterLobbyRespawn = false;
+            TutorialManager.Instance.BeginDay1Tutorial();
         }
     }
 

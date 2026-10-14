@@ -119,6 +119,7 @@ public class DayScreenCutscene : MonoBehaviour
         if (day < 1 || day > dayVideos.Count)
         {
             DebugDay("No configured day screen for Day " + day + ".");
+            BeginDay1TutorialIfNeeded(day);
             return;
         }
 
@@ -126,6 +127,7 @@ public class DayScreenCutscene : MonoBehaviour
         if (clip == null)
         {
             DebugDay("Day " + day + " has no assigned VideoClip.");
+            BeginDay1TutorialIfNeeded(day);
             return;
         }
 
@@ -135,6 +137,25 @@ public class DayScreenCutscene : MonoBehaviour
         }
 
         playRoutine = StartCoroutine(PlayAfterLobbyLoad(clip, day));
+    }
+
+    private void BeginDay1TutorialIfNeeded(int day)
+    {
+        if (day != 1) return;
+        StartCoroutine(BeginDay1TutorialNextFrame());
+    }
+
+    private IEnumerator BeginDay1TutorialNextFrame()
+    {
+        // Let GameFlowManager finish restoring the lobby spawn first.
+        yield return null;
+        TutorialManager tutorial = TutorialManager.Instance;
+        if (tutorial == null)
+            tutorial = FindAnyObjectByType<TutorialManager>(FindObjectsInactive.Include);
+        if (tutorial != null)
+            tutorial.BeginDay1Tutorial();
+        else
+            Debug.LogError("[DayScreenCutscene] Day 1 has no video and no TutorialManager is available.");
     }
 
     private IEnumerator PlayAfterLobbyLoad(VideoClip clip, int day)
