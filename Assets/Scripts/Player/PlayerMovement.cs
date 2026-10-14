@@ -401,7 +401,7 @@ public class PlayerMovement : MonoBehaviour
                 {
                     ChangeAnimationState("Run");
                 }
-                else if (IsMoving() && !isCrouching)
+                else if (IsMoving())
                 {
                     ChangeAnimationState("Walk");
                 }
@@ -424,7 +424,7 @@ public class PlayerMovement : MonoBehaviour
                 {
                     ChangeAnimationState("Run");
                 }
-                else if (IsMoving() && !isCrouching)
+                else if (IsMoving())
                 {
                     ChangeAnimationState("Walk");
                 }
