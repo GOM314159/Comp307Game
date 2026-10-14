@@ -22,9 +22,13 @@ public class CableCutterInteractable : WorldInteractable
     [SerializeField]
     private PlayerInventory playerInventory;
 
-    [Tooltip("The AI Behavior Agent.")]
+    [Tooltip("The MiniBoss AI")]
     [SerializeField]
     private BehaviorGraphAgent agent;
+
+    [Tooltip("The minis")]
+    [SerializeField]
+    private GameObject[] DollMinis;
 
     [Tooltip("The Miniboss")]
     [SerializeField]
@@ -84,6 +88,9 @@ public class CableCutterInteractable : WorldInteractable
     // INTERACTION
     // =========================================================
 
+    /// <summary>
+    /// 
+    /// </summary>
     public override void Interact()
     {
         if (!CanInteract())
@@ -233,6 +240,35 @@ public class CableCutterInteractable : WorldInteractable
             );
         }
 
+        // =====================================
+        // ACTIVATE & UPDATE MINI DOLLS
+        // =====================================
+        if (DollMinis != null)
+        {
+            foreach (GameObject miniDoll in DollMinis)
+            {
+                if (miniDoll != null)
+                {
+                    // 1. Wake up the GameObject
+                    miniDoll.SetActive(true);
+
+                    // 2. Grab the AI agent directly off the object we just woke up
+                    BehaviorGraphAgent miniAgent = miniDoll.GetComponent<BehaviorGraphAgent>();
+
+                    if (miniAgent != null)
+                    {
+                        // 3. Update the AI variable automatically
+                        miniAgent.SetVariableValue("HasCableCutter", true);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[Cable Cutter] A Mini Doll is missing its BehaviorGraphAgent component.");
+                    }
+                }
+            }
+            DebugCableCutter("All dolls activated and variables updated.");
+        }
+
 
         // -----------------------------------------------------
         // Update the behavior graph agent to reflect the new state
@@ -244,17 +280,17 @@ public class CableCutterInteractable : WorldInteractable
                 "HasCableCutter",
                 true
             );
+
             DebugCableCutter(
-                "Behavior graph agent updated."
+                "Behavior graph agents updated."
             );
         }
         else
         {
             Debug.LogWarning(
-                "[Cable Cutter] Behavior Graph Agent is not assigned."
+                "[Cable Cutter] Behavior Graph Agent Miniboss is not assigned."
             );
         }
-
 
         gameObject.SetActive(false);
     }

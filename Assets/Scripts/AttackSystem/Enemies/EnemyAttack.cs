@@ -26,6 +26,12 @@ public class EnemyAttack : MonoBehaviour
     [SerializeField]
     private float hardcoreSpeedMultiplier = 1.25f;
 
+    [Header("Death Reason")]
+    [Tooltip("Death reason recorded if this attack kills the player. Default is Doll for the standard doll/enemy attack.")]
+    [SerializeField]
+    private GameStateManager.DeathCause deathCause =
+        GameStateManager.DeathCause.Doll;
+
     [Header("Player")]
     [SerializeField]
     private PlayerHealth playerHealth;
@@ -162,6 +168,12 @@ public class EnemyAttack : MonoBehaviour
         }
     }
 
+    public void ConfigureAttack(float newDamage, float newRange, float newCooldown)
+    {
+        damage = Mathf.Max(0f, newDamage); attackRange = Mathf.Max(0.1f, newRange); attackCooldown = Mathf.Max(0.1f, newCooldown);
+        baseDamage = damage; baseAttackCooldown = attackCooldown; ApplyDifficulty();
+    }
+
     private void Attack()
     {
         if (playerHealth == null)
@@ -186,7 +198,10 @@ public class EnemyAttack : MonoBehaviour
                 Quaternion.LookRotation(direction);
         }
 
-        playerHealth.TakeDamage(damage);
+        playerHealth.TakeDamage(
+            damage,
+            deathCause
+        );
 
         if (debugAttack)
         {

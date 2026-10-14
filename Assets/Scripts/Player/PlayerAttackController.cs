@@ -185,6 +185,11 @@ public class PlayerAttackController : MonoBehaviour
     // TRY ATTACK
     // =========================================================
 
+    public bool getisAttacking()
+    {
+        return isAttacking;
+    }
+
     private void TryAttack()
     {
         // -----------------------------------------------------

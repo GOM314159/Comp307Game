@@ -28,6 +28,11 @@ public class Level3PianoInteractable : WorldInteractable
     [SerializeField]
     private bool showColliderDebug = true;
 
+
+    [SerializeField]
+    [Tooltip("References to the dolls in the scene")]
+    private GameObject[] Dolls;
+
     [Header("Level 3 Music")]
 
     [Tooltip(
@@ -56,6 +61,16 @@ public class Level3PianoInteractable : WorldInteractable
     [SerializeField]
     private bool automaticallyFindBoss = true;
 
+    [Header("Gun Unlock")]
+
+    [Tooltip("The Level 3 gun world object. It stays hidden until the piano is opened.")]
+    [SerializeField]
+    private GameObject gunObject;
+
+    [Tooltip("If true, the script will automatically find a GunInteractable if gunObject is not assigned.")]
+    [SerializeField]
+    private bool automaticallyFindGun = true;
+
     [Header("Painting Changes")]
 
     [SerializeField]
@@ -79,6 +94,9 @@ public class Level3PianoInteractable : WorldInteractable
         ResolveInteractionCollider();
 
         pianoOpened = false;
+
+        ResolveGunReference();
+        SetGunVisible(false);
 
         SetPianoModelsClosed();
         EnableInteractionCollider();
@@ -157,6 +175,31 @@ public class Level3PianoInteractable : WorldInteractable
         {
             interactionCollider.gameObject.layer =
                 interactionLayer;
+        }
+    }
+
+    private void ResolveGunReference()
+    {
+        if (gunObject != null || !automaticallyFindGun)
+        {
+            return;
+        }
+
+        GunInteractable gun = FindFirstObjectByType<GunInteractable>(
+            FindObjectsInactive.Include
+        );
+
+        if (gun != null)
+        {
+            gunObject = gun.gameObject;
+        }
+    }
+
+    private void SetGunVisible(bool visible)
+    {
+        if (gunObject != null)
+        {
+            gunObject.SetActive(visible);
         }
     }
 
@@ -284,8 +327,22 @@ public class Level3PianoInteractable : WorldInteractable
         SubscribeToBoss();
 
         SetPianoModelsOpen();
+        SetGunVisible(true);
         DisableInteractionCollider();
         TriggerPaintings();
+
+        ActivateDolls();
+    }
+
+    private void ActivateDolls()
+    {
+
+        foreach (GameObject doll in Dolls)
+        {
+            doll.SetActive(true);
+
+        }
+
     }
 
     private void SetPianoModelsClosed()
@@ -369,6 +426,9 @@ public class Level3PianoInteractable : WorldInteractable
         base.ResetInteraction();
 
         pianoOpened = false;
+
+        ResolveGunReference();
+        SetGunVisible(false);
 
         SetPianoModelsClosed();
         EnableInteractionCollider();

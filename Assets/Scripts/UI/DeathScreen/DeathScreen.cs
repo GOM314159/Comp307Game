@@ -12,6 +12,10 @@ public class DeathScreen : MonoBehaviour
     [SerializeField] private Button normalRespawnButton;
     [SerializeField] private Button normalMainMenuButton;
 
+    // Set by PlayerDeathManager when the player dies during the final boss.
+    // In that case the normal respawn option must not be available.
+    private bool bossFightDeath = false;
+
     [Header("Hardcore Mode")]
     [SerializeField] private GameObject hardcoreModePanel;
     [SerializeField] private Button hardcoreMainMenuButton;
@@ -33,20 +37,6 @@ public class DeathScreen : MonoBehaviour
 
     private void Start()
     {
-        // GameStateManager has finished Awake() by this point.
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.OnLoss += HandleLoss;
-
-            Debug.Log("[DeathScreen] Successfully subscribed to GameStateManager OnLoss.");
-        }
-        else
-        {
-            Debug.LogError(
-                "[DeathScreen] GameStateManager.Instance is missing."
-            );
-        }
-
         // Connect buttons.
         if (normalRespawnButton != null)
         {
@@ -65,29 +55,15 @@ public class DeathScreen : MonoBehaviour
     }
 
 
-    private void OnDestroy()
+    public void SetBossFightDeath(bool value)
     {
-        if (GameStateManager.Instance != null)
+        bossFightDeath = value;
+
+        if (normalRespawnButton != null)
         {
-            GameStateManager.Instance.OnLoss -= HandleLoss;
+            normalRespawnButton.gameObject.SetActive(!value);
         }
     }
-
-
-    private void HandleLoss(GameStateManager.LossReason reason)
-    {
-        Debug.Log(
-            "[DeathScreen] Loss received: " + reason
-        );
-
-        if (reason != GameStateManager.LossReason.PlayerDeath)
-        {
-            return;
-        }
-
-        ShowDeathScreen();
-    }
-
 
     public void ShowDeathScreen()
     {
@@ -148,14 +124,18 @@ public class DeathScreen : MonoBehaviour
         // UNLOCK CURSOR
         // =========================================================
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
-        if (GameUICursorController.Instance != null &&
-            GameInputDevice.LastUsedDeviceIsGamepad())
+        // The gameplay cursor controller may still own a locked cursor even
+        // when the last input device was the mouse. Reset it unconditionally
+        // so it cannot re-lock/hide the mouse on the next Update() frame.
+        if (GameUICursorController.Instance != null)
         {
             GameUICursorController.Instance
                 .ResetControllerCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
 
@@ -169,6 +149,13 @@ public class DeathScreen : MonoBehaviour
         // =========================================================
         // SELECT CORRECT DEATH PANEL
         // =========================================================
+
+        // Boss deaths are run-ending even in Normal mode.
+        // Keep the Main Menu button, but remove Respawn.
+        if (normalRespawnButton != null)
+        {
+            normalRespawnButton.gameObject.SetActive(!bossFightDeath);
+        }
 
         if (GameStateManager.Instance != null &&
             GameStateManager.Instance.IsHardcore())
@@ -208,6 +195,14 @@ public class DeathScreen : MonoBehaviour
 
     private void OnNormalRespawnPressed()
     {
+        if (bossFightDeath)
+        {
+            Debug.Log(
+                "[DeathScreen] Respawn blocked because the player died in the final boss fight."
+            );
+            return;
+        }
+
         Debug.Log("[DeathScreen] Respawn pressed.");
 
         // ---------------------------------------------------------
@@ -258,8 +253,15 @@ public class DeathScreen : MonoBehaviour
         // CURSOR
         // ---------------------------------------------------------
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.HideCursorForGameplay();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
 
         ClearUISelection();
 
@@ -298,8 +300,15 @@ public class DeathScreen : MonoBehaviour
         // CURSOR
         // =========================================================
 
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        if (GameUICursorController.Instance != null)
+        {
+            GameUICursorController.Instance.ShowCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
 
 
         // =========================================================

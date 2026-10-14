@@ -65,7 +65,16 @@ public class GameStateManager : MonoBehaviour
     public enum LossReason
     {
         PlayerDeath,
-        TimerExpired
+        TimeFail,
+        // Backward-compatible alias for existing serialized/referencing code.
+        TimerExpired = TimeFail
+    }
+
+    public enum DeathCause
+    {
+        Unknown,
+        Doll,
+        Other
     }
 
     // =========================================================
@@ -261,9 +270,21 @@ public class GameStateManager : MonoBehaviour
     [SerializeField]
     private LossReason lastLossReason;
 
+    [SerializeField]
+    private DeathCause lastDeathCause = DeathCause.Unknown;
+
     [Header("Behaviour Tree")]
     [SerializeField]
     private BehaviorGraphAgent behaviourAgent;
+
+    [Header("Debug Hotkeys")]
+    [Tooltip("Master switch for all F1-F12 debug hotkeys, including debug teleports, theater skip, tutorial skip, portal override and achievement reset.")]
+    [SerializeField] private bool enableDebugKeys = true;
+
+    public bool AreDebugKeysEnabled()
+    {
+        return enableDebugKeys;
+    }
 
     [Header("Persistent Manager Transform")]
     [Tooltip("GameStateManager is a logic-only persistent manager. Keep its transform at the origin so it cannot accidentally be moved/fall with a scene object.")]
@@ -390,9 +411,23 @@ public class GameStateManager : MonoBehaviour
 
     private void HideOtherGender()
     {
+        GameObject nephew = FindGenderAvatar("Nephew");
+        GameObject niece = FindGenderAvatar("Niece");
+
         if (GetPlayerGender() == PlayerGender.Male)
         {
-            GameObject niece = GameObject.Find("Niece");
+            if (nephew != null)
+            {
+                nephew.SetActive(true);
+            }
+
+            setCameraToHead(nephew);
+
+            if (niece != null)
+            {
+                niece.SetActive(false);
+            }
+
             if (niece != null)
             {
                 niece.SetActive(false);
@@ -400,14 +435,68 @@ public class GameStateManager : MonoBehaviour
         }
         else
         {
-            GameObject newphew = GameObject.Find("Nephew");
-            if (newphew != null)
+            if (niece != null)
             {
-                newphew.SetActive(false);
+                niece.SetActive(true);
             }
 
+            setCameraToHead(niece);
+
+            if (nephew != null)
+            {
+                nephew.SetActive(false);
+            }            
+
+            if (nephew != null)
+            {
+                nephew.SetActive(false);
+            }
         }
     }
+
+    private void setCameraToHead(GameObject character)
+    {
+        CameraAttachment camScript = FindObjectOfType<CameraAttachment>();
+        if (camScript != null)
+        {
+            camScript.AttachCameraToHead(character);
+        }
+        else
+        {
+            Debug.LogError("Could not find the CameraBoneAttach script in the scene!");
+        }
+    }
+
+    private static GameObject FindGenderAvatar(string avatarName)
+    {
+        GameObject active = GameObject.Find(avatarName);
+        if (active != null)
+        {
+            return active;
+        }
+
+        // GameObject.Find skips inactive objects. After a prior run
+        // selected the other gender, the chosen avatar can still be
+        // inactive and must be found explicitly.
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform transform = transforms[i];
+            if (transform == null || transform.name != avatarName)
+            {
+                continue;
+            }
+
+            if (transform.gameObject.scene.IsValid())
+            {
+                return transform.gameObject;
+            }
+        }
+
+        return null;
+    }
+
+ 
 
 
     public PlayerGender GetPlayerGender()
@@ -1058,17 +1147,53 @@ public class GameStateManager : MonoBehaviour
     }
 
 
-    public void HandlePlayerDeath()
+    public void HandlePlayerDeath(DeathCause cause = DeathCause.Other)
     {
+        lastDeathCause = cause;
+
         HandleLoss(
             LossReason.PlayerDeath
         );
     }
 
 
+    public void HandleDollDeath()
+    {
+        HandlePlayerDeath(DeathCause.Doll);
+    }
+
+
     public LossReason GetLastLossReason()
     {
         return lastLossReason;
+    }
+
+
+    public DeathCause GetLastDeathCause()
+    {
+        return lastDeathCause;
+    }
+
+
+    public string GetLastLossDescription()
+    {
+        if (lastLossReason == LossReason.TimeFail ||
+            lastLossReason == LossReason.TimerExpired)
+        {
+            return "Time Fail";
+        }
+
+        if (lastLossReason == LossReason.PlayerDeath)
+        {
+            if (lastDeathCause == DeathCause.Doll)
+            {
+                return "Death to Doll";
+            }
+
+            return "Player Death";
+        }
+
+        return "Unknown";
     }
 
 
@@ -1181,6 +1306,8 @@ public class GameStateManager : MonoBehaviour
         collectedGachaRewardIDs.Clear();
 
         gameOver = false;
+        lastLossReason = LossReason.PlayerDeath;
+        lastDeathCause = DeathCause.Unknown;
 
         difficulty =
             DifficultyMode.Normal;

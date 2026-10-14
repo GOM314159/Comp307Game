@@ -359,21 +359,25 @@ public class WorldInteractable : MonoBehaviour, IInteractable
     // STATE
     // =========================================================
 
-    public bool CanInteract()
+    public virtual bool CanInteract()
     {
+        // The Day 1 tutorial blocks world interaction until its final
+        // tutorial audio has finished. Input actions such as Inventory and
+        // Attack remain available so the player can demonstrate them.
+        if (TutorialManager.IsInteractionLocked)
+        {
+            return false;
+        }
+
         if (!canInteract)
         {
             return false;
         }
 
-
-        if (
-            interactOnlyOnce &&
-            hasBeenInteractedWith)
+        if (interactOnlyOnce && hasBeenInteractedWith)
         {
             return false;
         }
-
 
         return true;
     }

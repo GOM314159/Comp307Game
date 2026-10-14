@@ -3,7 +3,47 @@ guid: 8b865fb60680d0449b48233964720026
 ModelImporter:
   serializedVersion: 24501
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: dress
+    second: {fileID: 2100000, guid: 169e7d1e3dd19534da6ec8a232610514, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: eye_outline
+    second: {fileID: 2100000, guid: 2ef8a40928d97114fa06a08d1993a7a1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: eyebrows
+    second: {fileID: 2100000, guid: 4bd6b55ca841978499f202a05b17ba63, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: mouth
+    second: {fileID: 2100000, guid: 1e00a7c555ee8eb44b1c688609146316, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: pupil
+    second: {fileID: 2100000, guid: 100c31d10cde5b847acfab5d0319f302, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: skin
+    second: {fileID: 2100000, guid: dd158be7040227b49aa0d7aa21487981, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: teeth
+    second: {fileID: 2100000, guid: f9b199d8f382827478143b3ed04b0427, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: tongue
+    second: {fileID: 2100000, guid: 3551d0bfb1f1e594e817887995f8a7bc, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

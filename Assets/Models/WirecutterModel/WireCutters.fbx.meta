@@ -3,7 +3,37 @@ guid: e9a2aa2db28951149a52c5c36612e65a
 ModelImporter:
   serializedVersion: 24501
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: HandleTexture
+    second: {fileID: 2100000, guid: e97712c2b76283d49bf394c0adf6b0b1, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Metaltexture
+    second: {fileID: 2100000, guid: 04994ccf288a49044b4315aaa76e3153, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Nailtexture
+    second: {fileID: 2100000, guid: 79f950cbf9c1b6040ac2525c75776803, type: 2}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: WireCutterNailUV
+    second: {fileID: 2800000, guid: a55fd623d029e0c4f93b30d6ea6bab33, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: WireCutterNormal
+    second: {fileID: 2800000, guid: 1942878de46dcd342b816d11d28805a8, type: 3}
+  - first:
+      type: UnityEngine:Texture2D
+      assembly: UnityEngine.CoreModule
+      name: WireCutterUV
+    second: {fileID: 2800000, guid: d6b22c48d8fb5254fbcdb8c7ae303f67, type: 3}
   materials:
     materialImportMode: 2
     materialName: 0

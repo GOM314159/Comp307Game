@@ -80,6 +80,10 @@ public class AudioManager : MonoBehaviour
     [SerializeField]
     private AudioClip bossMusic;
 
+    [Tooltip("Final boss music used in Hardcore mode. Falls back to Boss Music if empty.")]
+    [SerializeField]
+    private AudioClip bossHardcoreMusic;
+
     [SerializeField]
     private AudioClip creditsMusic;
 
@@ -101,9 +105,13 @@ public class AudioManager : MonoBehaviour
     [SerializeField]
     private AudioClip level3BeforePianoMusic;
 
-    [Tooltip("Music used in Level 3 after the piano is opened, until the boss is defeated.")]
+    [Tooltip("Music used in Level 3 after the piano is opened (Normal mode), until the boss is defeated.")]
     [SerializeField]
     private AudioClip level3AfterPianoMusic;
+
+    [Tooltip("Level 3 post-piano / boss music used in Hardcore mode. Falls back to the Normal clip if empty.")]
+    [SerializeField]
+    private AudioClip level3AfterPianoHardcoreMusic;
 
 
     // =========================================================
@@ -549,7 +557,10 @@ public class AudioManager : MonoBehaviour
                 return caseMusic;
 
             case MusicType.Boss:
-                return bossMusic;
+                return ResolveDifficultyClip(
+                    bossMusic,
+                    bossHardcoreMusic
+                );
 
             case MusicType.Credits:
                 return creditsMusic;
@@ -567,11 +578,31 @@ public class AudioManager : MonoBehaviour
                 return level3BeforePianoMusic;
 
             case MusicType.Level3AfterPiano:
-                return level3AfterPianoMusic;
+                return ResolveDifficultyClip(
+                    level3AfterPianoMusic,
+                    level3AfterPianoHardcoreMusic
+                );
 
             default:
                 return null;
         }
+    }
+
+
+    private static AudioClip ResolveDifficultyClip(
+        AudioClip normalClip,
+        AudioClip hardcoreClip)
+    {
+        bool hardcore =
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.IsHardcore();
+
+        if (hardcore && hardcoreClip != null)
+        {
+            return hardcoreClip;
+        }
+
+        return normalClip;
     }
 
 

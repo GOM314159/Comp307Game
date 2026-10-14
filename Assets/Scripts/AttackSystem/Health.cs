@@ -71,6 +71,13 @@ public class Health : MonoBehaviour, IDamageable
 
         currentHealth -= damage;
 
+        SuccessfulHitRedFlash hitFlash =
+            GetComponent<SuccessfulHitRedFlash>();
+        if (hitFlash == null)
+            hitFlash = GetComponentInChildren<SuccessfulHitRedFlash>(true);
+        if (hitFlash != null)
+            hitFlash.HighlightSuccessfulHit();
+
         Debug.Log(
             "[Health] "
             + gameObject.name

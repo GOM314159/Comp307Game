@@ -1,5 +1,4 @@
-using System.Threading;
-using Unity.AppUI.UI;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -56,6 +55,7 @@ public class PlayerMovement : MonoBehaviour
 
     private CharacterController controller;
     private PlayerControls controls;
+    private string currentAnimState = "";
 
     private Vector2 moveInput;
 
@@ -76,6 +76,14 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Animator component for handling player animations.")]
     [SerializeField]
     private Animator animator;
+
+    [Header("Equipment Anim")]
+
+    [SerializeField]
+    private PlayerEquipmentManager equipmentManager;
+    private PlayerStateManager playerStateManager; 
+[SerializeField]
+    private PlayerAttackController playerAttackController;
 
     private void Awake()
     {
@@ -102,11 +110,21 @@ public class PlayerMovement : MonoBehaviour
     private void OnEnable()
     {
         controls.Enable();
+
+        if (playerAttackController != null)
+        {
+            playerAttackController.OnAttackPerformed += TriggerAttackAnimation;
+        }
     }
 
     private void OnDisable()
     {
         controls.Disable();
+
+        if (playerAttackController != null)
+        {
+            playerAttackController.OnAttackPerformed -= TriggerAttackAnimation;
+        }
     }
 
     public void setAnimator(Animator genderAnimator)
@@ -132,6 +150,22 @@ public class PlayerMovement : MonoBehaviour
             velocity = Vector3.zero;
             isSprinting = false;
             isCrouching = false;
+            return;
+        }
+
+        // Never apply gravity while a cutscene/theater play owns player control.
+        // Previously the movement script kept applying gravity even when input
+        // was locked, allowing the persistent player to fall out of the map.
+        if ((GameStateManager.Instance != null &&
+             GameStateManager.Instance.CurrentGameMode == GameStateManager.GameMode.Cutscene) ||
+            (stateManager != null &&
+             stateManager.GetCurrentState() == PlayerStateManager.PlayerState.Cutscene))
+        {
+            velocity = Vector3.zero;
+            moveInput = Vector2.zero;
+            isSprinting = false;
+            if (controller != null && controller.enabled)
+                controller.Move(Vector3.zero);
             return;
         }
 
@@ -353,28 +387,53 @@ public class PlayerMovement : MonoBehaviour
 
         if (animator != null)
         {
-            if (IsMoving() && isCrouching)
+            if (equipmentManager.GetCurrentWeapon() != null)
             {
-                animator.SetTrigger("CrouchWalk");
-            }
-            else if (isCrouching)
-            {
-                animator.SetTrigger("Crouch");
-            }
-            else if (canPlayerSprint)
-            {
-                animator.SetTrigger("Run");
-            }
-            else if (IsMoving() && !isCrouching)
-            {
-                animator.SetTrigger("Walk");
+                if (IsMoving() && isCrouching)
+                {
+                    ChangeAnimationState("CrouchWalk");
+                }
+                else if (isCrouching)
+                {
+                    ChangeAnimationState("Crouch");
+                }
+                else if (canPlayerSprint)
+                {
+                    ChangeAnimationState("Run");
+                }
+                else if (IsMoving() && !isCrouching)
+                {
+                    ChangeAnimationState("Walk");
+                }
+                else
+                {
+                    ChangeAnimationState("HasWeaponIdle");
+                }
             }
             else
             {
-                animator.SetTrigger("Idle");
+                if (IsMoving() && isCrouching)
+                {
+                    ChangeAnimationState("CrouchWalk");
+                }
+                else if (isCrouching)
+                {
+                    ChangeAnimationState("Crouch");
+                }
+                else if (canPlayerSprint)
+                {
+                    ChangeAnimationState("Run");
+                }
+                else if (IsMoving() && !isCrouching)
+                {
+                    ChangeAnimationState("Walk");
+                }
+                else
+                {
+                    ChangeAnimationState("Idle");
+                }
             }
         }
-
 
     }
 
@@ -399,6 +458,12 @@ public class PlayerMovement : MonoBehaviour
 
     private void ApplyGravity()
     {
+        // If the top of the capsule hits a ceiling while moving up, kill the jump instantly
+        if ((controller.collisionFlags & CollisionFlags.Above) != 0 && velocity.y > 0)
+        {
+            velocity.y = 0f;
+        }
+
         if (velocity.y < 0)
         {
             velocity.y += gravity * fallMultiplier * Time.deltaTime;
@@ -413,40 +478,39 @@ public class PlayerMovement : MonoBehaviour
 
     private void Jump()
     {
-    // =====================================
-    // JUMP PERMISSION
-    // =====================================
-
-    if (!stateManager.CanJump())
-    {
-        return;
-    }
-
-
-    // =====================================
-    // GROUND CHECK
-    // =====================================
-
-        if (!isGrounded)
+        // =====================================
+        // JUMP PERMISSION
+        // =====================================
+        if (!stateManager.CanJump())
         {
             return;
         }
 
+        // =====================================
+        // GROUND CHECK
+        // =====================================
+        if (!isGrounded)
+        {
+            return;
+        }
 
         // =====================================
         // JUMP
         // =====================================
         animator.SetTrigger("Jump");
 
-        // wait 0.1s second for animation before jumping
-        Timer jumpDelayTimer = new Timer((state) =>
-        {
-            // Apply jump velocity
-            velocity.y = Mathf.Sqrt(
-                jumpHeight * -2f * gravity);
+        // Start the safe Unity Coroutine instead of a background thread
+        StartCoroutine(JumpRoutine());
+    }
 
-        }, null, 100, Timeout.Infinite);
+    // Add this new coroutine directly below your Jump() method
+    private System.Collections.IEnumerator JumpRoutine()
+    {
+        // Wait 0.1 seconds for the animation anticipation before jumping
+        yield return new WaitForSeconds(0.1f);
 
+        // Apply jump velocity safely on the main thread
+        velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
     }
 
     private void HandleCrouch()
@@ -477,14 +541,14 @@ public class PlayerMovement : MonoBehaviour
             0);
 
         // Smoothly move the camera
-        Vector3 cameraPosition = cameraTransform.localPosition;
+     //   Vector3 cameraPosition = cameraTransform.localPosition;
 
-        cameraPosition.y = Mathf.Lerp(
-            cameraPosition.y,
-            targetCameraHeight,
-            crouchTransitionSpeed * Time.deltaTime);
+     //   cameraPosition.y = Mathf.Lerp(
+     //       cameraPosition.y,
+     //       targetCameraHeight,
+     //       crouchTransitionSpeed * Time.deltaTime);
 
-        cameraTransform.localPosition = cameraPosition;
+     //   cameraTransform.localPosition = cameraPosition;
     }
 
     private void OnDrawGizmosSelected() //Debugging code for ground and ceiling detection
@@ -642,20 +706,45 @@ public class PlayerMovement : MonoBehaviour
         }
 
         // Reset camera height.
-        if (cameraTransform != null)
-        {
-            Vector3 cameraPosition =
-                cameraTransform.localPosition;
-
-            cameraPosition.y =
-                standingCameraHeight;
-
-            cameraTransform.localPosition =
-                cameraPosition;
-        }
+     //  if (cameraTransform != null)
+     //   {
+     //       Vector3 cameraPosition =
+     //           cameraTransform.localPosition;
+     //
+     //       cameraPosition.y =
+     //           standingCameraHeight;
+     //
+     //       cameraTransform.localPosition =
+     //           cameraPosition;
+     //   }
 
         Debug.Log(
             "[PlayerMovement] Movement reset after teleport."
         );
+    }
+
+    private void TriggerAttackAnimation()
+    {
+        // Only swing if we have an animator and a weapon is actually equipped
+        if (animator != null && equipmentManager.GetCurrentWeapon() != null)
+        {
+            animator.SetTrigger("SwingWeapon");
+        }
+    }
+
+    private void ChangeAnimationState(string newState)
+    {
+        // Prevent spamming the same trigger every frame
+        if (currentAnimState == newState) return;
+
+        // Reset the previous trigger so it doesn't queue up and fire twice
+        if (!string.IsNullOrEmpty(currentAnimState))
+        {
+            animator.ResetTrigger(currentAnimState);
+        }
+
+        // Set the new trigger and update the tracker
+        animator.SetTrigger(newState);
+        currentAnimState = newState;
     }
 }

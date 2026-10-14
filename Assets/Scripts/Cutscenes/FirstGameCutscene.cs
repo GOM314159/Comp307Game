@@ -53,6 +53,8 @@ public class FirstGameCutscene : MonoBehaviour
 
     private VideoPlayer currentBackstoryVideo;
 
+    public bool IsSequenceRunning => sequenceRunning;
+
 
     // =========================================================
     // UNITY
@@ -436,6 +438,35 @@ public class FirstGameCutscene : MonoBehaviour
 
 
     // =========================================================
+    /// <summary>
+    /// Skip only the currently active video. A subsequent F9 press can skip
+    /// the next video in the opening sequence.
+    /// </summary>
+    public void SkipCurrentVideo()
+    {
+        if (!sequenceRunning)
+            return;
+
+        if (introCutscene != null && introCutscene.IsPlaying)
+        {
+            introCutscene.StopCutscene();
+            DebugCutscene("F9 skipped intro video only; starting backstory.");
+            PlayBackstory();
+            return;
+        }
+
+        if (backstoryPlaying && currentBackstoryVideo != null)
+        {
+            VideoPlayer activeVideo = currentBackstoryVideo;
+            DebugCutscene("F9 skipped the active backstory video.");
+            OnBackstoryFinished(activeVideo);
+            return;
+        }
+
+        DebugCutscene("F9 ignored because no opening video is actively playing.");
+    }
+
+
     // STOP SEQUENCE
     // =========================================================
 

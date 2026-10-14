@@ -1,3 +1,4 @@
+using Unity.Behavior;
 using UnityEngine;
 using UnityEngine.Video;
 
@@ -81,6 +82,16 @@ public class CableInteractable : WorldInteractable
 
     [SerializeField]
     private bool debugCable = true;
+
+    //
+    //
+    //
+    [Header("Level 2 Behaviour tree")]
+
+    [Tooltip(
+       "The Boss behaviour update in tree")]
+    [SerializeField]
+    private BehaviorGraphAgent behaviorGraphAgent;
 
 
     // =========================================================
@@ -362,7 +373,22 @@ public class CableInteractable : WorldInteractable
                 "[Cable] CaseManager.Instance is missing."
             );
         }
+        if (behaviorGraphAgent != null)
+        {
+         behaviorGraphAgent.SetVariableValue(
+          "ChandelierIsCut",
+          true
+         );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "[Cable] BehaviorGraphAgent is missing."
+            );
+        }
 
+
+            Debug.Log("[Cable] Set ChandelierIsCut to true in the behavior graph agent's blackboard.");
 
         // -----------------------------------------------------
         // START CUTSCENE

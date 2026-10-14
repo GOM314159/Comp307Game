@@ -95,21 +95,30 @@ public class PlayerInteraction : MonoBehaviour
     private void DetectInteractable()
     {
         previousInteractable = currentInteractable;
-
         currentInteractable = null;
 
-
-        if (cameraTransform == null)
+        // Interaction prompts must never remain visible while the player is
+        // in a state where world interaction is disabled (pause, main menu,
+        // cutscenes, death screen, inventory, reading, etc.).
+        if (
+            stateManager != null &&
+            !stateManager.CanInteract()
+        )
         {
+            HideInteractionPrompt(previousInteractable);
             return;
         }
 
+        if (cameraTransform == null)
+        {
+            HideInteractionPrompt(previousInteractable);
+            return;
+        }
 
         Ray ray = new Ray(
             cameraTransform.position,
             cameraTransform.forward
         );
-
 
         // Hit trigger volumes too (piano / other invisible interaction cubes).
         bool foundHit = Physics.Raycast(
@@ -117,7 +126,8 @@ public class PlayerInteraction : MonoBehaviour
             out RaycastHit hit,
             interactionRange,
             interactionMask,
-            QueryTriggerInteraction.Collide);
+            QueryTriggerInteraction.Collide
+        );
 
         // If the layer is misconfigured, perform a fallback raycast against
         // all layers. Keep Collide so trigger interaction cubes still work.
@@ -128,7 +138,8 @@ public class PlayerInteraction : MonoBehaviour
                 out hit,
                 interactionRange,
                 Physics.AllLayers,
-                QueryTriggerInteraction.Collide);
+                QueryTriggerInteraction.Collide
+            );
         }
 
         if (foundHit)
@@ -148,22 +159,14 @@ public class PlayerInteraction : MonoBehaviour
             }
         }
 
-
-        // =========================================================
-        // UPDATE PROMPT
-        // =========================================================
-
-        // Hide the previous interactable's prompt
+        // Hide the previous interactable's prompt when the target changes.
         if (previousInteractable != currentInteractable)
         {
-            if (previousInteractable is WorldInteractable previousWorld)
-            {
-                previousWorld.HideInteractionPrompt();
-            }
+            HideInteractionPrompt(previousInteractable);
         }
 
-        // Keep the current prompt in sync with whether
-        // the object is currently interactable.
+        // Keep the current prompt in sync with whether the object can
+        // currently be interacted with.
         if (currentInteractable is WorldInteractable currentWorld)
         {
             if (currentWorld.CanInteract())
@@ -177,6 +180,13 @@ public class PlayerInteraction : MonoBehaviour
         }
     }
 
+    private void HideInteractionPrompt(IInteractable interactable)
+    {
+        if (interactable is WorldInteractable worldInteractable)
+        {
+            worldInteractable.HideInteractionPrompt();
+        }
+    }
 
 
     private void HandleInteract()
@@ -233,6 +243,13 @@ public class PlayerInteraction : MonoBehaviour
         // =========================================================
         // NORMAL INTERACTION CHECK
         // =========================================================
+
+        // The Day 1 tutorial blocks all world interaction until its final
+        // tutorial audio has completed.
+        if (TutorialManager.IsInteractionLocked)
+        {
+            return;
+        }
 
         if (stateManager != null &&
             !stateManager.CanInteract())

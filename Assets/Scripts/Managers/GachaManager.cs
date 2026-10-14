@@ -1,4 +1,7 @@
+using System;
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Video;
 using System.Collections.Generic;
 
 public class GachaManager : MonoBehaviour
@@ -44,12 +47,21 @@ public class GachaManager : MonoBehaviour
     [SerializeField, Min(0)] private int normalDeathPenalty = 10;
 
     [Header("Dragon Ball win")]
+    [Tooltip("Assign the VideoPlayer that contains the Dragon Ball ending clip. The manager passes it to GachaWinCutscene automatically.")]
+    [SerializeField] private VideoPlayer dragonBallWinVideoPlayer;
+    [Tooltip("Optional cutscene controller. If empty, the manager searches the loaded scene for one.")]
     [SerializeField] private GachaWinCutscene dragonBallWinCutscene;
+    [SerializeField, Min(0f)] private float dragonBallEndingDelay = 1.5f;
+    private bool dragonBallEndingStarted;
+    private Coroutine dragonBallEndingRoutine;
 
     [Header("Debug")]
     [SerializeField] private bool debugGacha = true;
 
     private GachaReward lastReward;
+    private bool delayedRollInProgress;
+
+    public bool IsDelayedRollInProgress() => delayedRollInProgress;
 
     public int StartingLevelPoints => startingLevelPoints;
     public int PointsLostPerMinute => pointsLostPerMinute;
@@ -195,7 +207,7 @@ public class GachaManager : MonoBehaviour
 
         if (availableRewards.Count == 0)
         {
-            Debug.LogWarning("[Gacha] Nothing left to roll.");
+            DebugGacha("All unique rewards have been collected. No repeat reward will be issued.");
             return null;
         }
 
@@ -213,7 +225,7 @@ public class GachaManager : MonoBehaviour
             return null;
         }
 
-        PlayerInventory inventory = FindAnyObjectByType<PlayerInventory>();
+        PlayerInventory inventory = FindAnyObjectByType<PlayerInventory>(FindObjectsInactive.Include);
 
         if (inventory == null)
         {
@@ -250,6 +262,128 @@ public class GachaManager : MonoBehaviour
         return reward;
     }
 
+    /// <summary>
+    /// Starts the interaction-based gacha roll. Currency is paid immediately,
+    /// but the item is not added to the inventory until the delay completes.
+    /// </summary>
+    public bool TryStartDelayedRoll(
+        MonoBehaviour runner,
+        float delaySeconds,
+        Action<GachaReward, bool> completed)
+    {
+        if (runner == null || delayedRollInProgress)
+        {
+            return false;
+        }
+
+        if (GameStateManager.Instance == null)
+        {
+            return false;
+        }
+
+        List<GachaReward> availableRewards = GetAvailableRewards();
+
+        if (availableRewards.Count == 0)
+        {
+            DebugGacha("All unique rewards have been collected. Further rolls are disabled.");
+            return false;
+        }
+
+        if (GameStateManager.Instance.GetGachaCurrency() < rollCost)
+        {
+            DebugGacha("Not enough points for a spin.");
+            return false;
+        }
+
+        GachaReward reward = SelectWeightedReward(availableRewards);
+
+        if (reward == null || reward.item == null)
+        {
+            return false;
+        }
+
+        if (!GameStateManager.Instance.SpendGachaCurrency(rollCost))
+        {
+            return false;
+        }
+
+        delayedRollInProgress = true;
+
+        runner.StartCoroutine(
+            CompleteDelayedRoll(
+                reward,
+                delaySeconds,
+                completed
+            )
+        );
+
+        DebugGacha(
+            "Gacha started. Reward '" +
+            reward.displayName +
+            "' will be awarded after " +
+            delaySeconds +
+            " seconds."
+        );
+
+        return true;
+    }
+
+    private IEnumerator CompleteDelayedRoll(
+        GachaReward reward,
+        float delaySeconds,
+        Action<GachaReward, bool> completed)
+    {
+        float remaining = Mathf.Max(0f, delaySeconds);
+
+        while (remaining > 0f)
+        {
+            remaining -= Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        delayedRollInProgress = false;
+
+        PlayerInventory inventory =
+            FindAnyObjectByType<PlayerInventory>(FindObjectsInactive.Include);
+
+        bool success =
+            inventory != null &&
+            inventory.AddItem(reward.item, 1);
+
+        if (!success)
+        {
+            // Do not make the player lose their currency if the inventory
+            // becomes full while waiting for the ten-second reward.
+            GameStateManager.Instance.AddGachaCurrency(rollCost);
+
+            DebugGacha(
+                "Delayed reward could not be added. Currency refunded."
+            );
+
+            completed?.Invoke(reward, false);
+            yield break;
+        }
+
+        if (reward.unique)
+        {
+            GameStateManager.Instance.MarkGachaRewardCollected(
+                reward.rewardID
+            );
+        }
+
+        lastReward = reward;
+
+        DebugGacha(
+            "Delayed gacha reward awarded: " +
+            reward.displayName
+        );
+
+        CheckDragonBalls();
+
+        completed?.Invoke(reward, true);
+    }
+
+
     public List<GachaReward> RollMultiple(int amount)
     {
         List<GachaReward> results = new List<GachaReward>();
@@ -280,7 +414,7 @@ public class GachaManager : MonoBehaviour
 
         foreach (GachaReward reward in rewards)
         {
-            if (reward == null || reward.item == null || reward.weight <= 0f)
+            if (reward == null || reward.item == null)
             {
                 continue;
             }
@@ -298,25 +432,49 @@ public class GachaManager : MonoBehaviour
         return available;
     }
 
+    private List<GachaReward> GetValidRewardsForFallback()
+    {
+        List<GachaReward> valid = new List<GachaReward>();
+        foreach (GachaReward reward in rewards)
+        {
+            if (reward != null && reward.item != null)
+                valid.Add(reward);
+        }
+        return valid;
+    }
+
     private GachaReward SelectWeightedReward(List<GachaReward> availableRewards)
     {
         float totalWeight = 0f;
 
+        // A zero weight in the Inspector is a common accidental configuration.
+        // If at least one positive weight exists, zero-weight entries stay out
+        // of the draw. If all weights are zero, treat each valid item equally.
+        bool hasPositiveWeight = false;
         foreach (GachaReward reward in availableRewards)
         {
-            totalWeight += reward.weight;
+            if (reward != null && reward.weight > 0f)
+            {
+                hasPositiveWeight = true;
+                totalWeight += reward.weight;
+            }
         }
 
-        if (totalWeight <= 0f)
+        if (!hasPositiveWeight)
         {
-            return null;
+            return availableRewards.Count > 0
+                ? availableRewards[UnityEngine.Random.Range(0, availableRewards.Count)]
+                : null;
         }
 
-        float randomValue = Random.Range(0f, totalWeight);
+        float randomValue = UnityEngine.Random.Range(0f, totalWeight);
         float currentWeight = 0f;
 
         foreach (GachaReward reward in availableRewards)
         {
+            if (reward == null || reward.weight <= 0f)
+                continue;
+
             currentWeight += reward.weight;
 
             if (randomValue <= currentWeight)
@@ -402,20 +560,44 @@ public class GachaManager : MonoBehaviour
 
     private void CheckDragonBalls()
     {
-        if (GameStateManager.Instance == null ||
+        if (dragonBallEndingStarted ||
+            GameStateManager.Instance == null ||
             !GameStateManager.Instance.HasAllDragonBalls())
-        {
             return;
+
+        dragonBallEndingStarted = true;
+        if (dragonBallEndingRoutine != null)
+            StopCoroutine(dragonBallEndingRoutine);
+        dragonBallEndingRoutine = StartCoroutine(PlayDragonBallEndingAfterDelay());
+    }
+
+    private IEnumerator PlayDragonBallEndingAfterDelay()
+    {
+        float remaining = dragonBallEndingDelay;
+        while (remaining > 0f)
+        {
+            remaining -= Time.unscaledDeltaTime;
+            yield return null;
         }
 
-        if (dragonBallWinCutscene != null)
+        GachaWinCutscene cutscene = dragonBallWinCutscene;
+        if (cutscene == null)
+            cutscene = FindAnyObjectByType<GachaWinCutscene>();
+
+        if (cutscene != null)
         {
-            dragonBallWinCutscene.Play();
+            if (dragonBallWinVideoPlayer != null)
+                cutscene.SetVideoPlayer(dragonBallWinVideoPlayer);
+            cutscene.Play();
         }
-        else if (GameFlowManager.Instance != null)
+        else
         {
-            GameFlowManager.Instance.StartGachaWin();
+            Debug.LogError("[GachaManager] No GachaWinCutscene component was found. Assign one to Dragon Ball Win Cutscene Controller.", this);
+            if (GameFlowManager.Instance != null)
+                GameFlowManager.Instance.StartGachaWin();
         }
+
+        dragonBallEndingRoutine = null;
     }
 
     public GachaReward GetLastReward()

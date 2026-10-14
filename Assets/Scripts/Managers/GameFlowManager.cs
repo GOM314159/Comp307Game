@@ -20,11 +20,6 @@ public class GameFlowManager : MonoBehaviour
     [SerializeField] private string caseScene = "Case";
     [SerializeField] private string creditsScene = "Credits";
 
-    // The single master scene that holds the "Managers" root,
-    // the Main Menu UI, the Lobby, and everything else this
-    // game actually runs out of. Some scenes get tested on
-    // their own in the Editor, so any "return to Main Menu"
-    // request needs to be able to get back here from anywhere.
     [SerializeField] private string gamePlayTestScene = "GamePlayTest";
 
     [Header("Main Menu / Intro")]
@@ -43,12 +38,21 @@ public class GameFlowManager : MonoBehaviour
     [SerializeField]
     private FirstGameCutscene firstGameCutscene;
 
+    [Header("Day Screens")]
+
+    [SerializeField]
+    private DayScreenCutscene dayScreenCutscene;
+
+    private bool playDayScreenAfterLobbyLoad;
+    private int pendingDayScreenDay = -1;
+
     [Header("Death Menu")]
 
     [SerializeField]
     private GameObject deathMenu;
 
     [Header("UI")]
+
     [SerializeField] private GameObject toolbar;
     [SerializeField] private GameObject HealthBar;
     [SerializeField] private GameObject StaminaBar;
@@ -72,32 +76,26 @@ public class GameFlowManager : MonoBehaviour
     // =========================================================
     // LOBBY DAY / FINAL BOSS CHANGES
     // =========================================================
-    //
-    // These are scene-local roots in GamePlayTest. The GameFlowManager
-    // itself is persistent, so it deliberately stores ONLY their names,
-    // not direct GameObject references. This keeps the system safe when
-    // teleportation or scene loading recreates the Lobby objects.
-    // Their Inspector Active state does not matter: the script always
-    // applies the correct state from persistent game progression.
-    //
+
     [Header("Lobby Changes")]
+
     [SerializeField] private string day2ChangesRootName = "Day2Changes";
     [SerializeField] private string day3ChangesRootName = "Day3Changes";
     [SerializeField] private string day4ChangesRootName = "Day4Changes";
     [SerializeField] private string bossChangesRootName = "BossChanges";
 
     [Header("Final Boss")]
+
     [Tooltip(
         "Exact GameObject name of the FinalBossController host in the " +
-        "loaded scene. GameFlowManager is persistent, so this is a typed " +
-        "name lookup instead of a direct scene reference."
+        "loaded scene."
     )]
     [SerializeField]
     private string finalBossControllerObjectName = "FinalBossController";
 
     [Tooltip(
-        "Exact GameObject name of the boss (e.g. Gargamel). Used when the " +
-        "controller object is missing so one can be created and bound at runtime."
+        "Exact GameObject name of the boss. Used when the controller " +
+        "object is missing so one can be created and bound at runtime."
     )]
     [SerializeField]
     private string finalBossObjectName = "Gargamel";
@@ -108,15 +106,14 @@ public class GameFlowManager : MonoBehaviour
 
     private Coroutine newGamePreparationCoroutine;
 
-    // Set while we're waiting for GamePlayTest to load so a
-    // caller (OpenMainMenu, OpenLobby, ...) can finish its work
-    // once that scene is actually ready. See
-    // EnsureInGamePlayTestScene().
     private System.Action pendingGamePlayTestAction;
 
     [Header("Final Ending")]
 
-    [Tooltip("How long the Credits game mode remains active before returning to the Main Menu.")]
+    [Tooltip(
+        "How long the Credits game mode remains active before returning " +
+        "to the Main Menu."
+    )]
     [Min(0f)]
     [SerializeField] private float finalCreditsDuration = 10f;
 
@@ -145,35 +142,16 @@ public class GameFlowManager : MonoBehaviour
         }
 
         Instance = this;
+
         DontDestroyOnLoad(gameObject);
+
         SceneManager.sceneLoaded += OnSceneLoaded;
 
-        // ---------------------------------------------------------
-        // PICK UP REFERENCES FOR THE SCENE WE STARTED IN
-        // ---------------------------------------------------------
-        //
-        // SceneManager.sceneLoaded only fires for scenes loaded
-        // AFTER this subscription runs. When Play is pressed
-        // directly inside a scene that already has the "Managers"
-        // object in it (e.g. testing GamePlayTest on its own), that
-        // scene is already loaded by the time this Awake() runs, so
-        // the event never fires for it and RefreshSceneReferences()
-        // was never called. That left playerRespawnPoint (and
-        // player) null, which is why MovePlayerToRespawnPoint()
-        // was failing with "Player Respawn Point has not been
-        // assigned in the Inspector!" even though it was assigned
-        // in the scene, just never picked up. Refreshing once here
-        // covers the initial scene too.
         RefreshSceneReferences();
     }
 
     private void Start()
     {
-        // The initial scene does not fire SceneManager.sceneLoaded for the
-        // scene it started in. Start() runs after all manager Awake() calls,
-        // so the authoritative GameStateManager is available here.
-        // This also forces the Day/Boss roots into their correct state, so
-        // their initial Inspector Active state does not matter.
         ApplyLobbyChangesToCurrentScene();
     }
 
@@ -186,10 +164,11 @@ public class GameFlowManager : MonoBehaviour
     }
 
     private void OnSceneLoaded(
-    Scene scene,
-    LoadSceneMode mode)
+        Scene scene,
+        LoadSceneMode mode)
     {
         RefreshSceneReferences();
+
         ApplyLobbyChangesToCurrentScene();
 
         DebugFlow(
@@ -198,13 +177,11 @@ public class GameFlowManager : MonoBehaviour
             + ". Scene references and lobby changes refreshed."
         );
 
-        // If EnsureInGamePlayTestScene() had to load GamePlayTest
-        // first for something, finish that work now that it's
-        // actually ready.
-        if (pendingGamePlayTestAction != null
-            && scene.name == gamePlayTestScene)
+        if (pendingGamePlayTestAction != null &&
+            scene.name == gamePlayTestScene)
         {
             System.Action action = pendingGamePlayTestAction;
+
             pendingGamePlayTestAction = null;
 
             action();
@@ -214,16 +191,6 @@ public class GameFlowManager : MonoBehaviour
     // =========================================================
     // GAMEPLAYTEST SCENE GUARD
     // =========================================================
-    //
-    // Several flows (returning to the Main Menu, opening the
-    // Lobby) only make sense inside GamePlayTest - that's where
-    // the Main Menu UI, the Lobby, and the day's PlayerRespawnPoint
-    // actually live. If one of those is requested while a
-    // different scene happens to be loaded on its own (e.g. you
-    // died mid-level, in a level scene loaded via TeleportManager,
-    // or you're testing a level scene directly), load GamePlayTest
-    // first and run the real logic once it's ready. If we're
-    // already there, it just runs immediately.
 
     private void EnsureInGamePlayTestScene(System.Action onReady)
     {
@@ -244,6 +211,10 @@ public class GameFlowManager : MonoBehaviour
         SceneManager.LoadScene(gamePlayTestScene);
     }
 
+    // =========================================================
+    // SCENE REFERENCES
+    // =========================================================
+
     public void RefreshSceneReferences()
     {
         // =====================================================
@@ -262,14 +233,7 @@ public class GameFlowManager : MonoBehaviour
         // RESPAWN POINT
         // =====================================================
 
-        PlayerRespawnPoint sceneRespawnPoint =
-            FindAnyObjectByType<PlayerRespawnPoint>();
-
-        if (sceneRespawnPoint != null)
-        {
-            playerRespawnPoint =
-                sceneRespawnPoint;
-        }
+        playerRespawnPoint = ResolveLobbyRespawnPoint();
 
         // =====================================================
         // CUTSCENES
@@ -280,8 +244,7 @@ public class GameFlowManager : MonoBehaviour
 
         if (sceneIntro != null)
         {
-            introCutscene =
-                sceneIntro;
+            introCutscene = sceneIntro;
         }
 
         FirstGameCutscene sceneFirstGame =
@@ -289,8 +252,21 @@ public class GameFlowManager : MonoBehaviour
 
         if (sceneFirstGame != null)
         {
-            firstGameCutscene =
-                sceneFirstGame;
+            firstGameCutscene = sceneFirstGame;
+        }
+
+        DayScreenCutscene sceneDayScreen =
+            FindAnyObjectByType<DayScreenCutscene>(
+                FindObjectsInactive.Include
+            );
+
+        if (sceneDayScreen != null)
+        {
+            dayScreenCutscene = sceneDayScreen;
+        }
+        else if (DayScreenCutscene.Instance != null)
+        {
+            dayScreenCutscene = DayScreenCutscene.Instance;
         }
 
         DebugFlow(
@@ -302,30 +278,28 @@ public class GameFlowManager : MonoBehaviour
     // LOBBY DAY / FINAL BOSS CHANGES
     // =========================================================
 
-    /// <summary>
-    /// Applies the persistent day/final-play progression to the scene-local
-    /// Lobby change roots. No scene-local GameObject references are stored on
-    /// this persistent manager.
-    /// </summary>
     public void ApplyLobbyChangesToCurrentScene()
     {
         if (GameStateManager.Instance == null)
         {
             Debug.LogWarning(
-                "[GameFlow] Cannot apply Lobby changes because GameStateManager is missing."
+                "[GameFlow] Cannot apply Lobby changes because " +
+                "GameStateManager is missing."
             );
+
             return;
         }
 
         Scene activeScene = SceneManager.GetActiveScene();
 
-        // These changes only belong to the GamePlayTest/Lobby scene.
         if (activeScene.name != gamePlayTestScene)
         {
             return;
         }
 
-        int day = GameStateManager.Instance.GetCurrentDay();
+        int day =
+            GameStateManager.Instance.GetCurrentDay();
+
         bool finalPlayComplete =
             GameStateManager.Instance.IsFinalPlayComplete();
 
@@ -372,7 +346,11 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-        GameObject target = FindSceneObjectByName(scene, rootName);
+        GameObject target =
+            FindSceneObjectByName(
+                scene,
+                rootName
+            );
 
         if (target == null)
         {
@@ -387,9 +365,6 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-        // The script owns this state completely. The Inspector Active
-        // checkbox is only an initial scene-authoring value and does not
-        // need to be changed by hand.
         if (target.activeSelf != shouldBeActive)
         {
             target.SetActive(shouldBeActive);
@@ -400,7 +375,8 @@ public class GameFlowManager : MonoBehaviour
         Scene scene,
         string objectName)
     {
-        GameObject[] roots = scene.GetRootGameObjects();
+        GameObject[] roots =
+            scene.GetRootGameObjects();
 
         foreach (GameObject root in roots)
         {
@@ -409,10 +385,11 @@ public class GameFlowManager : MonoBehaviour
                 continue;
             }
 
-            GameObject found = FindChildObjectByName(
-                root.transform,
-                objectName
-            );
+            GameObject found =
+                FindChildObjectByName(
+                    root.transform,
+                    objectName
+                );
 
             if (found != null)
             {
@@ -434,10 +411,11 @@ public class GameFlowManager : MonoBehaviour
 
         for (int i = 0; i < parent.childCount; i++)
         {
-            GameObject found = FindChildObjectByName(
-                parent.GetChild(i),
-                objectName
-            );
+            GameObject found =
+                FindChildObjectByName(
+                    parent.GetChild(i),
+                    objectName
+                );
 
             if (found != null)
             {
@@ -452,29 +430,14 @@ public class GameFlowManager : MonoBehaviour
     {
         if (debugLobbyChanges)
         {
-            Debug.Log("[LobbyChanges] " + message);
+            Debug.Log(
+                "[LobbyChanges] " + message
+            );
         }
     }
 
-    //private void Start()
-    //{
-    //    if (GameStateManager.Instance != null)
-    //    {
-    //        GameStateManager.Instance.SetGameMode(
-    //            GameStateManager.GameMode.MainMenu
-    //        );
-    //    }
-
-    //    if (PlayerStateManager.Instance != null)
-    //    {
-    //        PlayerStateManager.Instance.SetState(
-    //            PlayerStateManager.PlayerState.MainMenu
-    //        );
-    //    }
-    //}
-
     // =========================================================
-    // MENU
+    // NEW GAME PREPARATION
     // =========================================================
 
     private IEnumerator PreparePlayerForNewGame()
@@ -492,10 +455,6 @@ public class GameFlowManager : MonoBehaviour
             yield break;
         }
 
-        // =========================================================
-        // STOP PLAYER MOVEMENT
-        // =========================================================
-
         PlayerMovement movement =
             player.GetComponent<PlayerMovement>();
 
@@ -504,11 +463,6 @@ public class GameFlowManager : MonoBehaviour
             movement.ResetMovementAfterTeleport();
         }
 
-
-        // =========================================================
-        // RESET LOOK
-        // =========================================================
-
         PlayerLook look =
             player.GetComponent<PlayerLook>();
 
@@ -516,11 +470,6 @@ public class GameFlowManager : MonoBehaviour
         {
             look.ResetLook();
         }
-
-
-        // =========================================================
-        // MOVE PLAYER AWAY FROM PREVIOUS OBJECT
-        // =========================================================
 
         if (playerRespawnPoint != null)
         {
@@ -543,11 +492,6 @@ public class GameFlowManager : MonoBehaviour
             }
         }
 
-
-        // =========================================================
-        // RESET PLAYER STATE
-        // =========================================================
-
         PlayerStateManager state =
             player.GetComponent<PlayerStateManager>();
 
@@ -560,19 +504,7 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
-
-        // =========================================================
-        // GIVE UNITY ONE FRAME
-        // =========================================================
-
-        // This is important.
-        //
-        // It gives the CharacterController, camera and
-        // physics system a frame to acknowledge the new
-        // player position before the intro video starts.
-
         yield return null;
-
 
         DebugFlow(
             "Player is safely positioned for the new-game intro."
@@ -581,40 +513,46 @@ public class GameFlowManager : MonoBehaviour
 
     private IEnumerator StartNewGameAfterPlayerReset()
     {
-        // ---------------------------------------------------------
-        // RESET PLAYER POSITION/CAMERA
-        // ---------------------------------------------------------
-
         yield return StartCoroutine(
             PreparePlayerForNewGame()
         );
 
-
-        // ---------------------------------------------------------
-        // NOW START INTRO
-        // ---------------------------------------------------------
-
         newGamePreparationCoroutine = null;
+
         StartFirstGameSequence();
     }
 
+    // =========================================================
+    // MENU
+    // =========================================================
+
     public void OpenMainMenu()
     {
-        EnsureInGamePlayTestScene(FinishReturnToMainMenu);
+        EnsureInGamePlayTestScene(
+            FinishReturnToMainMenu
+        );
     }
 
     private void FinishReturnToMainMenu()
     {
-        DebugFlow("Returning to Main Menu. Resetting entire game.");
+        if (TutorialManager.Instance != null)
+        {
+            TutorialManager.Instance.ResetTutorial();
+        }
 
-        // Cancel any new-game preparation that may still be running.
+        DebugFlow(
+            "Returning to Main Menu. Resetting entire game."
+        );
+
         if (newGamePreparationCoroutine != null)
         {
-            StopCoroutine(newGamePreparationCoroutine);
+            StopCoroutine(
+                newGamePreparationCoroutine
+            );
+
             newGamePreparationCoroutine = null;
         }
 
-        // Stop any cinematic that may still be rendering/preparing.
         if (firstGameCutscene != null)
         {
             firstGameCutscene.StopSequence();
@@ -625,7 +563,6 @@ public class GameFlowManager : MonoBehaviour
             introCutscene.StopCutscene();
         }
 
-        // Reset all game progress.
         if (GameResetManager.Instance != null)
         {
             GameResetManager.Instance.ResetEntireGame();
@@ -644,7 +581,6 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
-        // Re-entering the main menu should restore its looping music cue.
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayMusic(
@@ -677,7 +613,9 @@ public class GameFlowManager : MonoBehaviour
         }
         else
         {
-            Cursor.lockState = CursorLockMode.None;
+            Cursor.lockState =
+                CursorLockMode.None;
+
             Cursor.visible = true;
         }
     }
@@ -706,13 +644,15 @@ public class GameFlowManager : MonoBehaviour
         }
     }
 
+    // =========================================================
+    // INTRO SCENE
+    // =========================================================
+
     public void IntroSceneLoaded()
     {
-        DebugFlow("Intro scene loaded. Looking for cutscene.");
-
-        // ---------------------------------------------------------
-        // MAKE SURE WE ARE ACTUALLY IN CUTSCENE MODE
-        // ---------------------------------------------------------
+        DebugFlow(
+            "Intro scene loaded. Looking for cutscene."
+        );
 
         if (GameStateManager.Instance == null)
         {
@@ -738,20 +678,10 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-
-        // ---------------------------------------------------------
-        // LOOK FOR INTRO CUTSCENE
-        // ---------------------------------------------------------
-
-        IntroCutscene introCutscene =
+        IntroCutscene intro =
             FindAnyObjectByType<IntroCutscene>();
 
-
-        // ---------------------------------------------------------
-        // NO CUTSCENE
-        // ---------------------------------------------------------
-
-        if (introCutscene == null)
+        if (intro == null)
         {
             Debug.LogWarning(
                 "[GameFlow] No intro cutscene found. " +
@@ -763,21 +693,21 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
+        DebugFlow(
+            "Intro cutscene found. Playing."
+        );
 
-        // ---------------------------------------------------------
-        // CUTSCENE FOUND
-        // ---------------------------------------------------------
-
-        DebugFlow("Intro cutscene found. Playing.");
-
-        introCutscene.PlayIntro();
+        intro.PlayIntro();
     }
 
     public void OpenCredits()
     {
-        GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.Credits);
-
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Credits
+            );
+        }
     }
 
     public void QuitGame()
@@ -794,19 +724,20 @@ public class GameFlowManager : MonoBehaviour
     // =========================================================
 
     public void StartNewGame(
-    GameStateManager.DifficultyMode difficulty,
-    GameStateManager.PlayerGender gender)
+        GameStateManager.DifficultyMode difficulty,
+        GameStateManager.PlayerGender gender)
     {
+        if (TutorialManager.Instance != null)
+        {
+            TutorialManager.Instance.ResetTutorial();
+        }
+
         DebugFlow(
             "Starting new game. Difficulty: "
             + difficulty
             + " | Gender: "
             + gender
         );
-
-        // ---------------------------------------------------------
-        // RESET PREVIOUS GAME DATA
-        // ---------------------------------------------------------
 
         if (GameStateManager.Instance == null)
         {
@@ -826,22 +757,17 @@ public class GameFlowManager : MonoBehaviour
             GameStateManager.Instance.ResetEntireGame();
         }
 
+        RefreshSceneReferences();
 
-        // ---------------------------------------------------------
-        // APPLY MAIN MENU SELECTIONS
-        // ---------------------------------------------------------
+        GameStateManager.Instance.SetDifficulty(
+            difficulty
+        );
 
-        GameStateManager.Instance.SetDifficulty(difficulty);
-
-        GameStateManager.Instance.SetPlayerGender(gender);
+        GameStateManager.Instance.SetPlayerGender(
+            gender
+        );
 
         setPlayerAnimator();
-
-
-
-        // ---------------------------------------------------------
-        // GIVE PLAYER THEIR GENDER-SPECIFIC LETTER
-        // ---------------------------------------------------------
 
         PlayerInventory playerInventory =
             FindAnyObjectByType<PlayerInventory>();
@@ -860,62 +786,338 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
-        // ---------------------------------------------------------
-        // START INTRO
-        // ---------------------------------------------------------
+        PlayerHealth playerHealth =
+            player != null
+                ? player.GetComponent<PlayerHealth>()
+                : FindAnyObjectByType<PlayerHealth>(
+                    FindObjectsInactive.Include
+                );
+
+        if (playerHealth != null)
+        {
+            playerHealth.ResetHealth();
+        }
 
         if (newGamePreparationCoroutine != null)
         {
-            StopCoroutine(newGamePreparationCoroutine);
+            StopCoroutine(
+                newGamePreparationCoroutine
+            );
         }
 
         newGamePreparationCoroutine =
-            StartCoroutine(StartNewGameAfterPlayerReset());
-
-
+            StartCoroutine(
+                StartNewGameAfterPlayerReset()
+            );
     }
-    // set the player animator to the correct gender animator in the PlayerMovement script
+
+    // =========================================================
+    // GENDER ANIMATOR
+    // =========================================================
+
     public void setPlayerAnimator()
     {
-        PlayerMovement playerMovement = player.GetComponent<PlayerMovement>();
-
-        if (playerMovement != null)
+        if (player == null)
         {
-            if (GameStateManager.Instance != null)
-            {
-                if (GameStateManager.Instance.GetPlayerGender() == GameStateManager.PlayerGender.Male)
-                {
-                    Animator nephewAnim = GameObject.Find("Nephew").GetComponent<Animator>();
-                    playerMovement.setAnimator(nephewAnim);
-                }
-                else
-                {
-                    Animator nieceAnim = GameObject.Find("Niece").GetComponent<Animator>();
-                    playerMovement.setAnimator(nieceAnim);
-                }
-
-            }
-            else
-            {
-                Debug.LogError(
-                    "[GameFlow] GameStateManager.Instance is missing."
-                );
-            }
+            RefreshSceneReferences();
         }
-        else
+
+        if (player == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Player is missing. " +
+                "Cannot set gender animator."
+            );
+
+            return;
+        }
+
+        PlayerMovement playerMovement =
+            player.GetComponent<PlayerMovement>();
+
+        if (playerMovement == null)
         {
             Debug.LogError(
                 "[GameFlow] PlayerMovement component is missing on the player."
             );
+
+            return;
+        }
+
+        if (GameStateManager.Instance == null)
+        {
+            Debug.LogError(
+                "[GameFlow] GameStateManager.Instance is missing."
+            );
+
+            return;
+        }
+
+        bool male =
+            GameStateManager.Instance.GetPlayerGender()
+            == GameStateManager.PlayerGender.Male;
+
+        string avatarName =
+            male ? "Nephew" : "Niece";
+
+        GameObject avatar =
+            FindGenderAvatarInScene(
+                avatarName
+            );
+
+        if (avatar == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Could not find gender avatar '"
+                + avatarName
+                + "'."
+            );
+
+            return;
+        }
+
+        if (!avatar.activeSelf)
+        {
+            avatar.SetActive(true);
+        }
+
+        Animator genderAnimator =
+            avatar.GetComponent<Animator>();
+
+        if (genderAnimator == null)
+        {
+            genderAnimator =
+                avatar.GetComponentInChildren<Animator>(
+                    true
+                );
+        }
+
+        if (genderAnimator == null)
+        {
+            Debug.LogError(
+                "[GameFlow] No Animator found on gender avatar '"
+                + avatarName
+                + "'."
+            );
+
+            return;
+        }
+
+        playerMovement.setAnimator(
+            genderAnimator
+        );
+    }
+
+    private static GameObject FindGenderAvatarInScene(
+        string avatarName)
+    {
+        GameObject active =
+            GameObject.Find(avatarName);
+
+        if (active != null)
+        {
+            return active;
+        }
+
+        Transform[] transforms =
+            Resources.FindObjectsOfTypeAll<Transform>();
+
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform transform =
+                transforms[i];
+
+            if (
+                transform == null ||
+                transform.name != avatarName
+            )
+            {
+                continue;
+            }
+
+            if (transform.gameObject.scene.IsValid())
+            {
+                return transform.gameObject;
+            }
+        }
+
+        return null;
+    }
+
+    // =========================================================
+    // LOBBY RESPAWN
+    // =========================================================
+
+    private PlayerRespawnPoint ResolveLobbyRespawnPoint()
+    {
+        TeleportDestination[] destinations =
+            FindObjectsByType<TeleportDestination>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        for (int i = 0; i < destinations.Length; i++)
+        {
+            TeleportDestination destination =
+                destinations[i];
+
+            if (destination == null)
+            {
+                continue;
+            }
+
+            if (
+                destination.GetDestinationID()
+                != "PlayerSpawn"
+            )
+            {
+                continue;
+            }
+
+            PlayerRespawnPoint preferred =
+                destination.GetComponent<PlayerRespawnPoint>();
+
+            if (preferred != null)
+            {
+                return preferred;
+            }
+        }
+
+        PlayerRespawnPoint[] respawnPoints =
+            FindObjectsByType<PlayerRespawnPoint>(
+                FindObjectsInactive.Exclude,
+                FindObjectsSortMode.None
+            );
+
+        for (int i = 0; i < respawnPoints.Length; i++)
+        {
+            PlayerRespawnPoint candidate =
+                respawnPoints[i];
+
+            if (candidate == null)
+            {
+                continue;
+            }
+
+            TeleportDestination destination =
+                candidate.GetComponent<TeleportDestination>();
+
+            if (
+                destination != null &&
+                destination.GetDestinationID()
+                == "PlayerFinalSpawn"
+            )
+            {
+                continue;
+            }
+
+            if (
+                candidate.gameObject.name.Contains(
+                    "Final"
+                )
+            )
+            {
+                continue;
+            }
+
+            return candidate;
+        }
+
+        return FindAnyObjectByType<PlayerRespawnPoint>();
+    }
+
+    // =========================================================
+    // RETURN FROM CASE
+    // =========================================================
+
+    public void HandleReturnedFromCase(
+        bool playDayScreen,
+        int day)
+    {
+        SetGameplayHUDVisible(true);
+
+        ApplyLobbyChangesToCurrentScene();
+
+        if (playDayScreen && day > 0)
+        {
+            if (dayScreenCutscene == null)
+            {
+                dayScreenCutscene =
+                    DayScreenCutscene.Instance;
+            }
+
+            if (dayScreenCutscene == null)
+            {
+                dayScreenCutscene =
+                    FindAnyObjectByType<DayScreenCutscene>(
+                        FindObjectsInactive.Include
+                    );
+            }
+
+            if (dayScreenCutscene != null)
+            {
+                dayScreenCutscene.PlayDayScreenAfterLobbyLoad(
+                    day
+                );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[GameFlow] DayScreenCutscene missing after case return."
+                );
+
+                if (AudioManager.Instance != null)
+                {
+                    AudioManager.Instance.PlayMusic(
+                        AudioManager.MusicType.Lobby
+                    );
+
+                    AudioManager.Instance.PlayAmbience(
+                        AudioManager.AmbienceType.Lobby
+                    );
+                }
+            }
+
+            if (GameResetManager.Instance != null)
+            {
+                GameResetManager.Instance.CreateDaySnapshot();
+            }
+        }
+        else if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayMusic(
+                AudioManager.MusicType.Lobby
+            );
+
+            AudioManager.Instance.PlayAmbience(
+                AudioManager.AmbienceType.Lobby
+            );
+        }
+
+        ObjectiveAndDayOverlay[] overlays =
+            FindObjectsByType<ObjectiveAndDayOverlay>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        for (int i = 0; i < overlays.Length; i++)
+        {
+            if (overlays[i] != null)
+            {
+                overlays[i].RefreshNow();
+            }
         }
     }
+
+    // =========================================================
+    // FIRST GAME SEQUENCE
+    // =========================================================
 
     public void StartFirstGameSequence()
     {
         DebugFlow(
             "Starting first-game cinematic sequence."
         );
-
 
         if (GameStateManager.Instance == null)
         {
@@ -926,15 +1128,9 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-
-        // ---------------------------------------------------------
-        // CUTSCENE STATE
-        // ---------------------------------------------------------
-
         GameStateManager.Instance.SetGameMode(
             GameStateManager.GameMode.Cutscene
         );
-
 
         if (PlayerStateManager.Instance != null)
         {
@@ -943,30 +1139,8 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
-
-        // ---------------------------------------------------------
-        // HIDE HUD
-        // ---------------------------------------------------------
-
         SetGameplayHUDVisible(false);
 
-
-        // ---------------------------------------------------------
-        // HIDE MENU
-        // ---------------------------------------------------------
-
-        // Do NOT hide GameModeSelectionScreen here. Its full-screen
-        // background is the black hold between Continue and the first
-        // intro video frame. IntroVideoFirstFrameReady hides it.
-
-        // ---------------------------------------------------------
-        // CURSOR
-        // ---------------------------------------------------------
-
-        // Force the persistent cursor controller into gameplay/cutscene
-        // mode as well as hiding Unity's native cursor.
-        // Otherwise its Update loop can restore Cursor.visible after this
-        // method runs.
         GameUICursorController cursorController =
             GameUICursorController.Instance;
 
@@ -981,11 +1155,6 @@ public class GameFlowManager : MonoBehaviour
 
             Cursor.visible = false;
         }
-
-
-        // ---------------------------------------------------------
-        // PLAY SEQUENCE
-        // ---------------------------------------------------------
 
         if (firstGameCutscene == null)
         {
@@ -1008,8 +1177,7 @@ public class GameFlowManager : MonoBehaviour
     public void IntroVideoFirstFrameReady()
     {
         DebugFlow(
-            "Intro video first frame is ready. " +
-            "Hiding menu."
+            "Intro video first frame is ready. Hiding menu."
         );
 
         StartCoroutine(
@@ -1019,10 +1187,7 @@ public class GameFlowManager : MonoBehaviour
 
     private IEnumerator HideMenuAfterVideoFrame()
     {
-        // Give Unity time to finish the current rendering cycle.
         yield return new WaitForEndOfFrame();
-
-        // Now the video frame is actually ready to be displayed.
 
         if (mainMenuGroup != null)
         {
@@ -1048,11 +1213,31 @@ public class GameFlowManager : MonoBehaviour
         SetToolbarVisible(visible);
         SetHealthBarVisible(visible);
         SetStaminaBarVisible(visible);
+
+        ObjectiveAndDayOverlay[] overlays =
+            FindObjectsByType<ObjectiveAndDayOverlay>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+
+        foreach (
+            ObjectiveAndDayOverlay overlay
+            in overlays
+        )
+        {
+            if (overlay != null)
+            {
+                overlay.SetOverlayVisible(visible);
+                overlay.RefreshNow();
+            }
+        }
     }
 
     public void StartIntro()
     {
-        DebugFlow("Starting first intro cutscene.");
+        DebugFlow(
+            "Starting first intro cutscene."
+        );
 
         if (GameStateManager.Instance == null)
         {
@@ -1062,21 +1247,14 @@ public class GameFlowManager : MonoBehaviour
 
             return;
         }
+
         SetToolbarVisible(false);
         SetHealthBarVisible(false);
         SetStaminaBarVisible(false);
 
-        // ---------------------------------------------------------
-        // GAME STATE
-        // ---------------------------------------------------------
-
         GameStateManager.Instance.SetGameMode(
             GameStateManager.GameMode.Cutscene
         );
-
-        // ---------------------------------------------------------
-        // PLAYER STATE
-        // ---------------------------------------------------------
 
         if (PlayerStateManager.Instance != null)
         {
@@ -1084,10 +1262,6 @@ public class GameFlowManager : MonoBehaviour
                 PlayerStateManager.PlayerState.Cutscene
             );
         }
-
-        // ---------------------------------------------------------
-        // HIDE MENU
-        // ---------------------------------------------------------
 
         if (mainMenuGroup != null)
         {
@@ -1099,19 +1273,10 @@ public class GameFlowManager : MonoBehaviour
             gameModeSelectionScreen.SetActive(false);
         }
 
-
-        // ---------------------------------------------------------
-        // CURSOR
-        // ---------------------------------------------------------
-
         Cursor.lockState =
             CursorLockMode.Locked;
 
         Cursor.visible = false;
-
-        // ---------------------------------------------------------
-        // PLAY VIDEO
-        // ---------------------------------------------------------
 
         if (introCutscene == null)
         {
@@ -1135,43 +1300,75 @@ public class GameFlowManager : MonoBehaviour
             "[GameFlowManager] Debug override skipping cutscene."
         );
 
-
-        // =====================================================
-        // STOP INTRO CUTSCENE
-        // =====================================================
-
-        if (introCutscene != null)
+        if (dayScreenCutscene == null)
         {
-            introCutscene.StopCutscene();
+            dayScreenCutscene =
+                DayScreenCutscene.Instance;
         }
 
-
-        // =====================================================
-        // STOP FIRST-GAME CUTSCENE
-        // =====================================================
-
-        if (firstGameCutscene != null)
+        if (dayScreenCutscene == null)
         {
-            firstGameCutscene.StopSequence();
+            dayScreenCutscene =
+                FindAnyObjectByType<DayScreenCutscene>(
+                    FindObjectsInactive.Include
+                );
         }
-    }
-    public void CheckForIntroCutscene()
-    {
-        DebugFlow("Checking for intro cutscene.");
 
-        IntroCutscene introCutscene =
-            FindAnyObjectByType<IntroCutscene>();
-
-        if (introCutscene != null)
+        if (
+            dayScreenCutscene != null &&
+            dayScreenCutscene.IsPlaying
+        )
         {
-            DebugFlow("Intro cutscene found.");
-
+            dayScreenCutscene.StopDayScreen();
             return;
         }
 
-        // ---------------------------------------------------------
-        // NO CUTSCENE FOUND
-        // ---------------------------------------------------------
+        bool skippedOpeningSequence = false;
+
+        if (
+            firstGameCutscene != null &&
+            firstGameCutscene.IsSequenceRunning
+        )
+        {
+            // Skip only the currently playing video, not the whole sequence.
+            firstGameCutscene.SkipCurrentVideo();
+            return;
+        }
+        else if (
+            introCutscene != null &&
+            introCutscene.IsPlaying
+        )
+        {
+            introCutscene.StopCutscene();
+
+            skippedOpeningSequence = true;
+            IntroFinished(true);
+        }
+        // No active cutscene means F9 does nothing. Never forcibly complete
+        // the opening sequence or bypass the tutorial.
+        if (!skippedOpeningSequence)
+        {
+            Debug.Log("[GameFlowManager] F9 found no skippable active cutscene.");
+        }
+    }
+
+    public void CheckForIntroCutscene()
+    {
+        DebugFlow(
+            "Checking for intro cutscene."
+        );
+
+        IntroCutscene intro =
+            FindAnyObjectByType<IntroCutscene>();
+
+        if (intro != null)
+        {
+            DebugFlow(
+                "Intro cutscene found."
+            );
+
+            return;
+        }
 
         Debug.LogWarning(
             "[GameFlow] No intro cutscene found. " +
@@ -1181,10 +1378,12 @@ public class GameFlowManager : MonoBehaviour
         IntroFinished();
     }
 
-    public void IntroFinished()
+    public void IntroFinished(bool showDayScreen = true)
     {
-        DebugFlow("Intro cutscene finished.");
-
+        DebugFlow(
+            "Intro cutscene finished. Show Day Screen = " +
+            showDayScreen
+        );
 
         if (GameStateManager.Instance == null)
         {
@@ -1195,8 +1394,13 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-        // Start the first day.
-        StartDay(1);
+        // A normal intro completion shows the Day 1 screen. A debug F9
+        // skip is treated as a complete cutscene override and therefore
+        // goes directly into gameplay.
+        StartDay(
+            1,
+            showDayScreen
+        );
     }
 
     // =========================================================
@@ -1205,22 +1409,15 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartDay(int day)
     {
-        StartDay(day, true);
+        StartDay(
+            day,
+            true
+        );
     }
 
-    // createDaySnapshot: whether this should capture a fresh
-    // "beginning of day" snapshot once the player lands in the
-    // Lobby. This should be true for an actual new day (first day,
-    // CompleteDay, or a full game reset back to Day 1) and false
-    // when we're just restarting the SAME day after a death or
-    // timeout - in that case ResetCurrentDay() already restored
-    // the player to the existing day-start snapshot, and
-    // recapturing it here would instead bake in whatever state the
-    // player happened to be in right after the reset (e.g. an item
-    // they'd picked up that day that the reset failed to strip),
-    // permanently corrupting that day's baseline for every future
-    // restart.
-    public void StartDay(int day, bool createDaySnapshot)
+    public void StartDay(
+        int day,
+        bool createDaySnapshot)
     {
         if (GameStateManager.Instance == null)
         {
@@ -1231,35 +1428,32 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-        // ---------------------------------------------------------
-        // SET DAY
-        // ---------------------------------------------------------
-
         GameStateManager.Instance.SetDay(day);
-        ApplyLobbyChangesToCurrentScene();
 
-        // ---------------------------------------------------------
-        // THEATER DAY
-        // ---------------------------------------------------------
+        ApplyLobbyChangesToCurrentScene();
 
         if (TheaterManager.Instance != null)
         {
             TheaterManager.Instance.SetTheaterDay(day);
         }
 
-        // ---------------------------------------------------------
-        // MARK WHETHER A NEW DAY SNAPSHOT IS REQUIRED
-        // ---------------------------------------------------------
+        createDaySnapshotOnLobbyLoad =
+            createDaySnapshot;
 
-        createDaySnapshotOnLobbyLoad = createDaySnapshot;
+        playDayScreenAfterLobbyLoad =
+            createDaySnapshot;
+
+        pendingDayScreenDay = day;
+
+        if (dayScreenCutscene == null)
+        {
+            dayScreenCutscene =
+                DayScreenCutscene.Instance;
+        }
 
         DebugFlow(
             "Starting Day " + day
         );
-
-        // ---------------------------------------------------------
-        // GO TO LOBBY
-        // ---------------------------------------------------------
 
         OpenLobby();
     }
@@ -1269,7 +1463,8 @@ public class GameFlowManager : MonoBehaviour
         if (GameStateManager.Instance == null)
         {
             Debug.LogError(
-                "[GameFlow] Cannot complete day because GameStateManager is missing."
+                "[GameFlow] Cannot complete day because " +
+                "GameStateManager is missing."
             );
 
             return;
@@ -1286,7 +1481,10 @@ public class GameFlowManager : MonoBehaviour
 
         if (AchievementManager.Instance != null)
         {
-            AchievementManager.Instance.UnlockDayCompletion(completedDay);
+            AchievementManager.Instance
+                .UnlockDayCompletion(
+                    completedDay
+                );
         }
 
         if (GameStateManager.Instance.IsFinalDay())
@@ -1308,7 +1506,9 @@ public class GameFlowManager : MonoBehaviour
 
     public void OpenLobby()
     {
-        EnsureInGamePlayTestScene(FinishOpenLobby);
+        EnsureInGamePlayTestScene(
+            FinishOpenLobby
+        );
     }
 
     private void FinishOpenLobby()
@@ -1326,17 +1526,9 @@ public class GameFlowManager : MonoBehaviour
             "Opening Lobby in the current scene."
         );
 
-        // =========================================================
-        // GAME STATE
-        // =========================================================
-
         GameStateManager.Instance.SetGameMode(
             GameStateManager.GameMode.Lobby
         );
-
-        // =========================================================
-        // AUDIO
-        // =========================================================
 
         if (AudioManager.Instance != null)
         {
@@ -1349,16 +1541,49 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
-        // =========================================================
-        // PLAYER
-        // =========================================================
+        // IMPORTANT:
+        // Re-resolve the lobby spawn immediately before teleporting.
+        // This prevents a stale PlayerRespawnPoint reference from a
+        // previous scene/teleport being reused.
+        RefreshSceneReferences();
 
         StartCoroutine(
             MovePlayerToRespawnPoint()
         );
+
         SetToolbarVisible(true);
         SetHealthBarVisible(true);
         SetStaminaBarVisible(true);
+
+        if (
+            playDayScreenAfterLobbyLoad &&
+            pendingDayScreenDay > 0
+        )
+        {
+            if (dayScreenCutscene == null)
+            {
+                dayScreenCutscene =
+                    DayScreenCutscene.Instance;
+            }
+
+            if (dayScreenCutscene != null)
+            {
+                dayScreenCutscene
+                    .PlayDayScreenAfterLobbyLoad(
+                        pendingDayScreenDay
+                    );
+            }
+            else
+            {
+                Debug.LogWarning(
+                    "[GameFlow] DayScreenCutscene is missing; " +
+                    "Day screen skipped."
+                );
+            }
+
+            playDayScreenAfterLobbyLoad = false;
+            pendingDayScreenDay = -1;
+        }
     }
 
     private IEnumerator MovePlayerToRespawnPoint()
@@ -1367,14 +1592,19 @@ public class GameFlowManager : MonoBehaviour
             "Preparing to move Player to PlayerRespawnPoint."
         );
 
-        // =========================================================
-        // VALIDATE INSPECTOR REFERENCES
-        // =========================================================
+        // Re-resolve here as an additional safety check.
+        PlayerRespawnPoint resolvedRespawn =
+            ResolveLobbyRespawnPoint();
+
+        if (resolvedRespawn != null)
+        {
+            playerRespawnPoint = resolvedRespawn;
+        }
 
         if (playerRespawnPoint == null)
         {
             Debug.LogError(
-                "[GameFlow] Player Respawn Point has not been assigned in the Inspector!"
+                "[GameFlow] Player Respawn Point could not be resolved."
             );
 
             yield break;
@@ -1382,8 +1612,19 @@ public class GameFlowManager : MonoBehaviour
 
         if (player == null)
         {
+            GameObject scenePlayer =
+                GameObject.FindGameObjectWithTag("Player");
+
+            if (scenePlayer != null)
+            {
+                player = scenePlayer;
+            }
+        }
+
+        if (player == null)
+        {
             Debug.LogError(
-                "[GameFlow] Player has not been assigned in the Inspector!"
+                "[GameFlow] Player could not be resolved."
             );
 
             yield break;
@@ -1393,19 +1634,9 @@ public class GameFlowManager : MonoBehaviour
             "Player and PlayerRespawnPoint references found."
         );
 
-        // Give Unity one frame to finish any state changes
-        // before moving the CharacterController.
         yield return null;
 
-        // =========================================================
-        // TELEPORT PLAYER
-        // =========================================================
-
         playerRespawnPoint.SpawnPlayer(player);
-
-        // =========================================================
-        // RESET HEALTH
-        // =========================================================
 
         PlayerHealth health =
             player.GetComponent<PlayerHealth>();
@@ -1415,10 +1646,6 @@ public class GameFlowManager : MonoBehaviour
             health.ResetHealth();
         }
 
-        // =========================================================
-        // RESET MOVEMENT
-        // =========================================================
-
         PlayerMovement movement =
             player.GetComponent<PlayerMovement>();
 
@@ -1426,10 +1653,6 @@ public class GameFlowManager : MonoBehaviour
         {
             movement.ResetMovementAfterTeleport();
         }
-
-        // =========================================================
-        // RESET PLAYER STATE
-        // =========================================================
 
         PlayerStateManager state =
             player.GetComponent<PlayerStateManager>();
@@ -1443,15 +1666,15 @@ public class GameFlowManager : MonoBehaviour
             "Player successfully moved to PlayerRespawnPoint."
         );
 
-        // =========================================================
-        // GAME START SNAPSHOT
-        // =========================================================
-
         if (GameResetManager.Instance != null)
         {
-            if (!GameResetManager.Instance.HasGameStartSnapshot())
+            if (
+                !GameResetManager.Instance
+                    .HasGameStartSnapshot()
+            )
             {
-                GameResetManager.Instance.CreateGameStartSnapshot();
+                GameResetManager.Instance
+                    .CreateGameStartSnapshot();
 
                 DebugFlow(
                     "Game-start snapshot created."
@@ -1459,25 +1682,18 @@ public class GameFlowManager : MonoBehaviour
             }
         }
 
-        // =========================================================
-        // APPLY DAY SNAPSHOT
-        // =========================================================
-
         if (GameResetManager.Instance != null)
         {
             GameResetManager.Instance
                 .ApplyDaySnapshotToCurrentPlayer();
         }
 
-        // =========================================================
-        // CREATE BEGINNING-OF-DAY SNAPSHOT
-        // =========================================================
-
         if (createDaySnapshotOnLobbyLoad)
         {
             if (GameResetManager.Instance != null)
             {
-                GameResetManager.Instance.CreateDaySnapshot();
+                GameResetManager.Instance
+                    .CreateDaySnapshot();
 
                 DebugFlow(
                     "Beginning-of-day snapshot created."
@@ -1495,9 +1711,10 @@ public class GameFlowManager : MonoBehaviour
     public void StartPlay(int playID)
     {
         DebugFlow(
-        "Starting Play " + playID +
-        " in the current scene."
-    );
+            "Starting Play "
+            + playID
+            + " in the current scene."
+        );
 
         if (GameStateManager.Instance != null)
         {
@@ -1507,31 +1724,44 @@ public class GameFlowManager : MonoBehaviour
         }
 
         StartCoroutine(
-            InitializePlayAfterLoad(playID));
+            InitializePlayAfterLoad(playID)
+        );
     }
 
-    private IEnumerator InitializePlayAfterLoad(int playID)
+    private IEnumerator InitializePlayAfterLoad(
+        int playID)
     {
-        yield return new WaitForSeconds(transitionDelay);
+        yield return new WaitForSeconds(
+            transitionDelay
+        );
 
         if (TheaterManager.Instance != null)
         {
-            TheaterManager.Instance.StartPlay(playID);
+            TheaterManager.Instance.StartPlay(
+                playID
+            );
         }
     }
 
     public void PlayFinished()
     {
         if (TheaterManager.Instance == null)
-            return;
-
-        if (TheaterManager.Instance.HasCaseAfterCurrentPlay())
         {
-            TheaterManager.Instance.StartCaseAfterPlay();
+            return;
+        }
+
+        if (
+            TheaterManager.Instance
+                .HasCaseAfterCurrentPlay()
+        )
+        {
+            TheaterManager.Instance
+                .StartCaseAfterPlay();
         }
         else
         {
-            TheaterManager.Instance.StartNextPlay();
+            TheaterManager.Instance
+                .StartNextPlay();
         }
     }
 
@@ -1542,9 +1772,10 @@ public class GameFlowManager : MonoBehaviour
     public void StartCase(int caseID)
     {
         DebugFlow(
-        "Starting Case " + caseID +
-        " in the current scene."
-    );
+            "Starting Case "
+            + caseID
+            + " in the current scene."
+        );
 
         if (GameStateManager.Instance != null)
         {
@@ -1554,31 +1785,39 @@ public class GameFlowManager : MonoBehaviour
         }
 
         StartCoroutine(
-            InitializeCaseAfterLoad(caseID));
+            InitializeCaseAfterLoad(caseID)
+        );
     }
 
-    private IEnumerator InitializeCaseAfterLoad(int caseID)
+    private IEnumerator InitializeCaseAfterLoad(
+        int caseID)
     {
-        yield return new WaitForSeconds(transitionDelay);
+        yield return new WaitForSeconds(
+            transitionDelay
+        );
 
         if (CaseManager.Instance != null)
         {
-            CaseManager.Instance.StartCase(caseID);
+            CaseManager.Instance.StartCase(
+                caseID
+            );
         }
 
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayMusic(
-                AudioManager.MusicType.Case);
+                AudioManager.MusicType.Case
+            );
 
             AudioManager.Instance.PlayAmbience(
-                AudioManager.AmbienceType.Case);
+                AudioManager.AmbienceType.Case
+            );
         }
     }
 
     public void CaseCompleted()
     {
-        //OpenLobby();
+        // OpenLobby();
     }
 
     // =========================================================
@@ -1588,7 +1827,9 @@ public class GameFlowManager : MonoBehaviour
     public void StartFinalPlay()
     {
         if (TheaterManager.Instance == null)
+        {
             return;
+        }
 
         TheaterManager.PlayData finalPlay =
             TheaterManager.Instance.GetFinalPlay();
@@ -1596,21 +1837,21 @@ public class GameFlowManager : MonoBehaviour
         if (finalPlay == null)
         {
             Debug.LogError(
-                "No Final Play configured.");
+                "No Final Play configured."
+            );
 
             return;
         }
 
-        StartPlay(finalPlay.playID);
+        StartPlay(
+            finalPlay.playID
+        );
     }
 
     public void FinalPlayFinished()
     {
-        // CompleteFinalPlay() has already persisted the final-play state.
-        // Apply the Lobby change immediately so the Lobby is blocked as
-        // soon as the final theater play ends, even before another scene
-        // load occurs.
         ApplyLobbyChangesToCurrentScene();
+
         StartBossFight();
     }
 
@@ -1623,16 +1864,19 @@ public class GameFlowManager : MonoBehaviour
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
-                GameStateManager.GameMode.BossFight);
+                GameStateManager.GameMode.BossFight
+            );
         }
 
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayMusic(
-                AudioManager.MusicType.Boss);
+                AudioManager.MusicType.Boss
+            );
 
             AudioManager.Instance.PlayAmbience(
-                AudioManager.AmbienceType.Boss);
+                AudioManager.AmbienceType.Boss
+            );
         }
 
         FinalBossController bossController =
@@ -1647,19 +1891,17 @@ public class GameFlowManager : MonoBehaviour
             Debug.LogError(
                 "[GameFlow] FinalBossController could not be resolved. " +
                 "Set Final Boss Controller Object Name / Final Boss Object Name " +
-                "in the GameFlowManager Inspector (current values: '"
+                "in the GameFlowManager Inspector. Current values: '"
                 + finalBossControllerObjectName
                 + "' / '"
                 + finalBossObjectName
-                + "')."
+                + "'."
             );
         }
     }
 
-
     private FinalBossController ResolveFinalBossController()
     {
-        // 1) Typed Inspector name for the controller host object.
         FinalBossController byControllerName =
             FindFinalBossControllerByObjectName(
                 finalBossControllerObjectName
@@ -1670,7 +1912,6 @@ public class GameFlowManager : MonoBehaviour
             return byControllerName;
         }
 
-        // 2) Any existing controller in loaded scenes, including inactive.
         FinalBossController existing =
             FindAnyObjectByType<FinalBossController>(
                 FindObjectsInactive.Include
@@ -1681,9 +1922,6 @@ public class GameFlowManager : MonoBehaviour
             return existing;
         }
 
-        // 3) Find the boss by typed name / FinalBossHealth and create a
-        //    lightweight controller host so teleport/debug paths still work
-        //    even when no FinalBossController was placed in the scene.
         GameObject bossObject =
             FindSceneObjectByNameAcrossLoadedScenes(
                 finalBossObjectName
@@ -1708,11 +1946,15 @@ public class GameFlowManager : MonoBehaviour
         }
 
         string hostName =
-            string.IsNullOrWhiteSpace(finalBossControllerObjectName)
+            string.IsNullOrWhiteSpace(
+                finalBossControllerObjectName
+            )
                 ? "FinalBossController"
                 : finalBossControllerObjectName.Trim();
 
-        GameObject host = new GameObject(hostName);
+        GameObject host =
+            new GameObject(hostName);
+
         SceneManager.MoveGameObjectToScene(
             host,
             bossObject.scene
@@ -1721,7 +1963,9 @@ public class GameFlowManager : MonoBehaviour
         FinalBossController created =
             host.AddComponent<FinalBossController>();
 
-        created.SetFinalBoss(bossObject);
+        created.SetFinalBoss(
+            bossObject
+        );
 
         DebugFlow(
             "Created FinalBossController host '"
@@ -1734,9 +1978,9 @@ public class GameFlowManager : MonoBehaviour
         return created;
     }
 
-
-    private FinalBossController FindFinalBossControllerByObjectName(
-        string objectName)
+    private FinalBossController
+        FindFinalBossControllerByObjectName(
+            string objectName)
     {
         if (string.IsNullOrWhiteSpace(objectName))
         {
@@ -1759,7 +2003,9 @@ public class GameFlowManager : MonoBehaviour
         if (controller == null)
         {
             controller =
-                host.GetComponentInChildren<FinalBossController>(true);
+                host.GetComponentInChildren<FinalBossController>(
+                    true
+                );
         }
 
         if (controller != null)
@@ -1767,10 +2013,10 @@ public class GameFlowManager : MonoBehaviour
             return controller;
         }
 
-        // Never put the controller on the boss body itself — Awake disables
-        // the boss and would disable this component with it.
-        if (host.GetComponent<FinalBossHealth>() != null ||
-            host.GetComponentInParent<FinalBossHealth>() != null)
+        if (
+            host.GetComponent<FinalBossHealth>() != null ||
+            host.GetComponentInParent<FinalBossHealth>() != null
+        )
         {
             return null;
         }
@@ -1778,28 +2024,40 @@ public class GameFlowManager : MonoBehaviour
         return host.AddComponent<FinalBossController>();
     }
 
-
-    private GameObject FindSceneObjectByNameAcrossLoadedScenes(
-        string objectName)
+    private GameObject
+        FindSceneObjectByNameAcrossLoadedScenes(
+            string objectName)
     {
         if (string.IsNullOrWhiteSpace(objectName))
         {
             return null;
         }
 
-        string trimmedName = objectName.Trim();
+        string trimmedName =
+            objectName.Trim();
 
-        for (int i = 0; i < SceneManager.sceneCount; i++)
+        for (
+            int i = 0;
+            i < SceneManager.sceneCount;
+            i++
+        )
         {
-            Scene scene = SceneManager.GetSceneAt(i);
+            Scene scene =
+                SceneManager.GetSceneAt(i);
 
-            if (!scene.IsValid() || !scene.isLoaded)
+            if (
+                !scene.IsValid() ||
+                !scene.isLoaded
+            )
             {
                 continue;
             }
 
             GameObject found =
-                FindSceneObjectByName(scene, trimmedName);
+                FindSceneObjectByName(
+                    scene,
+                    trimmedName
+                );
 
             if (found != null)
             {
@@ -1814,14 +2072,11 @@ public class GameFlowManager : MonoBehaviour
     // DEBUG - FINAL BOSS
     // =========================================================
 
-    /// <summary>
-    /// Debug entry point for F10. Forces Day 4, marks the final
-    /// play as completed, enables BossChanges in the Lobby, and
-    /// starts the final boss state.
-    /// </summary>
     public void DebugStartFinalBossFight()
     {
-        EnsureInGamePlayTestScene(FinishDebugStartFinalBossFight);
+        EnsureInGamePlayTestScene(
+            FinishDebugStartFinalBossFight
+        );
     }
 
     private void FinishDebugStartFinalBossFight()
@@ -1829,22 +2084,26 @@ public class GameFlowManager : MonoBehaviour
         if (GameStateManager.Instance == null)
         {
             Debug.LogError(
-                "[GameFlow] Cannot start debug final boss: GameStateManager is missing."
+                "[GameFlow] Cannot start debug final boss: " +
+                "GameStateManager is missing."
             );
+
             return;
         }
 
         GameStateManager.Instance.SetDay(4);
+
         GameStateManager.Instance.CompleteFinalPlay();
 
         ApplyLobbyChangesToCurrentScene();
+
         StartBossFight();
 
         DebugFlow(
-            "DEBUG F10: Day 4 final play completed. BossChanges enabled and final boss started."
+            "DEBUG F10: Day 4 final play completed. " +
+            "BossChanges enabled and final boss started."
         );
     }
-
 
     public void FinalBossDefeated()
     {
@@ -1862,8 +2121,12 @@ public class GameFlowManager : MonoBehaviour
 
     public void StartFinalCutscene()
     {
-        GameStateManager.Instance.SetGameMode(
-            GameStateManager.GameMode.Cutscene);
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(
+                GameStateManager.GameMode.Cutscene
+            );
+        }
 
         if (PlayerStateManager.Instance != null)
         {
@@ -1882,34 +2145,38 @@ public class GameFlowManager : MonoBehaviour
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
-                GameStateManager.GameMode.Cutscene);
+                GameStateManager.GameMode.Cutscene
+            );
         }
 
         if (PlayerStateManager.Instance != null)
         {
             PlayerStateManager.Instance.SetState(
-                PlayerStateManager.PlayerState.Cutscene);
+                PlayerStateManager.PlayerState.Cutscene
+            );
         }
 
         SetGameplayHUDVisible(false);
 
-        // No special video was assigned, so just let the player win.
         OpenCredits();
     }
 
-
     public void FinalCutsceneFinished()
     {
-        if (AchievementManager.Instance != null &&
+        if (
+            AchievementManager.Instance != null &&
             GameStateManager.Instance != null &&
-            GameStateManager.Instance.IsHardcore())
+            GameStateManager.Instance.IsHardcore()
+        )
         {
-            AchievementManager.Instance.UnlockHardcoreCompletion();
+            AchievementManager.Instance
+                .UnlockHardcoreCompletion();
         }
 
         if (GameStateManager.Instance != null)
         {
-            GameStateManager.Instance.CompleteFinalCutscene();
+            GameStateManager.Instance
+                .CompleteFinalCutscene();
         }
 
         SetToolbarVisible(false);
@@ -1917,14 +2184,20 @@ public class GameFlowManager : MonoBehaviour
         SetStaminaBarVisible(false);
 
         OpenCredits();
-        StartCoroutine(ReturnToMainMenuAfterFinalCredits());
+
+        StartCoroutine(
+            ReturnToMainMenuAfterFinalCredits()
+        );
     }
 
-    private IEnumerator ReturnToMainMenuAfterFinalCredits()
+    private IEnumerator
+        ReturnToMainMenuAfterFinalCredits()
     {
         if (finalCreditsDuration > 0f)
         {
-            yield return new WaitForSecondsRealtime(finalCreditsDuration);
+            yield return new WaitForSecondsRealtime(
+                finalCreditsDuration
+            );
         }
 
         OpenMainMenu();
@@ -1936,27 +2209,27 @@ public class GameFlowManager : MonoBehaviour
 
     public void PlayerDied()
     {
-        DebugFlow("Player died.");
+        DebugFlow(
+            "Player died."
+        );
 
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.HandlePlayerDeath();
         }
-
-        // PlayerDeathManager handles the death screen
-        // and the actual respawn.
     }
-
 
     public void TimerExpired()
     {
         HandleLoss();
-        //ShowDeathMenu();
     }
 
     private void HandleLoss()
     {
-        if (GameStateManager.Instance.IsHardcore())
+        if (
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.IsHardcore()
+        )
         {
             RestartEntireGame();
         }
@@ -1972,16 +2245,17 @@ public class GameFlowManager : MonoBehaviour
 
     private void RestartCurrentDay()
     {
+        if (GameStateManager.Instance == null)
+        {
+            return;
+        }
+
         int day =
             GameStateManager.Instance.GetCurrentDay();
 
         DebugFlow(
-            "Restarting Day " + day);
-
-
-        // ---------------------------------------------------------
-        // RESET EVERYTHING THAT HAPPENED DURING THIS DAY
-        // ---------------------------------------------------------
+            "Restarting Day " + day
+        );
 
         if (GameResetManager.Instance != null)
         {
@@ -1994,16 +2268,10 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
-
-        // ---------------------------------------------------------
-        // RETURN TO THE SAME DAY'S LOBBY
-        // ---------------------------------------------------------
-        //
-        // Same day, not a new one - keep the existing day-start
-        // snapshot instead of recapturing it from whatever state
-        // the reset just produced.
-
-        StartDay(day, false);
+        StartDay(
+            day,
+            false
+        );
     }
 
     private void RestartEntireGame()
@@ -2012,49 +2280,16 @@ public class GameFlowManager : MonoBehaviour
             "Restarting Entire Game"
         );
 
-
-        // ---------------------------------------------------------
-        // RESET EVERYTHING
-        // ---------------------------------------------------------
-
         if (GameResetManager.Instance != null)
         {
             GameResetManager.Instance.ResetEntireGame();
         }
-        else
+        else if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.ResetEntireGame();
         }
 
-
-        // ---------------------------------------------------------
-        // HARDCORE DEATH
-        // ---------------------------------------------------------
-        //
-        // A full game reset means we go back to the beginning.
-        //
-        // If you want Hardcore death to return to the Main Menu,
-        // use OpenMainMenu() here instead.
-        //
-        // For now this starts a fresh Day 1.
-        // ---------------------------------------------------------
-
         StartDay(1);
-    }
-
-
-
-    // =========================================================
-    // DEBUG
-    // =========================================================
-
-    private void DebugFlow(string message)
-    {
-        if (!debugFlow)
-            return;
-
-        Debug.Log(
-            "[Game Flow] " + message);
     }
 
     // =========================================================
@@ -2079,10 +2314,6 @@ public class GameFlowManager : MonoBehaviour
             "Normal death. Restarting Day " + day
         );
 
-        // ---------------------------------------------------------
-        // RESET EVERYTHING THAT HAPPENED THIS DAY
-        // ---------------------------------------------------------
-
         if (GameResetManager.Instance != null)
         {
             GameResetManager.Instance.ResetCurrentDay();
@@ -2094,21 +2325,11 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
-        // ---------------------------------------------------------
-        // RESTART SAME DAY
-        // ---------------------------------------------------------
-        //
-        // Same day, not a new one - keep the existing day-start
-        // snapshot instead of recapturing it from whatever state
-        // the reset just produced. This is what let a weapon
-        // picked up during the day (e.g. the axe) survive a death
-        // and get permanently baked into the day's baseline
-        // inventory, so every future restart of that day kept it
-        // too.
-
-        StartDay(day, false);
+        StartDay(
+            day,
+            false
+        );
     }
-
 
     // =========================================================
     // PLAYER DEATH - HARDCORE
@@ -2125,17 +2346,15 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-        // Remember that this run was Hardcore.
         GameStateManager.DifficultyMode difficulty =
             GameStateManager.Instance.GetDifficulty();
+
+        GameStateManager.PlayerGender gender =
+            GameStateManager.Instance.GetPlayerGender();
 
         DebugFlow(
             "Hardcore death. Resetting entire game."
         );
-
-        // ---------------------------------------------------------
-        // RESET EVERYTHING
-        // ---------------------------------------------------------
 
         if (GameResetManager.Instance != null)
         {
@@ -2146,20 +2365,20 @@ public class GameFlowManager : MonoBehaviour
             GameStateManager.Instance.ResetEntireGame();
         }
 
-        // ---------------------------------------------------------
-        // KEEP HARDCORE MODE
-        // ---------------------------------------------------------
-
         GameStateManager.Instance.SetDifficulty(
             difficulty
         );
 
-        // ---------------------------------------------------------
-        // START FRESH DAY 1
-        // ---------------------------------------------------------
+        GameStateManager.Instance.SetPlayerGender(
+            gender
+        );
 
         StartDay(1);
     }
+
+    // =========================================================
+    // PLAYER RESET
+    // =========================================================
 
     private void ResetPlayerToRespawnPoint()
     {
@@ -2183,17 +2402,9 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
-
-        // ---------------------------------------------------------
-        // TELEPORT
-        // ---------------------------------------------------------
-
-        playerRespawnPoint.SpawnPlayer(player);
-
-
-        // ---------------------------------------------------------
-        // RESET MOVEMENT
-        // ---------------------------------------------------------
+        playerRespawnPoint.SpawnPlayer(
+            player
+        );
 
         PlayerMovement movement =
             player.GetComponent<PlayerMovement>();
@@ -2203,11 +2414,6 @@ public class GameFlowManager : MonoBehaviour
             movement.ResetMovementAfterTeleport();
         }
 
-
-        // ---------------------------------------------------------
-        // RESET LOOK
-        // ---------------------------------------------------------
-
         PlayerLook look =
             player.GetComponent<PlayerLook>();
 
@@ -2215,11 +2421,6 @@ public class GameFlowManager : MonoBehaviour
         {
             look.ResetLook();
         }
-
-
-        // ---------------------------------------------------------
-        // RESET STATE
-        // ---------------------------------------------------------
 
         PlayerStateManager state =
             player.GetComponent<PlayerStateManager>();
@@ -2229,15 +2430,21 @@ public class GameFlowManager : MonoBehaviour
             state.ResetToDefault();
         }
 
-
         DebugFlow(
             "Player returned to the PlayerRespawnPoint."
         );
     }
 
+    // =========================================================
+    // DEBUG HOTKEYS
+    // =========================================================
+
     private void Update()
     {
-        if (!enableDebugHotkeys || Keyboard.current == null)
+        if (
+            !enableDebugHotkeys ||
+            Keyboard.current == null
+        )
         {
             return;
         }
@@ -2248,6 +2455,7 @@ public class GameFlowManager : MonoBehaviour
             if (AchievementManager.Instance != null)
             {
                 AchievementManager.Instance.ResetAchievements();
+
                 Debug.Log(
                     "[GameFlowManager] F11 pressed. Achievements reset."
                 );
@@ -2262,8 +2470,17 @@ public class GameFlowManager : MonoBehaviour
             return;
         }
 
+        // F9 - skip active play/cutscene.
         if (!Keyboard.current.f9Key.wasPressedThisFrame)
         {
+            return;
+        }
+
+        // F9 is a cutscene/play debug control, never a tutorial skip.
+        if (TutorialManager.Instance != null &&
+            TutorialManager.Instance.IsTutorialRunning)
+        {
+            Debug.Log("[GameFlowManager] F9 ignored while the tutorial is active.");
             return;
         }
 
@@ -2271,20 +2488,38 @@ public class GameFlowManager : MonoBehaviour
             "[GameFlowManager] F9 debug skip requested."
         );
 
+        // The actual theater chair uses Chair.cs to run the video. This must
+        // be checked before ChairPlayController; otherwise F9 can find the
+        // secondary controller while the real chair play keeps running.
+        Chair chair =
+            FindAnyObjectByType<Chair>(
+                FindObjectsInactive.Include
+            );
+
+        if (chair != null && chair.DebugSkipCurrentPlay())
+        {
+            return;
+        }
+
+        // Keep compatibility with the separate ChairPlayController system.
         ChairPlayController chairPlayController =
-            FindAnyObjectByType<ChairPlayController>();
+            FindAnyObjectByType<ChairPlayController>(
+                FindObjectsInactive.Include
+            );
 
         if (chairPlayController != null)
         {
             TheaterManager theaterManager =
                 TheaterManager.Instance;
 
-            if (theaterManager != null &&
-                theaterManager.IsPlayActive())
+            if (
+                theaterManager != null &&
+                theaterManager.IsPlayActive()
+            )
             {
                 Debug.Log(
-                    "[GameFlowManager] Active theater play detected. " +
-                    "Skipping play while preserving progression."
+                    "[GameFlowManager] Active theater play detected on " +
+                    "ChairPlayController. Skipping play while preserving progression."
                 );
 
                 chairPlayController.SkipCurrentPlay();
@@ -2295,5 +2530,15 @@ public class GameFlowManager : MonoBehaviour
         SkipCurrentCutscene();
     }
 
+    private void DebugFlow(string message)
+    {
+        if (!debugFlow)
+        {
+            return;
+        }
 
+        Debug.Log(
+            "[Game Flow] " + message
+        );
+    }
 }
