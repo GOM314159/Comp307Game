@@ -28,6 +28,11 @@ public class Level3PianoInteractable : WorldInteractable
     [SerializeField]
     private bool showColliderDebug = true;
 
+
+    [SerializeField]
+    [Tooltip("References to the dolls in the scene")]
+    private GameObject[] Dolls;
+
     [Header("Level 3 Music")]
 
     [Tooltip(
@@ -325,6 +330,19 @@ public class Level3PianoInteractable : WorldInteractable
         SetGunVisible(true);
         DisableInteractionCollider();
         TriggerPaintings();
+
+        ActivateDolls();
+    }
+
+    private void ActivateDolls()
+    {
+
+        foreach (GameObject doll in Dolls)
+        {
+            doll.SetActive(true);
+
+        }
+
     }
 
     private void SetPianoModelsClosed()
