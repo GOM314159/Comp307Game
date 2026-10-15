@@ -174,6 +174,23 @@ public class CableCutterInteractable : WorldInteractable
             1.75f
         );
 
+        // Match Level 1's axe pickup: advance the active case objective only
+        // after the Cable Cutters were successfully added to the inventory.
+        if (CaseManager.Instance == null)
+        {
+            Debug.LogError(
+                "[Cable Cutter] CaseManager is missing. " +
+                "Cannot update the case objective."
+            );
+        }
+        else if (!CaseManager.Instance.TryRegisterRequiredObject(this))
+        {
+            Debug.LogWarning(
+                "[Cable Cutter] Pickup succeeded, but it was not " +
+                "registered as the current case objective."
+            );
+        }
+
         // -----------------------------------------------------
         // CHANGE LEVEL 2 MUSIC
         // -----------------------------------------------------

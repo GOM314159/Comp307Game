@@ -93,6 +93,7 @@ public class PlayerHealth : MonoBehaviour, IDamageable
 
         if (playerStateManager != null)
         {
+            playerStateManager.ClearNoAttackRestriction();
             playerStateManager.SetRIP();
         }
 

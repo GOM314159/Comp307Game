@@ -192,6 +192,7 @@ public class PauseMenu : MonoBehaviour
 
         SetLobbyNpcAudioPaused(true);
         SetVashinAudioPaused(true);
+        SetRandomWailAudioPaused(true);
 
         if (container != null)
         {
@@ -258,6 +259,7 @@ public class PauseMenu : MonoBehaviour
 
         SetLobbyNpcAudioPaused(false);
         SetVashinAudioPaused(false);
+        SetRandomWailAudioPaused(false);
 
         if (AudioManager.Instance != null)
         {
@@ -526,6 +528,20 @@ public class PauseMenu : MonoBehaviour
         {
             if (npc != null)
                 npc.SetDialogueAudioPaused(paused);
+        }
+    }
+
+    private void SetRandomWailAudioPaused(bool paused)
+    {
+        randomWail[] wails = FindObjectsByType<randomWail>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (randomWail wail in wails)
+        {
+            if (wail != null)
+                wail.SetAudioPaused(paused);
         }
     }
 

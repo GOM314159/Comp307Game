@@ -312,6 +312,18 @@ public class MainMenu : MonoBehaviour
 #endif
     }
 
+    /// <summary>Returns from an in-game end screen through the normal menu reset flow.</summary>
+    public void ReturnToMainMenu()
+    {
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.OpenMainMenu();
+            return;
+        }
+
+        Debug.LogError("[MainMenu] GameFlowManager.Instance is missing; cannot return to the Main Menu.");
+    }
+
 
     // =========================================================
     // UI

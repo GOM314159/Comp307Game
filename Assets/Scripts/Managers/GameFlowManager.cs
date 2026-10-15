@@ -1,7 +1,9 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.EventSystems;
 using System.Collections;
 using UnityEngine.InputSystem;
+using UnityEngine.Video;
 
 public class GameFlowManager : MonoBehaviour
 {
@@ -19,6 +21,11 @@ public class GameFlowManager : MonoBehaviour
     [SerializeField] private string theaterScene = "Theater";
     [SerializeField] private string caseScene = "Case";
     [SerializeField] private string creditsScene = "Credits";
+
+    [Header("Credits Video")]
+    [Tooltip("Optional direct reference. If empty, the manager finds a VideoPlayer under the scene object named Credits.")]
+    [SerializeField] private VideoPlayer creditsVideoPlayer;
+    [SerializeField] private string creditsVideoObjectName = "Credits";
 
     [SerializeField] private string gamePlayTestScene = "GamePlayTest";
 
@@ -107,16 +114,10 @@ public class GameFlowManager : MonoBehaviour
 
     private Coroutine newGamePreparationCoroutine;
 
+    private GameObject creditsPresentationRoot;
+    private bool creditsPlaybackActive;
+
     private System.Action pendingGamePlayTestAction;
-
-    [Header("Final Ending")]
-
-    [Tooltip(
-        "How long the Credits game mode remains active before returning " +
-        "to the Main Menu."
-    )]
-    [Min(0f)]
-    [SerializeField] private float finalCreditsDuration = 10f;
 
     [Header("Debug")]
 
@@ -709,12 +710,163 @@ public class GameFlowManager : MonoBehaviour
 
     public void OpenCredits()
     {
+        if (creditsPlaybackActive)
+            return;
+
+        EnsureInGamePlayTestScene(PlayCreditsVideo);
+    }
+
+    private void PlayCreditsVideo()
+    {
+        creditsVideoPlayer = ResolveCreditsVideoPlayer();
+        if (creditsVideoPlayer == null || creditsVideoPlayer.clip == null)
+        {
+            Debug.LogError(
+                "[GameFlow] Could not find an assigned credits VideoPlayer " +
+                "under scene object '" + creditsVideoObjectName + "'."
+            );
+            OpenMainMenu();
+            return;
+        }
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.SetGameMode(
                 GameStateManager.GameMode.Credits
             );
         }
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(
+                PlayerStateManager.PlayerState.Cutscene
+            );
+        }
+
+        if (mainMenuGroup != null)
+            mainMenuGroup.SetActive(false);
+        if (gameModeSelectionScreen != null)
+            gameModeSelectionScreen.SetActive(false);
+        if (deathMenu != null)
+            deathMenu.SetActive(false);
+        GameObject endScreen = GameObject.Find("EndScreen");
+        if (endScreen != null)
+            endScreen.SetActive(false);
+
+        SetGameplayHUDVisible(false);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.StopMusicImmediate();
+
+        if (creditsPresentationRoot != null)
+            creditsPresentationRoot.SetActive(true);
+        if (!creditsVideoPlayer.gameObject.activeSelf)
+            creditsVideoPlayer.gameObject.SetActive(true);
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = false;
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(null);
+
+        creditsVideoPlayer.playOnAwake = false;
+        creditsVideoPlayer.isLooping = false;
+        creditsVideoPlayer.loopPointReached -= HandleCreditsVideoFinished;
+        creditsVideoPlayer.errorReceived -= HandleCreditsVideoError;
+        creditsVideoPlayer.loopPointReached += HandleCreditsVideoFinished;
+        creditsVideoPlayer.errorReceived += HandleCreditsVideoError;
+
+        Camera videoCamera = Camera.main;
+        if (videoCamera != null)
+        {
+            creditsVideoPlayer.renderMode = VideoRenderMode.CameraNearPlane;
+            creditsVideoPlayer.targetCamera = videoCamera;
+            creditsVideoPlayer.targetCameraAlpha = 1f;
+        }
+
+        creditsPlaybackActive = true;
+        creditsVideoPlayer.Stop();
+        creditsVideoPlayer.Play();
+    }
+
+    private VideoPlayer ResolveCreditsVideoPlayer()
+    {
+        if (creditsVideoPlayer != null && creditsVideoPlayer.clip != null)
+        {
+            creditsPresentationRoot = FindCreditsRoot(
+                creditsVideoPlayer.transform
+            );
+            return creditsVideoPlayer;
+        }
+
+        if (string.IsNullOrWhiteSpace(creditsVideoObjectName))
+            return null;
+
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform candidate = transforms[i];
+            if (candidate == null || !candidate.gameObject.scene.IsValid() ||
+                candidate.gameObject.scene.name != gamePlayTestScene ||
+                !string.Equals(candidate.name, creditsVideoObjectName,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            VideoPlayer player = candidate.GetComponentInChildren<VideoPlayer>(true);
+            if (player == null || player.clip == null)
+                continue;
+
+            creditsPresentationRoot = FindCreditsRoot(player.transform);
+            return player;
+        }
+
+        return null;
+    }
+
+    private GameObject FindCreditsRoot(Transform videoTransform)
+    {
+        Transform root = null;
+        Transform current = videoTransform;
+        while (current != null)
+        {
+            if (string.Equals(current.name, creditsVideoObjectName,
+                System.StringComparison.OrdinalIgnoreCase))
+            {
+                root = current;
+            }
+            current = current.parent;
+        }
+
+        return root != null ? root.gameObject : videoTransform.gameObject;
+    }
+
+    private void HandleCreditsVideoFinished(VideoPlayer source)
+    {
+        FinishCreditsPlayback();
+    }
+
+    private void HandleCreditsVideoError(VideoPlayer source, string message)
+    {
+        Debug.LogError("[GameFlow] Credits video playback failed: " + message, source);
+        FinishCreditsPlayback();
+    }
+
+    private void FinishCreditsPlayback()
+    {
+        if (!creditsPlaybackActive)
+            return;
+
+        creditsPlaybackActive = false;
+        if (creditsVideoPlayer != null)
+        {
+            creditsVideoPlayer.loopPointReached -= HandleCreditsVideoFinished;
+            creditsVideoPlayer.errorReceived -= HandleCreditsVideoError;
+            creditsVideoPlayer.Stop();
+        }
+        if (creditsPresentationRoot != null)
+            creditsPresentationRoot.SetActive(false);
+
+        OpenMainMenu();
     }
 
     public void QuitGame()
@@ -2272,24 +2424,18 @@ public class GameFlowManager : MonoBehaviour
         SetHealthBarVisible(false);
         SetStaminaBarVisible(false);
 
-        OpenCredits();
-
-        StartCoroutine(
-            ReturnToMainMenuAfterFinalCredits()
-        );
-    }
-
-    private IEnumerator
-        ReturnToMainMenuAfterFinalCredits()
-    {
-        if (finalCreditsDuration > 0f)
+        if (GameUICursorController.Instance != null)
         {
-            yield return new WaitForSecondsRealtime(
-                finalCreditsDuration
-            );
+            GameUICursorController.Instance.ResetControllerCursorForUI();
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
         }
 
-        OpenMainMenu();
+        // Keep the endscreen open. Its Main Menu button starts the credits
+        // video, which returns to the menu after playback completes.
     }
 
     // =========================================================

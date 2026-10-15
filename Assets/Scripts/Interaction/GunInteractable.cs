@@ -105,6 +105,24 @@ public class GunInteractable : WorldInteractable
         }
 
 
+        // Register the required-object objective after the inventory pickup
+        // succeeds, matching the Level 1 axe flow.
+        if (CaseManager.Instance == null)
+        {
+            Debug.LogError(
+                "[Gun] CaseManager is missing. " +
+                "Cannot update the case objective."
+            );
+        }
+        else if (!CaseManager.Instance.TryRegisterRequiredObject(this))
+        {
+            Debug.LogWarning(
+                "[Gun] Pickup succeeded, but it was not registered " +
+                "as the current case objective."
+            );
+        }
+
+
         // -----------------------------------------------------
         // COMPLETE BASE INTERACTION
         // -----------------------------------------------------

@@ -16,6 +16,10 @@ public class Door : WorldInteractable
     [SerializeField]
     private bool canClose = true;
 
+    [Tooltip("Last in-game day on which this door can be interacted with.")]
+    [SerializeField, Min(0)]
+    private int availableThroughDay = 0;
+
 
     // =========================================================
     // DOOR STATE
@@ -48,6 +52,18 @@ public class Door : WorldInteractable
     // =========================================================
     // INTERACTION
     // =========================================================
+
+    public override bool CanInteract()
+    {
+        if (availableThroughDay > 0 &&
+            GameStateManager.Instance != null &&
+            GameStateManager.Instance.GetCurrentDay() > availableThroughDay)
+        {
+            return false;
+        }
+
+        return base.CanInteract();
+    }
 
     public override void Interact()
     {

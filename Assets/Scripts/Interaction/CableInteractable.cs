@@ -368,10 +368,13 @@ public class CableInteractable : WorldInteractable
 
         if (CaseManager.Instance != null)
         {
+            // Cutting the cable is the Level 2 boss defeat event. Keep this
+            // separate from the find-object objective, which is registered
+            // when the Cable Cutters are picked up.
             CaseManager.Instance.DefeatBoss();
 
             DebugCable(
-                "Level 2 boss defeated."
+                "Level 2 boss defeat registered by cable cut."
             );
         }
         else

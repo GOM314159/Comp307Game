@@ -1,7 +1,7 @@
 using TMPro;
 using UnityEngine;
 
-/// <summary>Displays the active case timer without toggling the shared HUD root.</summary>
+/// <summary>Displays the active case timer without toggling its own GameObject or the shared HUD root.</summary>
 public class CaseTimerDisplay : MonoBehaviour
 {
     [SerializeField] private GameObject timerRoot;
@@ -44,8 +44,11 @@ public class CaseTimerDisplay : MonoBehaviour
 
         if (timerText != null)
         {
-            if (!timerText.gameObject.activeSelf)
-                timerText.gameObject.SetActive(true);
+            // CaseTimerDisplay is attached to Timer_Text in the scene. Do not
+            // deactivate the text GameObject to hide it, or this component's
+            // Update will stop and it can never detect a timer starting later.
+            if (!timerText.enabled)
+                timerText.enabled = true;
 
             float remaining = Mathf.Max(0f, caseManager.GetTimeRemaining());
             int seconds = Mathf.CeilToInt(remaining);
@@ -58,8 +61,8 @@ public class CaseTimerDisplay : MonoBehaviour
 
     private void Hide()
     {
-        if (timerText != null && timerText.gameObject.activeSelf)
-            timerText.gameObject.SetActive(false);
+        if (timerText != null && timerText.enabled)
+            timerText.enabled = false;
     }
 
     private void LogVisibility(bool visible, CaseManager caseManager,

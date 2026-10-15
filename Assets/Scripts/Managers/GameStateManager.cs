@@ -829,7 +829,7 @@ public class GameStateManager : MonoBehaviour
 
     public void DefeatCaseBoss()
     {
-        if (!bossUnlocked)
+        if (!caseActive || bossDefeated)
         {
             return;
         }

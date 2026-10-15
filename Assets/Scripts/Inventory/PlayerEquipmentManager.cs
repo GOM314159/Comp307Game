@@ -43,9 +43,13 @@ public class PlayerEquipmentManager : MonoBehaviour
     [SerializeField]
     private GameObject currentWeaponObject;
 
+    private GameObject currentMappedWeaponObject;
+
 
     [SerializeField]
     private WeaponItem currentWeapon;
+
+
 
 
     // =========================================================
@@ -188,20 +192,59 @@ public class PlayerEquipmentManager : MonoBehaviour
 
         currentWeaponObject = null;
         currentWeapon = null;
+        SetMappedVisual(null);
     }
+
 
     private bool SetMappedVisual(WeaponItem selected)
     {
         bool found = false;
+        currentMappedWeaponObject = null;
+
         foreach (WeaponVisualMapping mapping in weaponVisuals)
         {
-            if (mapping == null || mapping.heldModel == null) continue;
-            bool active = selected != null && mapping.item == selected;
-            mapping.heldModel.SetActive(active);
-            if (active) found = true;
+            if (mapping == null || mapping.heldModel == null)
+                continue;
+
+            // Does this model represent the equipped item?
+            bool matchingWeapon =
+                selected != null && mapping.item == selected;
+
+            // Is this model's character hierarchy active?
+            Transform parent = mapping.heldModel.transform.parent;
+
+            bool characterActive =
+                parent != null && parent.gameObject.activeInHierarchy;
+
+            bool shouldEnable = matchingWeapon && characterActive;
+
+            if (mapping.heldModel.activeSelf != shouldEnable)
+            {
+                mapping.heldModel.SetActive(shouldEnable);
+            }
+
+            // Remember the weapon on the active character.
+            if (shouldEnable)
+            {
+                currentMappedWeaponObject = mapping.heldModel;
+            }
+
+            // A matching mapping exists even if its character
+            // is currently inactive.
+            if (matchingWeapon)
+            {
+                found = true;
+            }
         }
+
         return found;
     }
+
+    public void RefreshWeaponVisuals()
+    {
+        SetMappedVisual(currentWeapon);
+    }
+
 
     private void TryInstantiateWeaponPrefab(WeaponItem weapon)
     {
@@ -241,6 +284,9 @@ public class PlayerEquipmentManager : MonoBehaviour
 
     public GameObject GetCurrentWeaponObject()
     {
+        if (currentMappedWeaponObject != null)
+            return currentMappedWeaponObject;
+
         return currentWeaponObject;
     }
 

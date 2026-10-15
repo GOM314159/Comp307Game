@@ -950,10 +950,15 @@ public class CaseManager : MonoBehaviour
 
     public void DefeatBoss()
     {
-        if (!CanFightBoss())
+        // This method is called only when the actual encounter reports a
+        // defeat (including Level 2's cable-cut event). The find-object and
+        // boss-unlocked states are tracked separately and should not prevent
+        // the boss-defeated objective from being recorded.
+        if (!caseActive || bossDefeated)
         {
             Debug.LogWarning(
-                "[Case] Boss cannot be defeated yet."
+                "[Case] Boss defeat ignored because there is no active case " +
+                "or the boss is already defeated."
             );
 
             return;
@@ -1073,6 +1078,15 @@ public class CaseManager : MonoBehaviour
         caseActive = false;
 
         StopTimer();
+
+        // Keep the persistent objective tracker in sync with CaseManager.
+        // This marks the final objective state as Complete so the return
+        // objective is crossed out and prevents stale case state leaking
+        // into the lobby or the next day's case.
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.CompleteCase();
+        }
 
 
         DebugCase(
@@ -1317,20 +1331,12 @@ public class CaseManager : MonoBehaviour
             AudioManager.Instance.StopMusic();
         }
 
-        if (!caseActive)
-        {
-            return;
-        }
-
-
         caseActive = false;
 
         StopTimer();
 
 
-        DebugCase(
-            "Case deactivated."
-        );
+        DebugCase("Case deactivated and objective state reset.");
 
 
         if (GameStateManager.Instance != null)

@@ -119,6 +119,9 @@ public class GachaWinCutscene : MonoBehaviour
         if (isPlaying) return;
         ResolveVideoPlayer();
         ResolveInteractionText();
+        PlayerInventory playerInventory = FindAnyObjectByType<PlayerInventory>();
+        if (playerInventory != null && playerInventory.IsInventoryOpen())
+            playerInventory.CloseInventory();
         isPlaying = true;
 
         if (AchievementManager.Instance != null)
@@ -156,7 +159,10 @@ public class GachaWinCutscene : MonoBehaviour
         if (!isPlaying && !promptStateCaptured) return;
         isPlaying = false;
         if (videoPlayer != null) videoPlayer.Stop();
-        if (cutsceneScreen != null && cutsceneScreen != gameObject) cutsceneScreen.SetActive(false);
+        if (cutsceneScreen != null)
+            cutsceneScreen.SetActive(false);
+        else
+            gameObject.SetActive(false);
         if (promptStateCaptured && interactionTextObject != null)
             interactionTextObject.SetActive(promptWasActive);
         promptStateCaptured = false;

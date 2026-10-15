@@ -108,6 +108,12 @@ public class AxeInteractable : WorldInteractable
             return;
         }
 
+        if (PlayerStateManager.Instance != null &&
+            PlayerStateManager.Instance.GetCurrentState() == PlayerStateManager.PlayerState.NoAttack)
+        {
+            PlayerStateManager.Instance.SetState(PlayerStateManager.PlayerState.AllMovement);
+        }
+
 
         // -----------------------------------------------------
         // OBJECTIVE - SIDD PLEASE SEE ME - Sorted bru

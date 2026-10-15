@@ -1226,14 +1226,17 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
         string findLine = string.Format(findObjectFormat, objectName);
         string bossLine = string.Format(defeatBossFormat, bossName);
 
-        bool findDone =
-            state == GameStateManager.ObjectiveState.BossUnlocked ||
-            state == GameStateManager.ObjectiveState.BossDefeated ||
-            state == GameStateManager.ObjectiveState.Complete;
+        GameStateManager gameState = GameStateManager.Instance;
+        bool findDone = gameState != null
+            ? gameState.IsObjectFound()
+            : state == GameStateManager.ObjectiveState.BossUnlocked ||
+              state == GameStateManager.ObjectiveState.BossDefeated ||
+              state == GameStateManager.ObjectiveState.Complete;
 
-        bool bossDone =
-            state == GameStateManager.ObjectiveState.BossDefeated ||
-            state == GameStateManager.ObjectiveState.Complete;
+        bool bossDone = gameState != null
+            ? gameState.IsBossDefeated()
+            : state == GameStateManager.ObjectiveState.BossDefeated ||
+              state == GameStateManager.ObjectiveState.Complete;
 
         System.Text.StringBuilder builder = new System.Text.StringBuilder();
 

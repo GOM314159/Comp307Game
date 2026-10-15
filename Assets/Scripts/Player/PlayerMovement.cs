@@ -84,6 +84,11 @@ public class PlayerMovement : MonoBehaviour
 
     [SerializeField]
     private PlayerEquipmentManager equipmentManager;
+
+    [Header("Gun Settings")]
+    [SerializeField]
+    private WeaponItem pistolItem;
+
     private PlayerStateManager playerStateManager; 
 [SerializeField]
     private PlayerAttackController playerAttackController;
@@ -392,10 +397,45 @@ public class PlayerMovement : MonoBehaviour
         horizontalVelocity = controller.velocity;
         horizontalVelocity.y = 0f;
 
+
         if (animator != null)
         {
-            if (equipmentManager.GetCurrentWeapon() != null)
+            WeaponItem equippedWeapon =
+                equipmentManager != null
+                    ? equipmentManager.GetCurrentWeapon()
+                    : null;
+
+            bool holdingGun =
+                equippedWeapon != null &&
+                equippedWeapon == pistolItem;
+
+            if (holdingGun)
             {
+                // Gun-specific animations
+                if (IsMoving() && isCrouching)
+                {
+                    ChangeAnimationState("CrouchWalk");
+                }
+                else if (isCrouching)
+                {
+                    ChangeAnimationState("Crouch");
+                }
+                else if (canPlayerSprint)
+                {
+                    ChangeAnimationState("Run");
+                }
+                else if (IsMoving())
+                {
+                    ChangeAnimationState("Walk");
+                }
+                else
+                {
+                    ChangeAnimationState("HasGun");
+                }
+            }
+            else if (equippedWeapon != null)
+            {
+                // Melee weapon animations
                 if (IsMoving() && isCrouching)
                 {
                     ChangeAnimationState("CrouchWalk");
@@ -419,6 +459,7 @@ public class PlayerMovement : MonoBehaviour
             }
             else
             {
+                // No weapon equipped
                 if (IsMoving() && isCrouching)
                 {
                     ChangeAnimationState("CrouchWalk");
@@ -441,6 +482,7 @@ public class PlayerMovement : MonoBehaviour
                 }
             }
         }
+
 
     }
 
@@ -728,12 +770,27 @@ public class PlayerMovement : MonoBehaviour
 
     private void TriggerAttackAnimation()
     {
-        // Only swing if we have an animator and a weapon is actually equipped
-        if (animator != null && equipmentManager.GetCurrentWeapon() != null)
+        if (animator == null || equipmentManager == null)
+            return;
+
+        WeaponItem equippedWeapon =
+            equipmentManager.GetCurrentWeapon();
+
+        if (equippedWeapon == null)
+            return;
+
+        // Gun attack
+        if (equippedWeapon == pistolItem)
+        {
+            animator.SetTrigger("FireGun");
+        }
+        // Melee attack
+        else
         {
             animator.SetTrigger("SwingWeapon");
         }
     }
+
 
     private void ChangeAnimationState(string newState)
     {
