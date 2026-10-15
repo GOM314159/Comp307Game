@@ -1074,6 +1074,15 @@ public class CaseManager : MonoBehaviour
 
         StopTimer();
 
+        // Keep the persistent objective tracker in sync with CaseManager.
+        // This marks the final objective state as Complete so the return
+        // objective is crossed out and prevents stale case state leaking
+        // into the lobby or the next day's case.
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.CompleteCase();
+        }
+
 
         DebugCase(
             "Case completed."
@@ -1317,20 +1326,12 @@ public class CaseManager : MonoBehaviour
             AudioManager.Instance.StopMusic();
         }
 
-        if (!caseActive)
-        {
-            return;
-        }
-
-
         caseActive = false;
 
         StopTimer();
 
 
-        DebugCase(
-            "Case deactivated."
-        );
+        DebugCase("Case deactivated and objective state reset.");
 
 
         if (GameStateManager.Instance != null)
