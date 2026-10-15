@@ -165,8 +165,18 @@ public class GachaWinCutscene : MonoBehaviour
         {
             endScreen.SetActive(true);
             if (GameFlowManager.Instance != null) GameFlowManager.Instance.SetGameplayHUDVisible(false);
-            if (GameStateManager.Instance != null) GameStateManager.Instance.SetGameMode(GameStateManager.GameMode.Cutscene);
+            // The ending screen is interactive UI. Keep player movement
+            // disabled, but leave Cutscene mode so the cursor controller
+            // does not lock and hide the mouse over the screen.
+            if (GameStateManager.Instance != null) GameStateManager.Instance.SetGameMode(GameStateManager.GameMode.Lobby);
             if (PlayerStateManager.Instance != null) PlayerStateManager.Instance.SetState(PlayerStateManager.PlayerState.Cutscene);
+            if (GameUICursorController.Instance != null)
+                GameUICursorController.Instance.ResetControllerCursorForUI();
+            else
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
         }
         else if (openCreditsWhenFinished && GameFlowManager.Instance != null)
             GameFlowManager.Instance.OpenCredits();

@@ -935,9 +935,18 @@ public class TeleportManager : MonoBehaviour
                 {
                     int caseToStart = caseIDAfterLoad;
 
+                    if (caseToStart <= 0)
+                    {
+                        CaseSceneBinding sceneBinding =
+                            FindAnyObjectByType<CaseSceneBinding>(
+                                FindObjectsInactive.Include
+                            );
+                        if (sceneBinding != null)
+                            caseToStart = sceneBinding.GetCaseID();
+                    }
+
                     if (caseToStart > 0)
                     {
-                        CaseManager.Instance.RefreshSceneReferences();
                         CaseManager.Instance.StartCase(caseToStart);
 
                         if (GameFlowManager.Instance != null)
@@ -1744,20 +1753,48 @@ public class TeleportManager : MonoBehaviour
 
     private void HandleDebugFKeys()
     {
-        // Debug teleports must never interrupt the first-day tutorial.
-        // F12 is handled by TutorialManager and remains available to skip it.
-        if (TutorialManager.Instance != null &&
-            TutorialManager.Instance.IsTutorialRunning)
-            return;
-
         if (GameFlowManager.Instance != null &&
             !GameFlowManager.Instance.AreDebugHotkeysEnabled())
         {
+            if (Keyboard.current != null &&
+                (Keyboard.current.f2Key.wasPressedThisFrame ||
+                 Keyboard.current.f4Key.wasPressedThisFrame ||
+                 Keyboard.current.f6Key.wasPressedThisFrame))
+            {
+                Debug.LogWarning("[Debug Teleport] F2/F4/F6 pressed, but GameFlowManager has debug hotkeys disabled.", this);
+            }
             return;
         }
 
         if (Keyboard.current == null)
         {
+            return;
+        }
+
+        // Fresh-game startup can restart the Day 1 tutorial after returning
+        // to the main menu. Keep the level jump keys usable: an explicit
+        // F2/F4/F6 development jump cancels the active tutorial first.
+        bool levelJumpPressed = Keyboard.current.f2Key.wasPressedThisFrame ||
+                                Keyboard.current.f4Key.wasPressedThisFrame ||
+                                Keyboard.current.f6Key.wasPressedThisFrame;
+        if (levelJumpPressed && TutorialManager.Instance != null &&
+            TutorialManager.Instance.IsTutorialRunning)
+        {
+            Debug.Log("[Debug Teleport] F2/F4/F6 pressed during tutorial; resetting tutorial so the requested level jump can run.", this);
+            TutorialManager.Instance.ResetTutorial();
+        }
+        else if (TutorialManager.Instance != null &&
+                 TutorialManager.Instance.IsTutorialRunning)
+        {
+            if (Keyboard.current.f1Key.wasPressedThisFrame ||
+                Keyboard.current.f3Key.wasPressedThisFrame ||
+                Keyboard.current.f5Key.wasPressedThisFrame ||
+                Keyboard.current.f7Key.wasPressedThisFrame ||
+                Keyboard.current.f8Key.wasPressedThisFrame ||
+                Keyboard.current.f10Key.wasPressedThisFrame)
+            {
+                Debug.Log("[Debug Teleport] Debug hotkey ignored while tutorial is running. Use F2/F4/F6 to jump to a level and reset it.", this);
+            }
             return;
         }
 
@@ -2003,6 +2040,10 @@ public class TeleportManager : MonoBehaviour
         int day,
         bool level)
     {
+        Debug.Log("[Debug Teleport] Executing level/day override: day=" + day +
+                  ", level=" + level + ", destination=" +
+                  (destination != null ? destination.name : "cross-scene target") +
+                  ", scene=" + SceneManager.GetActiveScene().name + ".", this);
         // Match the normal Day 1 transition: return control, then begin the
         // tutorial once F1 has placed the player in the lobby.
         pendingDebugDay1Tutorial = !level && day == 1;

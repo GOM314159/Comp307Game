@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Video;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// Four day-transition cutscenes that play after the lobby has loaded.
@@ -25,6 +26,7 @@ public class DayScreenCutscene : MonoBehaviour
     [Header("After Day Screen")]
     [Tooltip("Optional points indicator object to show briefly once the day-screen video finishes.")]
     [SerializeField] private GameObject pointsIndicator;
+    [SerializeField] private TMP_Text pointsIndicatorText;
     [SerializeField, Min(0f)] private float pointsIndicatorDuration = 4f;
     private Coroutine pointsIndicatorRoutine;
 
@@ -60,6 +62,7 @@ public class DayScreenCutscene : MonoBehaviour
     private bool previousTimeScaleCaptured;
 
     public bool IsPlaying => isPlaying;
+    public bool IsPlayingOrPending => isPlaying || playRoutine != null;
 
     private void Awake()
     {
@@ -71,6 +74,8 @@ public class DayScreenCutscene : MonoBehaviour
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        if (pointsIndicatorText == null && pointsIndicator != null)
+            pointsIndicatorText = pointsIndicator.GetComponent<TMP_Text>();
         if (pointsIndicator != null) pointsIndicator.SetActive(false);
 
         // Prefer explicitly attached Inspector objects. This lets the Canvas/RawImage
@@ -116,6 +121,8 @@ public class DayScreenCutscene : MonoBehaviour
 
     public void PlayDayScreenAfterLobbyLoad(int day)
     {
+        DebugDay("Request to play Day " + day + " screen; currently " +
+                 (IsPlayingOrPending ? "already pending/playing" : "idle") + ".");
         if (day < 1 || day > dayVideos.Count)
         {
             DebugDay("No configured day screen for Day " + day + ".");
@@ -302,6 +309,9 @@ public class DayScreenCutscene : MonoBehaviour
 
     private void Finish(int day)
     {
+        // Clear the pending marker before callbacks run. TutorialManager uses
+        // it to reject any competing start request until this exact point.
+        playRoutine = null;
         if (videoPlayer != null)
         {
             videoPlayer.Stop();
@@ -360,12 +370,10 @@ public class DayScreenCutscene : MonoBehaviour
             );
         }
 
-        if (pointsIndicatorRoutine != null)
-            StopCoroutine(pointsIndicatorRoutine);
-        if (pointsIndicator != null)
+        if (GachaManager.Instance != null &&
+            GachaManager.Instance.TryTakeCompletedLevelReward(out int reward))
         {
-            pointsIndicator.SetActive(true);
-            pointsIndicatorRoutine = StartCoroutine(HidePointsIndicatorAfterDelay());
+            ShowLevelRewardPoints(reward);
         }
 
         // Notify post-return lobby systems only after the day-screen has ended
@@ -379,7 +387,11 @@ public class DayScreenCutscene : MonoBehaviour
         {
             TutorialManager tutorial = TutorialManager.Instance;
             if (tutorial == null) tutorial = FindAnyObjectByType<TutorialManager>(FindObjectsInactive.Include);
-            if (tutorial != null) tutorial.BeginDay1Tutorial();
+            if (tutorial != null)
+            {
+                DebugDay("Day 1 video finished; starting tutorial now.");
+                tutorial.BeginDay1Tutorial();
+            }
             else Debug.LogError("[DayScreenCutscene] Day 1 ended, but no TutorialManager exists in the loaded scene or persistent managers.");
         }
 
@@ -400,6 +412,40 @@ public class DayScreenCutscene : MonoBehaviour
         yield return new WaitForSecondsRealtime(pointsIndicatorDuration);
         if (pointsIndicator != null) pointsIndicator.SetActive(false);
         pointsIndicatorRoutine = null;
+    }
+
+    public void ShowStartingPoints(int points)
+    {
+        ShowPointsIndicator("YOU START WITH " + Mathf.Max(0, points) + " GP");
+    }
+
+    public void ShowLevelRewardPoints(int points)
+    {
+        ShowPointsIndicator("LEVEL EARNED +" + Mathf.Max(0, points) + " GP");
+    }
+
+    private void ShowPointsIndicator(string message)
+    {
+        if (pointsIndicator == null)
+        {
+            Debug.LogWarning("[DayScreenCutscene] Cannot show points message; " +
+                             "Obtained_points_indicator is not assigned.", this);
+            return;
+        }
+
+        if (pointsIndicatorText == null)
+            pointsIndicatorText = pointsIndicator.GetComponent<TMP_Text>();
+        if (pointsIndicatorText != null)
+            pointsIndicatorText.text = message;
+        else
+            Debug.LogWarning("[DayScreenCutscene] Points indicator has no TMP_Text.", this);
+
+        if (pointsIndicatorRoutine != null)
+            StopCoroutine(pointsIndicatorRoutine);
+
+        pointsIndicator.SetActive(true);
+        pointsIndicatorRoutine = StartCoroutine(HidePointsIndicatorAfterDelay());
+        DebugDay("Showing points summary: " + message + ".");
     }
 
     private void ConfigureAssignedPresentation()

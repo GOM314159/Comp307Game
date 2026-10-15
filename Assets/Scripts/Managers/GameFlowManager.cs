@@ -536,6 +536,12 @@ public class GameFlowManager : MonoBehaviour
 
     private void FinishReturnToMainMenu()
     {
+        // A delayed Day 1 respawn callback must not carry over into a new
+        // run and start the tutorial on top of its day-screen video.
+        startDay1TutorialAfterLobbyRespawn = false;
+        playDayScreenAfterLobbyLoad = false;
+        pendingDayScreenDay = -1;
+
         if (TutorialManager.Instance != null)
         {
             TutorialManager.Instance.ResetTutorial();
@@ -728,6 +734,10 @@ public class GameFlowManager : MonoBehaviour
         GameStateManager.DifficultyMode difficulty,
         GameStateManager.PlayerGender gender)
     {
+        startDay1TutorialAfterLobbyRespawn = false;
+        playDayScreenAfterLobbyLoad = false;
+        pendingDayScreenDay = -1;
+
         if (TutorialManager.Instance != null)
         {
             TutorialManager.Instance.ResetTutorial();
@@ -1035,6 +1045,7 @@ public class GameFlowManager : MonoBehaviour
         bool playDayScreen,
         int day)
     {
+        bool dayScreenWillShowLevelReward = false;
         SetGameplayHUDVisible(true);
 
         ApplyLobbyChangesToCurrentScene();
@@ -1060,6 +1071,8 @@ public class GameFlowManager : MonoBehaviour
                 dayScreenCutscene.PlayDayScreenAfterLobbyLoad(
                     day
                 );
+                dayScreenWillShowLevelReward =
+                    dayScreenCutscene.IsPlayingOrPending;
             }
             else
             {
@@ -1095,6 +1108,9 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
+        if (!dayScreenWillShowLevelReward)
+            ShowPendingLevelRewardPoints();
+
         ObjectiveAndDayOverlay[] overlays =
             FindObjectsByType<ObjectiveAndDayOverlay>(
                 FindObjectsInactive.Include,
@@ -1108,6 +1124,25 @@ public class GameFlowManager : MonoBehaviour
                 overlays[i].RefreshNow();
             }
         }
+    }
+
+    private void ShowPendingLevelRewardPoints()
+    {
+        if (GachaManager.Instance == null ||
+            !GachaManager.Instance.TryTakeCompletedLevelReward(out int reward))
+            return;
+
+        if (dayScreenCutscene == null)
+            dayScreenCutscene = DayScreenCutscene.Instance;
+        if (dayScreenCutscene == null)
+            dayScreenCutscene = FindAnyObjectByType<DayScreenCutscene>(
+                FindObjectsInactive.Include);
+
+        if (dayScreenCutscene != null)
+            dayScreenCutscene.ShowLevelRewardPoints(reward);
+        else
+            Debug.LogWarning("[GameFlow] Level reward was earned, but the points " +
+                             "indicator is unavailable.");
     }
 
     // =========================================================
@@ -1208,6 +1243,9 @@ public class GameFlowManager : MonoBehaviour
     // =========================================================
     // INTRO
     // =========================================================
+
+    public GameObject HealthBarObject => HealthBar;
+    public GameObject StaminaBarObject => StaminaBar;
 
     public void SetGameplayHUDVisible(bool visible)
     {
@@ -1556,6 +1594,11 @@ public class GameFlowManager : MonoBehaviour
         SetHealthBarVisible(true);
         SetStaminaBarVisible(true);
 
+        // The tutorial is owned by DayScreenCutscene when the video exists.
+        // Reset the fallback respawn flag to prevent an old request from
+        // starting it concurrently with the video.
+        startDay1TutorialAfterLobbyRespawn = false;
+
         if (
             playDayScreenAfterLobbyLoad &&
             pendingDayScreenDay > 0
@@ -1569,6 +1612,8 @@ public class GameFlowManager : MonoBehaviour
 
             if (dayScreenCutscene != null)
             {
+                DebugFlow("Day " + pendingDayScreenDay +
+                          " screen queued; Day 1 tutorial will wait for video completion.");
                 dayScreenCutscene
                     .PlayDayScreenAfterLobbyLoad(
                         pendingDayScreenDay
@@ -1884,6 +1929,32 @@ public class GameFlowManager : MonoBehaviour
             GameStateManager.Instance.SetGameMode(
                 GameStateManager.GameMode.BossFight
             );
+        }
+
+        // The fourth play has ended and the boss fight is starting now.
+        // Force every theater puppet's mini health bar visible immediately,
+        // rather than waiting for the activation-delay coroutine/update loop.
+        BossFightPuppetActivation[] puppetActivations = FindObjectsByType<BossFightPuppetActivation>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+        for (int i = 0; i < puppetActivations.Length; i++)
+        {
+            if (puppetActivations[i] != null)
+                puppetActivations[i].ShowHealthBarsNow();
+        }
+
+        // The dolls sitting in the theater (including ones that do not own a
+        // puppet-activation component) must have their slider canvases shown
+        // the moment the boss fight begins.
+        EnemyHealthBar[] enemyHealthBars = FindObjectsByType<EnemyHealthBar>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+        for (int i = 0; i < enemyHealthBars.Length; i++)
+        {
+            if (enemyHealthBars[i] != null)
+                enemyHealthBars[i].ShowForBossFight();
         }
 
         if (AudioManager.Instance != null)

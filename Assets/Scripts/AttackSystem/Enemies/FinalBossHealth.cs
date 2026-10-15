@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
 /// Gargamel's custom three-phase health system.
@@ -53,6 +54,19 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     private int currentPhase = 1;
     private float currentHealth;
     private bool isDead;
+    [Header("Phase Health Bar UI")]
+    [Tooltip("Optional direct references. If empty, the script searches loaded scenes for HealthBar_phase1, HealthBar_phase2 and HealthBar_phase3.")]
+    [SerializeField] private GameObject phase1HealthBar;
+    [SerializeField] private GameObject phase2HealthBar;
+    [SerializeField] private GameObject phase3HealthBar;
+
+    private GameObject[] phaseBarObjects = new GameObject[3];
+    private Slider[] phaseBarSliders = new Slider[3];
+    private Image[] phaseBarFillImages = new Image[3];
+    private float nextPhaseBarResolveTime;
+    private int lastLoggedVisiblePhase;
+    private bool phaseBarBindingsLogged;
+    private bool phaseBarsAllowed = true;
 
     public event Action<int> OnPhaseChanged;
     public event Action OnDied;
@@ -62,12 +76,25 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         EnsureDialogueAudioSource();
         EnsureDamageHitbox();
         ResetBossHealth();
+        ResolvePhaseHealthBars();
     }
 
     private void OnEnable()
     {
         EnsureDialogueAudioSource();
         EnsureDamageHitbox();
+        ResolvePhaseHealthBars();
+    }
+
+    private void Update()
+    {
+        if (Time.unscaledTime >= nextPhaseBarResolveTime &&
+            (phaseBarObjects[0] == null || phaseBarObjects[1] == null || phaseBarObjects[2] == null))
+        {
+            nextPhaseBarResolveTime = Time.unscaledTime + 0.5f;
+            ResolvePhaseHealthBars();
+        }
+        RefreshPhaseHealthBars();
     }
 
     public bool TakeDamage(float damage)
@@ -88,10 +115,12 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
         if (currentHealth > 0f)
         {
+            RefreshPhaseHealthBars();
             return false;
         }
 
         currentHealth = 0f;
+        RefreshPhaseHealthBars();
 
         if (currentPhase < 3)
         {
@@ -110,6 +139,7 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
         PlayPhaseDialogue(currentPhase);
         OnPhaseChanged?.Invoke(currentPhase);
+        RefreshPhaseHealthBars();
 
         DebugHealth(
             "Advanced to Phase " + currentPhase +
@@ -223,9 +253,11 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
     public void ResetBossHealth()
     {
+        phaseBarsAllowed = true;
         currentPhase = 1;
         currentHealth = GetPhaseMaxHealth(1);
         isDead = false;
+        RefreshPhaseHealthBars();
 
         DebugHealth(
             "Reset to Phase 1 with " + currentHealth + " health."
@@ -266,6 +298,28 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         return isDead;
     }
 
+    public void HidePhaseHealthBars()
+    {
+        phaseBarsAllowed = false;
+        ResolvePhaseHealthBars();
+
+        for (int i = 0; i < phaseBarObjects.Length; i++)
+        {
+            GameObject bar = phaseBarObjects[i];
+            if (bar == null) continue;
+
+            if (bar.activeSelf)
+            {
+                bar.SetActive(false);
+                DebugHealth("Made phase " + (i + 1) +
+                            " health bar invisible while the boss is despawned: " +
+                            bar.name + ".");
+            }
+        }
+
+        lastLoggedVisiblePhase = 0;
+    }
+
     private float GetPhaseMaxHealth(int phase)
     {
         float baseHealth;
@@ -291,6 +345,200 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         }
 
         return baseHealth;
+    }
+
+    private void ResolvePhaseHealthBars()
+    {
+        phaseBarObjects[0] = phase1HealthBar;
+        phaseBarObjects[1] = phase2HealthBar;
+        phaseBarObjects[2] = phase3HealthBar;
+
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform candidate = transforms[i];
+            if (candidate == null ||
+                !candidate.gameObject.scene.IsValid() ||
+                !candidate.gameObject.scene.isLoaded)
+                continue;
+
+            for (int phase = 1; phase <= 3; phase++)
+            {
+                int index = phase - 1;
+                if (phaseBarObjects[index] == null &&
+                    candidate.name == "HealthBar_phase" + phase)
+                {
+                    phaseBarObjects[index] = candidate.gameObject;
+                }
+            }
+        }
+
+        for (int i = 0; i < phaseBarObjects.Length; i++)
+        {
+            if (phaseBarObjects[i] == null)
+            {
+                phaseBarSliders[i] = null;
+                phaseBarFillImages[i] = null;
+                continue;
+            }
+
+            phaseBarSliders[i] =
+                phaseBarObjects[i].GetComponentInChildren<Slider>(true);
+
+            phaseBarFillImages[i] = null;
+            Image[] images =
+                phaseBarObjects[i].GetComponentsInChildren<Image>(true);
+
+            for (int j = 0; j < images.Length; j++)
+            {
+                if (images[j] != null &&
+                    images[j].type == Image.Type.Filled)
+                {
+                    phaseBarFillImages[i] = images[j];
+                    break;
+                }
+            }
+        }
+
+        if (debugHealth && !phaseBarBindingsLogged &&
+            phaseBarObjects[0] != null &&
+            phaseBarObjects[1] != null &&
+            phaseBarObjects[2] != null)
+        {
+            phaseBarBindingsLogged = true;
+            DebugHealth(
+                "Resolved phase bars: phase 1=" + phaseBarObjects[0].name +
+                " (slider=" + (phaseBarSliders[0] != null) + "), phase 2=" +
+                phaseBarObjects[1].name + " (slider=" +
+                (phaseBarSliders[1] != null) + "), phase 3=" +
+                phaseBarObjects[2].name + " (slider=" +
+                (phaseBarSliders[2] != null) + ")."
+            );
+        }
+
+        RefreshPhaseHealthBars();
+    }
+
+    private void EnsurePhaseBarVisible(GameObject bar)
+    {
+        if (bar == null) return;
+
+        // Gargamel is on the Damage layer and the attached world-space Canvas
+        // inherits it. A gameplay camera may exclude that layer, so re-layer
+        // only the health Canvas subtree to UI.
+        Canvas barCanvas = bar.GetComponentInParent<Canvas>(true);
+        int uiLayer = LayerMask.NameToLayer("UI");
+        if (barCanvas != null && uiLayer >= 0)
+        {
+            Transform[] canvasObjects =
+                barCanvas.GetComponentsInChildren<Transform>(true);
+            bool changedLayer = false;
+            for (int i = 0; i < canvasObjects.Length; i++)
+            {
+                if (canvasObjects[i].gameObject.layer == uiLayer) continue;
+                canvasObjects[i].gameObject.layer = uiLayer;
+                changedLayer = true;
+            }
+
+            if (changedLayer)
+            {
+                DebugHealth("Set boss health Canvas subtree '" + barCanvas.name +
+                    "' to UI layer " + uiLayer + " for camera rendering.");
+            }
+        }
+
+        // The three phase health bars may sit under canvases or parents that
+        // were left disabled by a scene transition or loading screen. Allow
+        // the currently active phase's bar to actually be shown.
+        Transform node = bar.transform;
+        while (node != null)
+        {
+            if (!node.gameObject.activeSelf)
+                node.gameObject.SetActive(true);
+
+            Canvas canvas = node.GetComponent<Canvas>();
+            if (canvas != null)
+            {
+                if (LoadingScreenManager.Instance == null ||
+                    !LoadingScreenManager.Instance.AreGameplayCanvasesHidden)
+                {
+                    if (!canvas.enabled)
+                        canvas.enabled = true;
+                }
+
+                if (canvas.isRootCanvas)
+                    break;
+            }
+
+            node = node.parent;
+        }
+
+        Camera camera = Camera.main;
+        if (camera != null)
+        {
+            Vector3 toCamera = camera.transform.position - bar.transform.position;
+            if (toCamera.sqrMagnitude > 0.0001f)
+                bar.transform.rotation = Quaternion.LookRotation(
+                    toCamera.normalized, camera.transform.up);
+        }
+    }
+
+    private void RefreshPhaseHealthBars()
+    {
+        for (int i = 0; i < phaseBarObjects.Length; i++)
+        {
+            GameObject bar = phaseBarObjects[i];
+            if (bar == null)
+                continue;
+
+            bool active = phaseBarsAllowed && !isDead && i == currentPhase - 1;
+
+            if (active && lastLoggedVisiblePhase != currentPhase)
+            {
+                lastLoggedVisiblePhase = currentPhase;
+                DebugHealth(
+                    "Showing phase " + currentPhase + " health bar: " +
+                    bar.name + "."
+                );
+            }
+
+            if (active)
+                EnsurePhaseBarVisible(bar);
+
+            if (bar.activeSelf != active)
+            {
+                bar.SetActive(active);
+                DebugHealth(
+                    "Made phase " + (i + 1) + " health bar " +
+                    (active ? "visible" : "invisible") + ": " + bar.name + "."
+                );
+            }
+
+            if (active)
+                EnsurePhaseBarVisible(bar);
+
+            if (!active)
+                continue;
+
+            float maxHealth = GetPhaseMaxHealth(currentPhase);
+            if (maxHealth <= 0f)
+                continue;
+
+            float normalizedHealth =
+                Mathf.Clamp01(currentHealth / maxHealth);
+
+            Slider slider = phaseBarSliders[i];
+            if (slider != null)
+            {
+                slider.minValue = 0f;
+                slider.maxValue = 1f;
+                slider.value = normalizedHealth;
+            }
+            else if (phaseBarFillImages[i] != null)
+            {
+                phaseBarFillImages[i].fillAmount = normalizedHealth;
+            }
+        }
     }
 
     private void EnsureDamageHitbox()

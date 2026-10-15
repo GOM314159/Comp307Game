@@ -490,6 +490,12 @@ public class CaseManager : MonoBehaviour
 
         caseActive = true;
 
+        // Bind against the selected case only after currentCase has been
+        // updated. Scene-load callbacks can run before this method and may
+        // still have refreshed references for the previous case (or none),
+        // which caused Level 2/3 objectives to retain stale Level 1 objects.
+        RefreshSceneReferences();
+
 
         // -----------------------------------------------------
         // GAME STATE

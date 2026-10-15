@@ -77,6 +77,9 @@ public class TutorialManager : MonoBehaviour
 
     public bool IsTutorialRunning => tutorialRunning;
     public bool IsTutorialCompleted => tutorialCompleted;
+    public bool IsScreenFadeVisible => fadeImage != null &&
+                                      fadeImage.isActiveAndEnabled &&
+                                      fadeImage.color.a > 0.01f;
 
     private void Awake()
     {
@@ -244,6 +247,18 @@ public class TutorialManager : MonoBehaviour
 
     public void BeginDay1Tutorial()
     {
+        DayScreenCutscene dayScreen = DayScreenCutscene.Instance;
+        if (dayScreen == null)
+        {
+            dayScreen = FindAnyObjectByType<DayScreenCutscene>(
+                FindObjectsInactive.Include);
+        }
+        if (dayScreen != null && dayScreen.IsPlayingOrPending)
+        {
+            Debug.Log("[Tutorial] Day 1 tutorial start deferred because the day screen is pending or playing.", this);
+            return;
+        }
+
         if (tutorialCompleted || tutorialRunning)
             return;
 
@@ -482,6 +497,8 @@ public class TutorialManager : MonoBehaviour
 
         tutorialRoutine = null;
 
+        ShowStartingGachaPoints();
+
         if (debugTutorial)
             Debug.Log("[Tutorial] Day 1 tutorial completed.");
     }
@@ -508,8 +525,28 @@ public class TutorialManager : MonoBehaviour
         SetFadeAlpha(0f);
         ShowGameplayCursor();
 
+        ShowStartingGachaPoints();
+
         if (debugTutorial)
             Debug.Log("[Tutorial] Skipped with F12.");
+    }
+
+    private void ShowStartingGachaPoints()
+    {
+        if (GameStateManager.Instance == null)
+            return;
+
+        DayScreenCutscene dayScreen = DayScreenCutscene.Instance;
+        if (dayScreen == null)
+            dayScreen = FindAnyObjectByType<DayScreenCutscene>(
+                FindObjectsInactive.Include);
+
+        if (dayScreen != null)
+            dayScreen.ShowStartingPoints(
+                GameStateManager.Instance.GetGachaCurrency());
+        else if (debugTutorial)
+            Debug.LogWarning("[Tutorial] Could not show starting GP; " +
+                             "DayScreenCutscene points indicator is missing.", this);
     }
 
     public void ResetTutorial()
