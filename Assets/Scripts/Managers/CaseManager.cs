@@ -950,10 +950,15 @@ public class CaseManager : MonoBehaviour
 
     public void DefeatBoss()
     {
-        if (!CanFightBoss())
+        // This method is called only when the actual encounter reports a
+        // defeat (including Level 2's cable-cut event). The find-object and
+        // boss-unlocked states are tracked separately and should not prevent
+        // the boss-defeated objective from being recorded.
+        if (!caseActive || bossDefeated)
         {
             Debug.LogWarning(
-                "[Case] Boss cannot be defeated yet."
+                "[Case] Boss defeat ignored because there is no active case " +
+                "or the boss is already defeated."
             );
 
             return;
