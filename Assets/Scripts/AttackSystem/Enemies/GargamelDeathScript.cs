@@ -333,7 +333,7 @@ public class GargamelDeathScript : MonoBehaviour
     {
         if (video == null)
         {
-            FinishEndingVideo();
+            FinishEndingVideo(video);
             return;
         }
 
@@ -362,7 +362,7 @@ public class GargamelDeathScript : MonoBehaviour
 
         UnsubscribeFromVideo(player);
         activeVideo = null;
-        FinishEndingVideo();
+        FinishEndingVideo(player);
     }
 
     private void OnVideoError(VideoPlayer player, string message)
@@ -378,11 +378,17 @@ public class GargamelDeathScript : MonoBehaviour
 
         UnsubscribeFromVideo(player);
         activeVideo = null;
-        FinishEndingVideo();
+        FinishEndingVideo(player);
     }
 
-    private void FinishEndingVideo()
+    private void FinishEndingVideo(VideoPlayer endingVideo)
     {
+        if (endingVideo != null)
+        {
+            endingVideo.Stop();
+            endingVideo.gameObject.SetActive(false);
+        }
+
         ResolveFinalGameScreen();
 
         if (finalGameScreen != null)
@@ -406,6 +412,8 @@ public class GargamelDeathScript : MonoBehaviour
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance.FinalCutsceneFinished();
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
             return;
         }
 
@@ -415,6 +423,9 @@ public class GargamelDeathScript : MonoBehaviour
                 GameStateManager.GameMode.Credits
             );
         }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
     }
 
     private void SetupVideo(VideoPlayer video)
