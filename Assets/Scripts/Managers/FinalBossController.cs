@@ -1,4 +1,5 @@
 using System.Collections;
+using Unity.Behavior;
 using UnityEngine;
 
 /// <summary>
@@ -10,6 +11,9 @@ public class FinalBossController : MonoBehaviour
 {
     [Header("Boss")]
     [SerializeField] private GameObject finalBoss;
+
+    [Header("Minis")]
+    [SerializeField] private BehaviorGraph graphAgent;
 
     [Header("Spawn Cue")]
     [SerializeField] private AudioClip bossSpawnCue;
@@ -50,6 +54,15 @@ public class FinalBossController : MonoBehaviour
                 bossHealth.HidePhaseHealthBars();
 
             finalBoss.SetActive(false);
+        }
+    }
+
+    public void enableMinis()
+    {
+        if (graphAgent != null)
+        {
+            graphAgent.BlackboardReference.SetVariableValue("GargAlive", true);
+            DebugSequence("Minis enabled.");
         }
     }
 
