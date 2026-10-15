@@ -87,6 +87,7 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
     private bool lastObjectiveVisible;
     private string lastDayRenderStatus;
     private string lastObjectiveRenderStatus;
+    private string lastDayVisibilityReason;
     private bool hasLoggedInitialization;
     private Canvas dayTextCanvas;
     private Canvas objectiveTextCanvas;
@@ -283,29 +284,11 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
     /// </summary>
     private bool ShouldShowDay()
     {
-        // The loading screen always wins: all GUI is hidden while it is up.
-        if (LoadingScreenManager.Instance != null &&
-            LoadingScreenManager.Instance.AreGameplayCanvasesHidden)
-        {
-            return false;
-        }
-
-        // The Day 1 tutorial uses a full-screen fade. Do not float DayText
-        // over the black fade even though its own Canvas sorts above it.
-        if (TutorialManager.Instance != null &&
-            TutorialManager.Instance.IsScreenFadeVisible)
-        {
-            return false;
-        }
-
-        if (DayScreenCutscene.Instance != null &&
-            DayScreenCutscene.Instance.IsPlayingOrPending)
-        {
-            return false;
-        }
-
-        // Use the same source of truth as the health and stamina HUD: the
-        // actual active state of both bar roots.
+        // Use exactly the player HUD bars as the source of truth. The DayText
+        // lives on an isolated Canvas, so separate loading/tutorial/cutscene
+        // flags can incorrectly keep it hidden after the HUD has returned.
+        // GameFlowManager already hides and restores these bar roots for all
+        // full-screen transitions, including the Day 1 video and tutorial.
         GameFlowManager flow = GameFlowManager.Instance;
         if (flow != null &&
             (flow.HealthBarObject == null ||
@@ -647,11 +630,13 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
 
         string dayStatus = ActualVisibility(dayText);
         string objectiveStatus = ActualVisibility(objectiveText);
+        string dayReason = GetDayVisibilityReason();
         bool stateChanged = !hasLoggedVisibility ||
                             lastDayVisible != showDay ||
                             lastObjectiveVisible != showObjective ||
                             lastDayRenderStatus != dayStatus ||
-                            lastObjectiveRenderStatus != objectiveStatus;
+                            lastObjectiveRenderStatus != objectiveStatus ||
+                            lastDayVisibilityReason != dayReason;
         if (!stateChanged) return;
 
         hasLoggedVisibility = true;
@@ -659,6 +644,7 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
         lastObjectiveVisible = showObjective;
         lastDayRenderStatus = dayStatus;
         lastObjectiveRenderStatus = objectiveStatus;
+        lastDayVisibilityReason = dayReason;
 
         GameStateManager state = GameStateManager.Instance;
         string mode = state != null ? state.GetGameMode().ToString() : "Unavailable";
@@ -679,9 +665,21 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
             ", caseActive=" + (state != null && state.IsCaseActive()) +
             ", currentCase=" + (state != null ? state.GetCurrentCase() : -1) +
             ", objectiveState=" + (state != null ? state.GetCurrentObjective().ToString() : "Unavailable") +
+            ", dayVisibilityReason=" + dayReason +
             ", " + dayBars,
             this
         );
+    }
+
+    private static string GetDayVisibilityReason()
+    {
+        GameFlowManager flow = GameFlowManager.Instance;
+        if (flow == null) return "visible (GameFlowManager unavailable; no bar gate)";
+        if (flow.HealthBarObject == null) return "hidden (HealthBar reference missing)";
+        if (!flow.HealthBarObject.activeInHierarchy) return "hidden (HealthBar inactive)";
+        if (flow.StaminaBarObject == null) return "hidden (StaminaBar reference missing)";
+        if (!flow.StaminaBarObject.activeInHierarchy) return "hidden (StaminaBar inactive)";
+        return "visible (HealthBar and StaminaBar active)";
     }
 
     private static string ActualVisibility(TextMeshProUGUI text)
