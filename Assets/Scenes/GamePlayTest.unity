@@ -2753,6 +2753,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &107925310
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4916,6 +4917,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &165773455
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5176,6 +5178,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &166467605
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12865,6 +12868,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &428987787
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -17554,6 +17558,7 @@ MonoBehaviour:
   timerRoot: {fileID: 1388177405}
   timerText: {fileID: 457599437}
   hideWhenTimerStopped: 1
+  debugTimerVisibility: 1
 --- !u!1 &467772817
 GameObject:
   m_ObjectHideFlags: 0
@@ -23679,6 +23684,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &714777792
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -26557,6 +26563,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &826379079
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31777,6 +31784,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &994594969
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -33091,6 +33099,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &1049249531
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -40710,6 +40719,8 @@ MonoBehaviour:
   returnFormat: Return to the lobby
   hideWhilePaused: 1
   requireCaseSceneBinding: 1
+  debugVisibility: 1
+  textCanvasSortingOrder: 32766
 --- !u!1 &1397830425
 GameObject:
   m_ObjectHideFlags: 0
@@ -43633,6 +43644,7 @@ GameObject:
   - component: {fileID: 1477481518}
   - component: {fileID: 1477481520}
   - component: {fileID: 1477481519}
+  - component: {fileID: 1907765402}
   m_Layer: 5
   m_Name: Total Points
   m_TagString: Untagged
@@ -47623,6 +47635,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &1613024736
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -49731,6 +49744,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &1698518969
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -52147,6 +52161,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &1777786502
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -52663,6 +52678,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &1813442309
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -54850,6 +54866,21 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1907765402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1477481517}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6cf0a51399f14f4bbf642c615202742a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GachaCurrencyDisplay
+  pointsText: {fileID: 1477481519}
+  displayFormat: 'GP: {0}'
+  debugUpdates: 1
 --- !u!1 &1913144450
 GameObject:
   m_ObjectHideFlags: 0
@@ -59221,6 +59252,7 @@ MonoBehaviour:
   attackRange: 2
   attackCooldown: 2
   activateOnlyOnce: 1
+  debugActivation: 1
 --- !u!114 &2078883828
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -59443,13 +59475,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DayScreenCutscene
   dayVideos:
-  - {fileID: 32900000, guid: 20b9aa81452851743a81adba525f5120, type: 3}
+  - {fileID: 32900000, guid: 9afa40d7cf7d5384384e3a6a3fa4bce7, type: 3}
   - {fileID: 32900000, guid: 41bfc21e6b4c51e4e8ce0b8d88335fe9, type: 3}
-  - {fileID: 32900000, guid: 006f25f67eb6cca45922d6d3cb798bc2, type: 3}
+  - {fileID: 32900000, guid: 9149892ca1a6e1042a1c595b877d91ac, type: 3}
   - {fileID: 32900000, guid: 2ad546a13fb01d445b01467d61c9f39d, type: 3}
   playAudio: 1
   debugDayScreens: 1
   pointsIndicator: {fileID: 38202720}
+  pointsIndicatorText: {fileID: 0}
   pointsIndicatorDuration: 4
   assignedCanvas: {fileID: 1402790710}
   assignedVideoImage: {fileID: 620856792}
