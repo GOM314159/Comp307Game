@@ -53,6 +53,7 @@ public class PlayerMovement : MonoBehaviour
     [Tooltip("Optional point where the persistent player is placed while the Main Menu is active. This prevents an old gameplay position from remaining in the scene.")]
     [SerializeField] private Transform mainMenuSafePoint;
 
+
     private CharacterController controller;
     private PlayerControls controls;
     private string currentAnimState = "";
@@ -60,6 +61,8 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 moveInput;
 
     private Vector3 velocity;
+
+    private Vector3 horizontalVelocity;
 
     private bool isGrounded;
     private bool isSprinting;
@@ -148,6 +151,7 @@ public class PlayerMovement : MonoBehaviour
             }
 
             velocity = Vector3.zero;
+            horizontalVelocity = Vector3.zero;
             isSprinting = false;
             isCrouching = false;
             return;
@@ -331,6 +335,7 @@ public class PlayerMovement : MonoBehaviour
         {
             // Stop horizontal movement
             // when movement is disabled.
+            horizontalVelocity = Vector3.zero;
             Vector3 lockedVelocity = controller.velocity;
 
             lockedVelocity.y = 0f;
@@ -384,6 +389,8 @@ public class PlayerMovement : MonoBehaviour
 
         controller.Move(
             direction * speed * Time.deltaTime);
+        horizontalVelocity = controller.velocity;
+        horizontalVelocity.y = 0f;
 
         if (animator != null)
         {
@@ -573,11 +580,7 @@ public class PlayerMovement : MonoBehaviour
     // Headbobbing functions
     public Vector3 GetHorizontalVelocity()
     {
-        Vector3 velocity = controller.velocity;
-
-        velocity.y = 0f;
-
-        return velocity;
+        return horizontalVelocity;
     }
 
     // Used by the footstep system to determine
