@@ -3,13 +3,25 @@ using TMPro;
 using UnityEngine;
 
 /// <summary>
-/// World interaction for the physical Gacha machine.
+/// World interaction for the physical Gacha machine with audio integration.
 /// Attach this to the Gacha machine root.
 /// </summary>
 public class GachaInteractable : WorldInteractable
 {
     [Header("Gacha")]
     [SerializeField, Min(0f)] private float rewardDelay = 10f;
+
+    [Header("Audio")]
+    [Tooltip("Plays when the player initiates the Gacha roll ('SFX_Interact_Gacha_Lever').")]
+    [SerializeField] private AudioClip leverClip;
+
+    [Tooltip("Plays when the reward is successfully received ('SFX_Interact_Gacha_Dispense').")]
+    [SerializeField] private AudioClip dispenseClip;
+
+    [Tooltip("AudioSource used for Gacha audio. Created automatically if unassigned.")]
+    [SerializeField] private AudioSource audioSource;
+
+    [SerializeField][Range(0f, 1f)] private float audioVolume = 1f;
 
     [Header("Optional Gacha UI")]
     [Tooltip("Optional object shown while the 10-second reward delay is running.")]
@@ -38,6 +50,7 @@ public class GachaInteractable : WorldInteractable
     protected override void Awake()
     {
         base.Awake();
+        EnsureAudioSource();
         ResolveRewardText();
         SetWaitingUI(false);
         SetRewardUI(false);
@@ -69,10 +82,7 @@ public class GachaInteractable : WorldInteractable
 
         if (GachaManager.Instance == null)
         {
-            Debug.LogWarning(
-                "[GachaInteractable] GachaManager is missing.",
-                this
-            );
+            Debug.LogWarning("[GachaInteractable] GachaManager is missing.", this);
             return;
         }
 
@@ -83,18 +93,19 @@ public class GachaInteractable : WorldInteractable
             return;
         }
 
-        bool started =
-            GachaManager.Instance.TryStartDelayedRoll(
-                this,
-                rewardDelay,
-                HandleRewardComplete
-            );
+        bool started = GachaManager.Instance.TryStartDelayedRoll(
+            this,
+            rewardDelay,
+            HandleRewardComplete
+        );
 
         if (!started)
             return;
 
         base.Interact();
         waitingForReward = true;
+
+        PlayAudio(leverClip);
 
         SetRewardUI(false);
         SetWaitingUI(true);
@@ -112,25 +123,22 @@ public class GachaInteractable : WorldInteractable
 
             if (countdownText != null)
             {
-                countdownText.text =
-                    "Reward in " +
-                    Mathf.CeilToInt(Mathf.Max(0f, remaining)) +
-                    "...";
+                countdownText.text = "Reward in " + Mathf.CeilToInt(Mathf.Max(0f, remaining)) + "...";
             }
 
             yield return null;
         }
     }
 
-    private void HandleRewardComplete(
-        GachaManager.GachaReward reward,
-        bool success)
+    private void HandleRewardComplete(GachaManager.GachaReward reward, bool success)
     {
         waitingForReward = false;
         SetWaitingUI(false);
 
         if (success)
         {
+            PlayAudio(dispenseClip);
+
             string rewardMessage = reward != null
                 ? "You received: " + reward.displayName
                 : string.Empty;
@@ -138,10 +146,7 @@ public class GachaInteractable : WorldInteractable
 
             if (debugGacha)
             {
-                Debug.Log(
-                    "[GachaInteractable] Reward received: " +
-                    reward.displayName
-                );
+                Debug.Log("[GachaInteractable] Reward received: " + (reward != null ? reward.displayName : "None"));
             }
         }
         else
@@ -150,10 +155,7 @@ public class GachaInteractable : WorldInteractable
 
             if (debugGacha)
             {
-                Debug.Log(
-                    "[GachaInteractable] Reward could not be added; " +
-                    "currency was refunded."
-                );
+                Debug.Log("[GachaInteractable] Reward could not be added; currency was refunded.");
             }
         }
     }
@@ -166,8 +168,6 @@ public class GachaInteractable : WorldInteractable
 
         if (rewardText != null)
         {
-            // Reactivate the persistent HUD hierarchy before displaying the
-            // same result label used for a successful reward.
             Transform parent = rewardText.transform;
             while (parent != null)
             {
@@ -208,13 +208,10 @@ public class GachaInteractable : WorldInteractable
             Canvas.ForceUpdateCanvases();
         }
 
-        // Run on persistent UI so the result text survives scene changes and
-        // remains visible for the same duration as a won-item message.
         rewardMessageRunner = PersistentGameplayUI.Instance != null
             ? (MonoBehaviour)PersistentGameplayUI.Instance
             : this;
-        rewardMessageRoutine = rewardMessageRunner.StartCoroutine(
-            KeepRewardMessageVisible(message));
+        rewardMessageRoutine = rewardMessageRunner.StartCoroutine(KeepRewardMessageVisible(message));
     }
 
     private IEnumerator KeepRewardMessageVisible(string message)
@@ -223,8 +220,6 @@ public class GachaInteractable : WorldInteractable
 
         while (Time.unscaledTime < endTime)
         {
-            // While a loading screen is up all GUI is hidden, so do not let
-            // the 5 seconds run out unseen: push the end time back.
             if (IsLoadingScreenActive())
             {
                 endTime += Time.unscaledDeltaTime;
@@ -234,8 +229,6 @@ public class GachaInteractable : WorldInteractable
 
             if (rewardText != null)
             {
-                // Re-assert every frame: another script (HUD refresh, scene
-                // change, overlay toggling) may deactivate the label.
                 Transform node = rewardText.transform;
                 while (node != null)
                 {
@@ -329,9 +322,6 @@ public class GachaInteractable : WorldInteractable
         if (rewardUI == null)
             return;
 
-        // RewardUI is sometimes assigned to a shared HUD/container instead
-        // of a dedicated reward panel. Never disable a container that also
-        // owns the day counter, level timer, objective, or player bars.
         if (!active && ContainsOtherGameplayHUD(rewardUI.transform))
         {
             if (rewardText != null)
@@ -370,10 +360,7 @@ public class GachaInteractable : WorldInteractable
 
     private bool dayOrGameplayHudText(Transform root)
     {
-        if (root.name == "DayText" || root.name == "ObjectiveText")
-            return true;
-
-        return false;
+        return root.name == "DayText" || root.name == "ObjectiveText";
     }
 
     private bool IsGameplayHudName(string value)
@@ -399,6 +386,32 @@ public class GachaInteractable : WorldInteractable
         {
             rewardText.text = string.Empty;
             rewardText.gameObject.SetActive(false);
+        }
+    }
+
+    private void EnsureAudioSource()
+    {
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+            if (audioSource == null)
+            {
+                audioSource = gameObject.AddComponent<AudioSource>();
+            }
+        }
+
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+    }
+
+    private void PlayAudio(AudioClip clip)
+    {
+        if (clip == null) return;
+        EnsureAudioSource();
+        if (audioSource != null)
+        {
+            audioSource.PlayOneShot(clip, audioVolume);
         }
     }
 }
