@@ -22,11 +22,13 @@ public class GachaInteractable : WorldInteractable
     [SerializeField] private GameObject rewardUI;
 
     [SerializeField] private TMP_Text rewardText;
-    [SerializeField, Min(0f)] private float rewardMessageDuration = 5f;
+    [Tooltip("How long (real seconds) the 'You received: ...' text stays on screen.")]
+    [SerializeField, Min(1f)] private float rewardDisplaySeconds = 5f;
 
     [Tooltip("If Reward Text is not assigned, look for this TMP object name (e.g. Obtained_Gacha_Item_label).")]
     [SerializeField] private string rewardTextObjectName = "Obtained_Gacha_Item_label";
     private Coroutine rewardMessageRoutine;
+    private MonoBehaviour rewardMessageRunner;
 
     [Header("Debug")]
     [SerializeField] private bool debugGacha = true;
@@ -124,7 +126,10 @@ public class GachaInteractable : WorldInteractable
         {
             ResolveRewardText();
             SetRewardUI(true);
-            if (rewardMessageRoutine != null) StopCoroutine(rewardMessageRoutine);
+            StopRewardMessageRoutine();
+            string rewardMessage = reward != null
+                ? "You received: " + reward.displayName
+                : string.Empty;
 
             if (rewardText != null && reward != null)
             {
@@ -138,7 +143,7 @@ public class GachaInteractable : WorldInteractable
                         parent.gameObject.SetActive(true);
 
                     Canvas canvas = parent.GetComponent<Canvas>();
-                    if (canvas != null)
+                    if (canvas != null && !IsLoadingScreenActive())
                         canvas.enabled = true;
 
                     CanvasGroup group = parent.GetComponent<CanvasGroup>();
@@ -153,7 +158,7 @@ public class GachaInteractable : WorldInteractable
                 Color textColor = rewardText.color;
                 textColor.a = 1f;
                 rewardText.color = textColor;
-                rewardText.text = "You received: " + reward.displayName;
+                rewardText.text = rewardMessage;
                 rewardText.gameObject.SetActive(true);
                 rewardText.transform.SetAsLastSibling();
 
@@ -172,7 +177,15 @@ public class GachaInteractable : WorldInteractable
                 Canvas.ForceUpdateCanvases();
             }
 
-            rewardMessageRoutine = StartCoroutine(HideRewardMessageAfterDelay());
+            // Run on the persistent UI (it survives scene loads and cannot be
+            // stopped by this machine being disabled). The routine also keeps
+            // the label alive for the full duration, so nothing else can hide
+            // it after a fraction of a second.
+            rewardMessageRunner = PersistentGameplayUI.Instance != null
+                ? (MonoBehaviour)PersistentGameplayUI.Instance
+                : this;
+            rewardMessageRoutine = rewardMessageRunner.StartCoroutine(
+                KeepRewardMessageVisible(rewardMessage));
 
             if (debugGacha)
             {
@@ -196,16 +209,75 @@ public class GachaInteractable : WorldInteractable
         }
     }
 
-    private IEnumerator HideRewardMessageAfterDelay()
+    private IEnumerator KeepRewardMessageVisible(string message)
     {
-        yield return new WaitForSecondsRealtime(rewardMessageDuration);
+        float endTime = Time.unscaledTime + Mathf.Max(1f, rewardDisplaySeconds);
+
+        while (Time.unscaledTime < endTime)
+        {
+            // While a loading screen is up all GUI is hidden, so do not let
+            // the 5 seconds run out unseen: push the end time back.
+            if (IsLoadingScreenActive())
+            {
+                endTime += Time.unscaledDeltaTime;
+                yield return null;
+                continue;
+            }
+
+            if (rewardText != null)
+            {
+                // Re-assert every frame: another script (HUD refresh, scene
+                // change, overlay toggling) may deactivate the label.
+                Transform node = rewardText.transform;
+                while (node != null)
+                {
+                    if (!node.gameObject.activeSelf)
+                        node.gameObject.SetActive(true);
+                    node = node.parent;
+                }
+
+                if (!rewardText.enabled)
+                    rewardText.enabled = true;
+
+                if (rewardText.text != message)
+                    rewardText.text = message;
+
+                if (rewardText.color.a < 1f)
+                {
+                    Color c = rewardText.color;
+                    c.a = 1f;
+                    rewardText.color = c;
+                }
+            }
+
+            yield return null;
+        }
+
         SetRewardUI(false);
+
         if (rewardText != null)
         {
             rewardText.text = string.Empty;
             rewardText.gameObject.SetActive(false);
         }
+
         rewardMessageRoutine = null;
+        rewardMessageRunner = null;
+    }
+
+    private static bool IsLoadingScreenActive()
+    {
+        return LoadingScreenManager.Instance != null &&
+               LoadingScreenManager.Instance.AreGameplayCanvasesHidden;
+    }
+
+    private void StopRewardMessageRoutine()
+    {
+        if (rewardMessageRoutine != null && rewardMessageRunner != null)
+            rewardMessageRunner.StopCoroutine(rewardMessageRoutine);
+
+        rewardMessageRoutine = null;
+        rewardMessageRunner = null;
     }
 
     private void ResolveRewardText()
@@ -246,8 +318,62 @@ public class GachaInteractable : WorldInteractable
 
     private void SetRewardUI(bool active)
     {
-        if (rewardUI != null)
-            rewardUI.SetActive(active);
+        if (rewardUI == null)
+            return;
+
+        // RewardUI is sometimes assigned to a shared HUD/container instead
+        // of a dedicated reward panel. Never disable a container that also
+        // owns the day counter, level timer, objective, or player bars.
+        if (!active && ContainsOtherGameplayHUD(rewardUI.transform))
+        {
+            if (rewardText != null)
+                rewardText.gameObject.SetActive(false);
+            return;
+        }
+
+        rewardUI.SetActive(active);
+    }
+
+    private bool ContainsOtherGameplayHUD(Transform root)
+    {
+        if (root == null)
+            return false;
+
+        if (dayOrGameplayHudText(root))
+            return true;
+
+        TMP_Text[] texts = root.GetComponentsInChildren<TMP_Text>(true);
+        for (int i = 0; i < texts.Length; i++)
+        {
+            if (texts[i] == null)
+                continue;
+
+            if (rewardText != null && texts[i] == rewardText)
+                continue;
+
+            string objectName = texts[i].gameObject.name.ToLowerInvariant();
+            string labelName = texts[i].name.ToLowerInvariant();
+            if (IsGameplayHudName(objectName) || IsGameplayHudName(labelName))
+                return true;
+        }
+
+        return false;
+    }
+
+    private bool dayOrGameplayHudText(Transform root)
+    {
+        if (root.name == "DayText" || root.name == "ObjectiveText")
+            return true;
+
+        return false;
+    }
+
+    private bool IsGameplayHudName(string value)
+    {
+        return value.Contains("daytext") || value.Contains("daycounter") ||
+               value.Contains("timer") || value.Contains("objective") ||
+               value.Contains("healthbar") || value.Contains("staminabar") ||
+               value.Contains("toolbar");
     }
 
     public override void ResetInteraction()
@@ -257,7 +383,7 @@ public class GachaInteractable : WorldInteractable
         waitingForReward = false;
 
         StopAllCoroutines();
-        rewardMessageRoutine = null;
+        StopRewardMessageRoutine();
 
         SetWaitingUI(false);
         SetRewardUI(false);

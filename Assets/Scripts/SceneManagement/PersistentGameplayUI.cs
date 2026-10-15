@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 /// <summary>
@@ -72,7 +73,18 @@ public class PersistentGameplayUI : MonoBehaviour
         // PERSIST ACROSS SCENES
         // -----------------------------------------------------
 
+        // This object is currently authored beneath the scene's Cutscenes
+        // root. DontDestroyOnLoad only persists root GameObjects, so detach
+        // the UI subtree first; otherwise the overlay is destroyed on the
+        // first Single scene load and cached references become stale.
+        if (transform.parent != null)
+        {
+            transform.SetParent(null, true);
+        }
+
         DontDestroyOnLoad(gameObject);
+
+        SceneManager.sceneLoaded += HandleSceneLoaded;
 
 
         // -----------------------------------------------------
@@ -114,5 +126,35 @@ public class PersistentGameplayUI : MonoBehaviour
     public ObjectiveAndDayOverlay GetObjectiveOverlay()
     {
         return GetComponentInChildren<ObjectiveAndDayOverlay>(true);
+    }
+
+    /// <summary>
+    /// After every scene load make sure the objective/day overlay (and the
+    /// parents it lives under) is still active. The overlay is what keeps the
+    /// Day tracker alive in the lobby and in every level.
+    /// </summary>
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        ObjectiveAndDayOverlay overlay = GetObjectiveOverlay();
+        if (overlay == null) return;
+
+        Transform current = overlay.transform;
+        while (current != null)
+        {
+            if (!current.gameObject.activeSelf)
+                current.gameObject.SetActive(true);
+            current = current.parent;
+        }
+
+        overlay.RefreshNow();
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
+            Instance = null;
+        }
     }
 }

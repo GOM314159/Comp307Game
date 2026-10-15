@@ -937,7 +937,6 @@ public class TeleportManager : MonoBehaviour
 
                     if (caseToStart > 0)
                     {
-                        CaseManager.Instance.RefreshSceneReferences();
                         CaseManager.Instance.StartCase(caseToStart);
 
                         if (GameFlowManager.Instance != null)

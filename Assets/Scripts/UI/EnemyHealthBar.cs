@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Drives a UI Slider from a Health component (e.g. Level 1 doll).
-/// Place on the doll's world-space health Canvas or Slider.
+/// Drives a UI Slider from a Health component (e.g. Level 1 doll, theater puppets).
+/// Place on the enemy's world-space health Canvas or Slider.
 /// </summary>
 public class EnemyHealthBar : MonoBehaviour
 {
@@ -24,10 +24,9 @@ public class EnemyHealthBar : MonoBehaviour
     [SerializeField]
     private bool hideWhenDead = true;
 
-    [Header("Optional boss-fight visibility") ]
-    [Tooltip("Enable this on theater puppet health bars so they remain hidden until GameMode becomes BossFight.")]
+    [Header("Optional boss-fight visibility")]
+    [Tooltip("Enable this on theater puppet health bars so they remain hidden until GameMode becomes BossFight, then appear.")]
     [SerializeField] private bool onlyShowDuringBossFight = false;
-    private bool bossFightVisibilityApplied;
     [SerializeField] private CanvasGroup visibilityCanvasGroup;
 
 
@@ -39,17 +38,27 @@ public class EnemyHealthBar : MonoBehaviour
     }
 
 
+    private void OnEnable()
+    {
+        ApplyBossFightVisibility();
+    }
+
+
     private void LateUpdate()
     {
         ApplyBossFightVisibility();
         if (onlyShowDuringBossFight && !IsBossFightActive()) return;
+
         if (health == null || healthSlider == null)
         {
             ResolveReferences();
 
             if (health == null || healthSlider == null)
             {
-                SetHealthTargetVisibility(false);
+                // Theater puppet bars are controlled by the boss-fight mode
+                // gate; a missing Health reference must not hide them.
+                if (!onlyShowDuringBossFight)
+                    SetHealthTargetVisibility(false);
                 return;
             }
         }
@@ -58,9 +67,22 @@ public class EnemyHealthBar : MonoBehaviour
         // enabled during theater/day transitions. Tie visibility to the
         // actual Health owner so the bar appears only when that enemy spawns.
         bool targetIsSpawned = health.gameObject.activeInHierarchy;
-        SetHealthTargetVisibility(targetIsSpawned);
+        if (!onlyShowDuringBossFight)
+            SetHealthTargetVisibility(targetIsSpawned);
         if (!targetIsSpawned)
             return;
+
+        healthSlider.minValue = 0f;
+        healthSlider.maxValue = 1f;
+
+        // A puppet's Health component stays disabled until its activation
+        // delay finishes, so its current health may still be unset (0), which
+        // used to draw an empty - effectively invisible - bar. Show it full.
+        if (onlyShowDuringBossFight && !health.enabled)
+        {
+            healthSlider.value = 1f;
+            return;
+        }
 
         float max = health.GetMaxHealth();
 
@@ -73,12 +95,61 @@ public class EnemyHealthBar : MonoBehaviour
             health.GetCurrentHealth() / max
         );
 
-        if (hideWhenDead && health.IsDead())
+        if (!onlyShowDuringBossFight && hideWhenDead && health.IsDead())
         {
             gameObject.SetActive(false);
         }
     }
 
+
+    // ---------------------------------------------------------
+    // PUBLIC API (used by BossFightPuppetActivation)
+    // ---------------------------------------------------------
+
+    /// <summary>True if this bar displays the given Health (or sits under it).</summary>
+    public bool BelongsTo(Health owner, Transform ownerRoot)
+    {
+        ResolveReferences();
+
+        if (owner != null && health == owner) return true;
+        if (ownerRoot != null && transform.IsChildOf(ownerRoot)) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Makes the bar visible right now. Activates this object (and the parents
+    /// between it and its puppet / canvas) if the scene left them inactive.
+    /// </summary>
+    public void ShowForBossFight()
+    {
+        ResolveReferences();
+
+        Transform node = transform;
+        while (node != null)
+        {
+            if (!node.gameObject.activeSelf)
+                node.gameObject.SetActive(true);
+
+            Canvas canvas = node.GetComponent<Canvas>();
+            if (canvas != null)
+            {
+                // Never override the loading screen's hidden canvases.
+                if (!IsLoadingScreenActive())
+                    canvas.enabled = true;
+                if (canvas.isRootCanvas) break;
+            }
+
+            if (health != null && node == health.transform) break;
+            node = node.parent;
+        }
+
+        ApplyBossFightVisibility();
+    }
+
+
+    // ---------------------------------------------------------
+    // VISIBILITY
+    // ---------------------------------------------------------
 
     private bool IsBossFightActive()
     {
@@ -86,30 +157,49 @@ public class EnemyHealthBar : MonoBehaviour
                GameStateManager.Instance.GetGameMode() == GameStateManager.GameMode.BossFight;
     }
 
+    private static bool IsLoadingScreenActive()
+    {
+        return LoadingScreenManager.Instance != null &&
+               LoadingScreenManager.Instance.AreGameplayCanvasesHidden;
+    }
+
+    private CanvasGroup GetOwnGroup()
+    {
+        if (visibilityCanvasGroup == null)
+            visibilityCanvasGroup = GetComponent<CanvasGroup>();
+
+        // Use a group on THIS object. Borrowing a parent/child group meant a
+        // shared group (or one at alpha 0 higher up) kept the bar invisible.
+        if (visibilityCanvasGroup == null)
+            visibilityCanvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+        return visibilityCanvasGroup;
+    }
+
     private void ApplyBossFightVisibility()
     {
         if (!onlyShowDuringBossFight) return;
-        bool shouldShow = IsBossFightActive();
-        if (visibilityCanvasGroup == null)
+
+        bool dead = hideWhenDead && health != null && health.IsDead();
+        bool shouldShow = IsBossFightActive() && !dead;
+
+        CanvasGroup group = GetOwnGroup();
+        group.alpha = shouldShow ? 1f : 0f;
+        group.interactable = shouldShow;
+        group.blocksRaycasts = shouldShow;
+
+        // A parent CanvasGroup at alpha 0 would otherwise override this one.
+        group.ignoreParentGroups = shouldShow;
+
+        if (shouldShow && !IsLoadingScreenActive())
         {
-            visibilityCanvasGroup = GetComponent<CanvasGroup>();
-            if (visibilityCanvasGroup == null) visibilityCanvasGroup = GetComponentInParent<CanvasGroup>();
-            if (visibilityCanvasGroup == null) visibilityCanvasGroup = GetComponentInChildren<CanvasGroup>(true);
+            Canvas[] canvases = GetComponentsInParent<Canvas>(true);
+            for (int i = 0; i < canvases.Length; i++)
+            {
+                if (canvases[i] != null && !canvases[i].enabled)
+                    canvases[i].enabled = true;
+            }
         }
-        if (visibilityCanvasGroup != null)
-        {
-            visibilityCanvasGroup.alpha = shouldShow ? 1f : 0f;
-            visibilityCanvasGroup.interactable = shouldShow;
-            visibilityCanvasGroup.blocksRaycasts = shouldShow;
-        }
-        else
-        {
-            // Do not deactivate this component's GameObject: it must keep
-            // running so it can detect when the boss fight begins.
-            foreach (UnityEngine.UI.Graphic graphic in GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
-                graphic.enabled = shouldShow;
-        }
-        bossFightVisibilityApplied = true;
     }
 
     private void SetHealthTargetVisibility(bool visible)
@@ -131,7 +221,7 @@ public class EnemyHealthBar : MonoBehaviour
             return;
         }
 
-        foreach (UnityEngine.UI.Graphic graphic in GetComponentsInChildren<UnityEngine.UI.Graphic>(true))
+        foreach (Graphic graphic in GetComponentsInChildren<Graphic>(true))
             graphic.enabled = visible;
     }
 

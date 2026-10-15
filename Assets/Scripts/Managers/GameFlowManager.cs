@@ -1886,6 +1886,19 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
+        // The fourth play has ended and the boss fight is starting now.
+        // Force every theater puppet's mini health bar visible immediately,
+        // rather than waiting for the activation-delay coroutine/update loop.
+        BossFightPuppetActivation[] puppetActivations = FindObjectsByType<BossFightPuppetActivation>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+        for (int i = 0; i < puppetActivations.Length; i++)
+        {
+            if (puppetActivations[i] != null)
+                puppetActivations[i].ShowHealthBarsNow();
+        }
+
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayMusic(

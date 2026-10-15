@@ -4359,7 +4359,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &156577108
 RectTransform:
   m_ObjectHideFlags: 0
@@ -7399,7 +7399,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &283944634
 RectTransform:
   m_ObjectHideFlags: 0
@@ -11450,7 +11450,7 @@ MonoBehaviour:
   countdownText: {fileID: 0}
   rewardUI: {fileID: 0}
   rewardText: {fileID: 150675975}
-  rewardMessageDuration: 4
+  rewardDisplaySeconds: 5
   rewardTextObjectName: Obtained_Gacha_Item_label
   debugGacha: 1
 --- !u!65 &373424219
@@ -22854,7 +22854,7 @@ RectTransform:
   m_Father: {fileID: 351279981}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -26725,7 +26725,7 @@ RectTransform:
   m_Father: {fileID: 491256546}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -35116,6 +35116,9 @@ MonoBehaviour:
   hitboxSize: {x: 1.2, y: 2.2, z: 1.2}
   destroyOnDeath: 0
   debugHealth: 1
+  phase1HealthBar: {fileID: 156577107}
+  phase2HealthBar: {fileID: 1855223644}
+  phase3HealthBar: {fileID: 283944633}
 --- !u!114 &1134414605
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -36371,7 +36374,7 @@ RectTransform:
   m_Father: {fileID: 771997619}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -40706,6 +40709,7 @@ MonoBehaviour:
   defeatBossFormat: Defeat the {0}
   returnFormat: Return to the lobby
   hideWhilePaused: 1
+  requireCaseSceneBinding: 1
 --- !u!1 &1397830425
 GameObject:
   m_ObjectHideFlags: 0
@@ -53737,7 +53741,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1855223645
 RectTransform:
   m_ObjectHideFlags: 0
@@ -56016,7 +56020,7 @@ RectTransform:
   m_Father: {fileID: 1790422}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -56236,7 +56240,7 @@ RectTransform:
   m_Father: {fileID: 1112321109}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0.000061035156, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -58455,8 +58459,8 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 1562651556}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 1, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}

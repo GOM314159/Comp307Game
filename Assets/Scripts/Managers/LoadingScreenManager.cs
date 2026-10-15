@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 /// <summary>
 /// Persistent loading-screen controller.
@@ -27,6 +29,12 @@ public class LoadingScreenManager : MonoBehaviour
 
     private GameObject persistentCanvasObject;
     private Canvas persistentCanvas;
+    private readonly Dictionary<Canvas, bool> canvasStatesBeforeLoading =
+        new Dictionary<Canvas, bool>();
+    private bool gameplayCanvasesHidden;
+
+    /// <summary>True while the loading screen has the gameplay canvases hidden.</summary>
+    public bool AreGameplayCanvasesHidden => gameplayCanvasesHidden;
 
     private GameObject PanelRoot => canvasGroup != null ? canvasGroup.gameObject : null;
 
@@ -39,10 +47,32 @@ public class LoadingScreenManager : MonoBehaviour
         }
 
         Instance = this;
+
+        // This controller is authored under the scene's Cutscenes root.
+        // Detach it before persisting so it survives Single scene loads.
+        if (transform.parent != null)
+            transform.SetParent(null, true);
+
         DontDestroyOnLoad(gameObject);
 
         PreparePersistentLoadingCanvas();
         HideImmediate();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.sceneLoaded += HandleSceneLoaded;
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
     }
 
     private void PreparePersistentLoadingCanvas()
@@ -127,6 +157,8 @@ public class LoadingScreenManager : MonoBehaviour
             c.a = 1f;
             loadingImage.color = c;
         }
+
+        HideGameplayCanvases();
     }
 
     public void Hide()
@@ -140,6 +172,64 @@ public class LoadingScreenManager : MonoBehaviour
 
         if (PanelRoot != null)
             PanelRoot.SetActive(false);
+
+        RestoreGameplayCanvases();
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (gameplayCanvasesHidden)
+            HideGameplayCanvases();
+    }
+
+    private void HideGameplayCanvases()
+    {
+        if (!gameplayCanvasesHidden)
+        {
+            gameplayCanvasesHidden = true;
+            canvasStatesBeforeLoading.Clear();
+        }
+
+        Canvas[] canvases = FindObjectsByType<Canvas>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (Canvas canvas in canvases)
+        {
+            if (canvas == null || IsLoadingCanvas(canvas))
+                continue;
+
+            if (!canvasStatesBeforeLoading.ContainsKey(canvas))
+                canvasStatesBeforeLoading.Add(canvas, canvas.enabled);
+
+            canvas.enabled = false;
+        }
+    }
+
+    private bool IsLoadingCanvas(Canvas canvas)
+    {
+        if (canvas == persistentCanvas)
+            return true;
+
+        return canvasGroup != null &&
+            (canvas.transform == canvasGroup.transform ||
+             canvas.transform.IsChildOf(canvasGroup.transform));
+    }
+
+    private void RestoreGameplayCanvases()
+    {
+        if (!gameplayCanvasesHidden)
+            return;
+
+        foreach (KeyValuePair<Canvas, bool> state in canvasStatesBeforeLoading)
+        {
+            if (state.Key != null)
+                state.Key.enabled = state.Value;
+        }
+
+        canvasStatesBeforeLoading.Clear();
+        gameplayCanvasesHidden = false;
     }
 
     private void HideImmediate()
