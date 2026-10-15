@@ -185,10 +185,20 @@ public class EnemyHealthBar : MonoBehaviour
     {
         if (GameStateManager.Instance == null) return false;
 
-        GameStateManager.GameMode mode =
-            GameStateManager.Instance.GetGameMode();
-        return mode == GameStateManager.GameMode.WatchingPlay ||
-               mode == GameStateManager.GameMode.BossFight;
+        GameStateManager state = GameStateManager.Instance;
+        GameStateManager.GameMode mode = state.GetGameMode();
+        bool theaterOrBossActive =
+            mode == GameStateManager.GameMode.WatchingPlay ||
+            mode == GameStateManager.GameMode.BossFight;
+
+        // The final play unlocks these lobby puppets' health bars. Keep them
+        // visible if the game flow temporarily returns to Lobby after the
+        // final-play completion event has already fired.
+        bool finalPlayLobby =
+            mode == GameStateManager.GameMode.Lobby &&
+            state.IsFinalPlayComplete();
+
+        return theaterOrBossActive || finalPlayLobby;
     }
 
     private static bool IsLoadingScreenActive()
@@ -228,7 +238,11 @@ public class EnemyHealthBar : MonoBehaviour
                 ", owner=" + (health != null ? health.name : "unresolved") +
                 ", mode=" + (GameStateManager.Instance != null
                     ? GameStateManager.Instance.GetGameMode().ToString()
-                    : "Unavailable") + ", render=" + GetRenderDiagnostic(),
+                    : "Unavailable") +
+                ", finalPlayComplete=" +
+                (GameStateManager.Instance != null &&
+                 GameStateManager.Instance.IsFinalPlayComplete()) +
+                ", render=" + GetRenderDiagnostic(),
                 this
             );
         }
