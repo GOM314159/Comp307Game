@@ -3,9 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Gargamel's custom three-phase health system.
-/// This replaces the normal Health component on the final boss.
-/// GargamelDeathScript listens to OnDied and owns Gargamel's actual death/cutscene.
+/// Gargamel's custom three-phase health system with phase dialogues and hurt/intro audio.
 /// </summary>
 public class FinalBossHealth : MonoBehaviour, IDamageable
 {
@@ -22,30 +20,30 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     [SerializeField] private float phase2Damage = 20f;
     [SerializeField] private float phase3Damage = 30f;
 
-    [Header("Phase Dialogue")]
+    [Header("Boss Audio & Dialogue")]
+    [Tooltip("Plays when the boss encounter starts ('Come play with me').")]
+    [SerializeField] private AudioClip introDialogue;
+
+    [Tooltip("Plays on entering Phase 2 ('Did you think you could defeat me').")]
     [SerializeField] private AudioClip phase2Dialogue;
+
+    [Tooltip("Plays on entering Phase 3 ('You will fall to the master of puppets').")]
     [SerializeField] private AudioClip phase3Dialogue;
 
-    [Tooltip(
-        "AudioSource used for phase dialogue. Leave empty to find/create one " +
-        "on this object. AudioManager.PlayVoice is also used when available."
-    )]
+    [Tooltip("Plays when taking damage ('huuuh').")]
+    [SerializeField] private AudioClip hurtAudioClip;
+
+    [Tooltip("AudioSource used for boss voice lines and SFX.")]
     [SerializeField] private AudioSource dialogueAudioSource;
 
-    [SerializeField] [Range(0f, 1f)] private float dialogueVolume = 1f;
+    [SerializeField][Range(0f, 1f)] private float dialogueVolume = 1f;
 
     [Header("Hitbox")]
-    [Tooltip(
-        "If Gargamel has no collider, create a BoxCollider so player " +
-        "attack raycasts on the Damage layer can land hits."
-    )]
     [SerializeField] private bool autoCreateHitboxIfMissing = true;
-
     [SerializeField] private Vector3 hitboxCenter = new Vector3(0f, 1.0f, 0f);
     [SerializeField] private Vector3 hitboxSize = new Vector3(1.2f, 2.2f, 1.2f);
 
     [Header("Final Death")]
-    [Tooltip("Leave disabled. GargamelDeathScript handles the death sequence.")]
     [SerializeField] private bool destroyOnDeath = false;
 
     [Header("Debug")]
@@ -54,8 +52,8 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     private int currentPhase = 1;
     private float currentHealth;
     private bool isDead;
+
     [Header("Phase Health Bar UI")]
-    [Tooltip("Optional direct references. If empty, the script searches loaded scenes for HealthBar_phase1, HealthBar_phase2 and HealthBar_phase3.")]
     [SerializeField] private GameObject phase1HealthBar;
     [SerializeField] private GameObject phase2HealthBar;
     [SerializeField] private GameObject phase3HealthBar;
@@ -84,6 +82,7 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         EnsureDialogueAudioSource();
         EnsureDamageHitbox();
         ResolvePhaseHealthBars();
+        PlayAudioClip(introDialogue);
     }
 
     private void Update()
@@ -106,15 +105,11 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
         currentHealth -= damage;
 
-        DebugHealth(
-            gameObject.name +
-            " Phase " + currentPhase +
-            " took " + damage +
-            " damage. Remaining phase health: " + currentHealth
-        );
+        DebugHealth(gameObject.name + " Phase " + currentPhase + " took " + damage + " damage. Remaining: " + currentHealth);
 
         if (currentHealth > 0f)
         {
+            PlayAudioClip(hurtAudioClip);
             RefreshPhaseHealthBars();
             return false;
         }
@@ -140,109 +135,64 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         PlayPhaseDialogue(currentPhase);
         OnPhaseChanged?.Invoke(currentPhase);
         RefreshPhaseHealthBars();
-
-        DebugHealth(
-            "Advanced to Phase " + currentPhase +
-            ". Health: " + currentHealth +
-            ". Damage: " + GetCurrentDamage()
-        );
     }
 
     private void PlayPhaseDialogue(int phase)
     {
-        AudioClip dialogue = null;
+        AudioClip dialogue = (phase == 2) ? phase2Dialogue : (phase == 3 ? phase3Dialogue : null);
 
-        if (phase == 2)
+        if (dialogue != null)
         {
-            dialogue = phase2Dialogue;
+            PlayAudioClip(dialogue);
         }
-        else if (phase == 3)
-        {
-            dialogue = phase3Dialogue;
-        }
+    }
 
-        if (dialogue == null)
-        {
-            Debug.LogWarning(
-                "[FinalBossHealth] No dialogue AudioClip assigned for Phase " +
-                phase +
-                ". Assign Phase 2/3 Dialogue on Gargamel's FinalBossHealth.",
-                this
-            );
-            return;
-        }
+    private void PlayAudioClip(AudioClip clip)
+    {
+        if (clip == null) return;
 
         EnsureDialogueAudioSource();
 
-        bool played = false;
-
-        // Prefer the local source so dialogue is heard even if AudioManager
-        // voice volume/routing is muted or not ready.
         if (dialogueAudioSource != null)
         {
             dialogueAudioSource.Stop();
-            dialogueAudioSource.clip = dialogue;
+            dialogueAudioSource.clip = clip;
             dialogueAudioSource.volume = dialogueVolume;
             dialogueAudioSource.Play();
-            played = true;
         }
-
-        if (AudioManager.Instance != null)
+        else if (AudioManager.Instance != null)
         {
-            AudioManager.Instance.PlayVoice(dialogue);
-            played = true;
+            AudioManager.Instance.PlayVoice(clip);
         }
-
-        if (!played)
+        else
         {
-            AudioSource.PlayClipAtPoint(
-                dialogue,
-                transform.position,
-                dialogueVolume
-            );
+            AudioSource.PlayClipAtPoint(clip, transform.position, dialogueVolume);
         }
-
-        DebugHealth(
-            "Playing Phase " + phase + " dialogue: " + dialogue.name
-        );
     }
 
     private void EnsureDialogueAudioSource()
     {
-        if (dialogueAudioSource != null)
-        {
-            dialogueAudioSource.playOnAwake = false;
-            dialogueAudioSource.loop = false;
-            dialogueAudioSource.spatialBlend = 0f;
-            return;
-        }
-
-        dialogueAudioSource = GetComponent<AudioSource>();
-
         if (dialogueAudioSource == null)
         {
-            dialogueAudioSource =
-                gameObject.AddComponent<AudioSource>();
+            dialogueAudioSource = GetComponent<AudioSource>();
+            if (dialogueAudioSource == null)
+            {
+                dialogueAudioSource = gameObject.AddComponent<AudioSource>();
+            }
         }
 
         dialogueAudioSource.playOnAwake = false;
         dialogueAudioSource.loop = false;
         dialogueAudioSource.spatialBlend = 0f;
-        dialogueAudioSource.volume = dialogueVolume;
     }
 
     private void Die()
     {
-        if (isDead)
-        {
-            return;
-        }
+        if (isDead) return;
 
         isDead = true;
         DebugHealth("Gargamel final boss defeated.");
 
-        // GargamelDeathScript subscribes to this event and owns the
-        // normal/secret ending video and final completion flow.
         OnDied?.Invoke();
 
         if (destroyOnDeath)
@@ -258,45 +208,13 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         currentHealth = GetPhaseMaxHealth(1);
         isDead = false;
         RefreshPhaseHealthBars();
-
-        DebugHealth(
-            "Reset to Phase 1 with " + currentHealth + " health."
-        );
     }
 
-    public int GetCurrentPhase()
-    {
-        return currentPhase;
-    }
-
-    public float GetCurrentHealth()
-    {
-        return currentHealth;
-    }
-
-    public float GetCurrentMaxHealth()
-    {
-        return GetPhaseMaxHealth(currentPhase);
-    }
-
-    public float GetCurrentDamage()
-    {
-        switch (currentPhase)
-        {
-            case 1:
-                return phase1Damage;
-            case 2:
-                return phase2Damage;
-            case 3:
-            default:
-                return phase3Damage;
-        }
-    }
-
-    public bool IsDead()
-    {
-        return isDead;
-    }
+    public int GetCurrentPhase() => currentPhase;
+    public float GetCurrentHealth() => currentHealth;
+    public float GetCurrentMaxHealth() => GetPhaseMaxHealth(currentPhase);
+    public float GetCurrentDamage() => currentPhase switch { 1 => phase1Damage, 2 => phase2Damage, _ => phase3Damage };
+    public bool IsDead() => isDead;
 
     public void HidePhaseHealthBars()
     {
@@ -305,15 +223,9 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
         for (int i = 0; i < phaseBarObjects.Length; i++)
         {
-            GameObject bar = phaseBarObjects[i];
-            if (bar == null) continue;
-
-            if (bar.activeSelf)
+            if (phaseBarObjects[i] != null && phaseBarObjects[i].activeSelf)
             {
-                bar.SetActive(false);
-                DebugHealth("Made phase " + (i + 1) +
-                            " health bar invisible while the boss is despawned: " +
-                            bar.name + ".");
+                phaseBarObjects[i].SetActive(false);
             }
         }
 
@@ -322,28 +234,11 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
     private float GetPhaseMaxHealth(int phase)
     {
-        float baseHealth;
-
-        switch (phase)
-        {
-            case 1:
-                baseHealth = phase1MaxHealth;
-                break;
-            case 2:
-                baseHealth = phase2MaxHealth;
-                break;
-            case 3:
-            default:
-                baseHealth = phase3MaxHealth;
-                break;
-        }
-
-        if (GameStateManager.Instance != null &&
-            GameStateManager.Instance.IsHardcore())
+        float baseHealth = phase switch { 1 => phase1MaxHealth, 2 => phase2MaxHealth, _ => phase3MaxHealth };
+        if (GameStateManager.Instance != null && GameStateManager.Instance.IsHardcore())
         {
             return baseHealth * hardcoreHealthMultiplier;
         }
-
         return baseHealth;
     }
 
@@ -357,16 +252,12 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         for (int i = 0; i < transforms.Length; i++)
         {
             Transform candidate = transforms[i];
-            if (candidate == null ||
-                !candidate.gameObject.scene.IsValid() ||
-                !candidate.gameObject.scene.isLoaded)
-                continue;
+            if (candidate == null || !candidate.gameObject.scene.IsValid() || !candidate.gameObject.scene.isLoaded) continue;
 
             for (int phase = 1; phase <= 3; phase++)
             {
                 int index = phase - 1;
-                if (phaseBarObjects[index] == null &&
-                    candidate.name == "HealthBar_phase" + phase)
+                if (phaseBarObjects[index] == null && candidate.name == "HealthBar_phase" + phase)
                 {
                     phaseBarObjects[index] = candidate.gameObject;
                 }
@@ -375,45 +266,18 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
         for (int i = 0; i < phaseBarObjects.Length; i++)
         {
-            if (phaseBarObjects[i] == null)
-            {
-                phaseBarSliders[i] = null;
-                phaseBarFillImages[i] = null;
-                continue;
-            }
+            if (phaseBarObjects[i] == null) continue;
+            phaseBarSliders[i] = phaseBarObjects[i].GetComponentInChildren<Slider>(true);
 
-            phaseBarSliders[i] =
-                phaseBarObjects[i].GetComponentInChildren<Slider>(true);
-
-            phaseBarFillImages[i] = null;
-            Image[] images =
-                phaseBarObjects[i].GetComponentsInChildren<Image>(true);
-
+            Image[] images = phaseBarObjects[i].GetComponentsInChildren<Image>(true);
             for (int j = 0; j < images.Length; j++)
             {
-                if (images[j] != null &&
-                    images[j].type == Image.Type.Filled)
+                if (images[j] != null && images[j].type == Image.Type.Filled)
                 {
                     phaseBarFillImages[i] = images[j];
                     break;
                 }
             }
-        }
-
-        if (debugHealth && !phaseBarBindingsLogged &&
-            phaseBarObjects[0] != null &&
-            phaseBarObjects[1] != null &&
-            phaseBarObjects[2] != null)
-        {
-            phaseBarBindingsLogged = true;
-            DebugHealth(
-                "Resolved phase bars: phase 1=" + phaseBarObjects[0].name +
-                " (slider=" + (phaseBarSliders[0] != null) + "), phase 2=" +
-                phaseBarObjects[1].name + " (slider=" +
-                (phaseBarSliders[1] != null) + "), phase 3=" +
-                phaseBarObjects[2].name + " (slider=" +
-                (phaseBarSliders[2] != null) + ")."
-            );
         }
 
         RefreshPhaseHealthBars();
@@ -423,53 +287,33 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     {
         if (bar == null) return;
 
-        // Gargamel is on the Damage layer and the attached world-space Canvas
-        // inherits it. A gameplay camera may exclude that layer, so re-layer
-        // only the health Canvas subtree to UI.
         Canvas barCanvas = bar.GetComponentInParent<Canvas>(true);
         int uiLayer = LayerMask.NameToLayer("UI");
         if (barCanvas != null && uiLayer >= 0)
         {
-            Transform[] canvasObjects =
-                barCanvas.GetComponentsInChildren<Transform>(true);
-            bool changedLayer = false;
+            Transform[] canvasObjects = barCanvas.GetComponentsInChildren<Transform>(true);
             for (int i = 0; i < canvasObjects.Length; i++)
             {
-                if (canvasObjects[i].gameObject.layer == uiLayer) continue;
-                canvasObjects[i].gameObject.layer = uiLayer;
-                changedLayer = true;
-            }
-
-            if (changedLayer)
-            {
-                DebugHealth("Set boss health Canvas subtree '" + barCanvas.name +
-                    "' to UI layer " + uiLayer + " for camera rendering.");
+                if (canvasObjects[i].gameObject.layer != uiLayer)
+                {
+                    canvasObjects[i].gameObject.layer = uiLayer;
+                }
             }
         }
 
-        // The three phase health bars may sit under canvases or parents that
-        // were left disabled by a scene transition or loading screen. Allow
-        // the currently active phase's bar to actually be shown.
         Transform node = bar.transform;
         while (node != null)
         {
-            if (!node.gameObject.activeSelf)
-                node.gameObject.SetActive(true);
-
+            if (!node.gameObject.activeSelf) node.gameObject.SetActive(true);
             Canvas canvas = node.GetComponent<Canvas>();
             if (canvas != null)
             {
-                if (LoadingScreenManager.Instance == null ||
-                    !LoadingScreenManager.Instance.AreGameplayCanvasesHidden)
+                if (LoadingScreenManager.Instance == null || !LoadingScreenManager.Instance.AreGameplayCanvasesHidden)
                 {
-                    if (!canvas.enabled)
-                        canvas.enabled = true;
+                    if (!canvas.enabled) canvas.enabled = true;
                 }
-
-                if (canvas.isRootCanvas)
-                    break;
+                if (canvas.isRootCanvas) break;
             }
-
             node = node.parent;
         }
 
@@ -478,8 +322,9 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         {
             Vector3 toCamera = camera.transform.position - bar.transform.position;
             if (toCamera.sqrMagnitude > 0.0001f)
-                bar.transform.rotation = Quaternion.LookRotation(
-                    toCamera.normalized, camera.transform.up);
+            {
+                bar.transform.rotation = Quaternion.LookRotation(toCamera.normalized, camera.transform.up);
+            }
         }
     }
 
@@ -488,51 +333,34 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         for (int i = 0; i < phaseBarObjects.Length; i++)
         {
             GameObject bar = phaseBarObjects[i];
-            if (bar == null)
-                continue;
+            if (bar == null) continue;
 
             bool active = phaseBarsAllowed && !isDead && i == currentPhase - 1;
 
             if (active && lastLoggedVisiblePhase != currentPhase)
             {
                 lastLoggedVisiblePhase = currentPhase;
-                DebugHealth(
-                    "Showing phase " + currentPhase + " health bar: " +
-                    bar.name + "."
-                );
             }
 
-            if (active)
-                EnsurePhaseBarVisible(bar);
+            if (active) EnsurePhaseBarVisible(bar);
 
             if (bar.activeSelf != active)
             {
                 bar.SetActive(active);
-                DebugHealth(
-                    "Made phase " + (i + 1) + " health bar " +
-                    (active ? "visible" : "invisible") + ": " + bar.name + "."
-                );
             }
 
-            if (active)
-                EnsurePhaseBarVisible(bar);
-
-            if (!active)
-                continue;
+            if (!active) continue;
 
             float maxHealth = GetPhaseMaxHealth(currentPhase);
-            if (maxHealth <= 0f)
-                continue;
+            if (maxHealth <= 0f) continue;
 
-            float normalizedHealth =
-                Mathf.Clamp01(currentHealth / maxHealth);
+            float normalizedHealth = Mathf.Clamp01(currentHealth / maxHealth);
 
-            Slider slider = phaseBarSliders[i];
-            if (slider != null)
+            if (phaseBarSliders[i] != null)
             {
-                slider.minValue = 0f;
-                slider.maxValue = 1f;
-                slider.value = normalizedHealth;
+                phaseBarSliders[i].minValue = 0f;
+                phaseBarSliders[i].maxValue = 1f;
+                phaseBarSliders[i].value = normalizedHealth;
             }
             else if (phaseBarFillImages[i] != null)
             {
@@ -544,38 +372,20 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     private void EnsureDamageHitbox()
     {
         int damageLayer = LayerMask.NameToLayer("Damage");
-
-        Collider existing = GetComponent<Collider>();
-
-        if (existing == null)
-        {
-            existing = GetComponentInChildren<Collider>(true);
-        }
+        Collider existing = GetComponent<Collider>() ?? GetComponentInChildren<Collider>(true);
 
         if (existing != null)
         {
             existing.enabled = true;
             existing.isTrigger = false;
-
-            if (damageLayer >= 0 &&
-                existing.gameObject.layer != damageLayer)
+            if (damageLayer >= 0 && existing.gameObject.layer != damageLayer)
             {
                 existing.gameObject.layer = damageLayer;
             }
-
             return;
         }
 
-        if (!autoCreateHitboxIfMissing)
-        {
-            Debug.LogWarning(
-                "[FinalBossHealth] No collider found on " +
-                gameObject.name +
-                ". Player attacks cannot hit Gargamel.",
-                this
-            );
-            return;
-        }
+        if (!autoCreateHitboxIfMissing) return;
 
         BoxCollider hitbox = gameObject.AddComponent<BoxCollider>();
         hitbox.center = hitboxCenter;
@@ -583,25 +393,11 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         hitbox.isTrigger = false;
         hitbox.enabled = true;
 
-        if (damageLayer >= 0)
-        {
-            gameObject.layer = damageLayer;
-        }
-
-        DebugHealth(
-            "Auto-created Damage hitbox on " +
-            gameObject.name +
-            " (size " + hitboxSize + ", center " + hitboxCenter + ")."
-        );
+        if (damageLayer >= 0) gameObject.layer = damageLayer;
     }
 
     private void DebugHealth(string message)
     {
-        if (!debugHealth)
-        {
-            return;
-        }
-
-        Debug.Log("[FinalBossHealth] " + message, this);
+        if (debugHealth) Debug.Log("[FinalBossHealth] " + message, this);
     }
 }
