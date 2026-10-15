@@ -27,7 +27,13 @@ public class FinalBossController : MonoBehaviour
 
         if (finalBoss != null)
         {
+            FinalBossHealth bossHealth =
+                finalBoss.GetComponentInChildren<FinalBossHealth>(true);
+            if (bossHealth != null)
+                bossHealth.HidePhaseHealthBars();
+
             finalBoss.SetActive(false);
+            DebugSequence("Boss is inactive at scene start; phase bars hidden.");
         }
     }
 
@@ -38,6 +44,11 @@ public class FinalBossController : MonoBehaviour
 
         if (finalBoss != null && !sequenceStarted)
         {
+            FinalBossHealth bossHealth =
+                finalBoss.GetComponentInChildren<FinalBossHealth>(true);
+            if (bossHealth != null)
+                bossHealth.HidePhaseHealthBars();
+
             finalBoss.SetActive(false);
         }
     }
@@ -120,7 +131,11 @@ public class FinalBossController : MonoBehaviour
         finalBoss.SetActive(true);
 
         FinalBossHealth bossHealth = finalBoss.GetComponentInChildren<FinalBossHealth>(true);
-        if (bossHealth != null) bossHealth.ResetBossHealth();
+        if (bossHealth != null)
+        {
+            bossHealth.ResetBossHealth();
+            DebugSequence("Boss spawned; phase 1 health bar activated.");
+        }
 
         DebugSequence("Gargamel spawned.");
     }
@@ -132,6 +147,11 @@ public class FinalBossController : MonoBehaviour
 
         if (finalBoss != null)
         {
+            FinalBossHealth bossHealth =
+                finalBoss.GetComponentInChildren<FinalBossHealth>(true);
+            if (bossHealth != null)
+                bossHealth.HidePhaseHealthBars();
+
             finalBoss.SetActive(false);
         }
     }

@@ -29,6 +29,11 @@ public class EnemyHealthBar : MonoBehaviour
     [SerializeField] private bool onlyShowDuringBossFight = false;
     [SerializeField] private CanvasGroup visibilityCanvasGroup;
 
+    private bool hasLoggedBossFightVisibility;
+    private bool lastBossFightVisibility;
+    private bool hasLoggedTargetVisibility;
+    private bool lastTargetVisibility;
+
 
     private void Awake()
     {
@@ -183,6 +188,22 @@ public class EnemyHealthBar : MonoBehaviour
         bool dead = hideWhenDead && health != null && health.IsDead();
         bool shouldShow = IsBossFightActive() && !dead;
 
+        if (!hasLoggedBossFightVisibility ||
+            lastBossFightVisibility != shouldShow)
+        {
+            hasLoggedBossFightVisibility = true;
+            lastBossFightVisibility = shouldShow;
+            Debug.Log(
+                "[EnemyHealthBar] Made " + name +
+                (shouldShow ? " visible" : " invisible") +
+                ", owner=" + (health != null ? health.name : "unresolved") +
+                ", mode=" + (GameStateManager.Instance != null
+                    ? GameStateManager.Instance.GetGameMode().ToString()
+                    : "Unavailable"),
+                this
+            );
+        }
+
         CanvasGroup group = GetOwnGroup();
         group.alpha = shouldShow ? 1f : 0f;
         group.interactable = shouldShow;
@@ -204,6 +225,19 @@ public class EnemyHealthBar : MonoBehaviour
 
     private void SetHealthTargetVisibility(bool visible)
     {
+        if (!hasLoggedTargetVisibility || lastTargetVisibility != visible)
+        {
+            hasLoggedTargetVisibility = true;
+            lastTargetVisibility = visible;
+            Debug.Log(
+                "[EnemyHealthBar] Made " + name +
+                (visible ? " visible" : " invisible") +
+                " based on owner spawn state (owner=" +
+                (health != null ? health.name : "unresolved") + ").",
+                this
+            );
+        }
+
         if (visibilityCanvasGroup == null)
         {
             visibilityCanvasGroup = GetComponent<CanvasGroup>();

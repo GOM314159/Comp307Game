@@ -64,6 +64,9 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     private Slider[] phaseBarSliders = new Slider[3];
     private Image[] phaseBarFillImages = new Image[3];
     private float nextPhaseBarResolveTime;
+    private int lastLoggedVisiblePhase;
+    private bool phaseBarBindingsLogged;
+    private bool phaseBarsAllowed = true;
 
     public event Action<int> OnPhaseChanged;
     public event Action OnDied;
@@ -250,6 +253,7 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
     public void ResetBossHealth()
     {
+        phaseBarsAllowed = true;
         currentPhase = 1;
         currentHealth = GetPhaseMaxHealth(1);
         isDead = false;
@@ -292,6 +296,28 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     public bool IsDead()
     {
         return isDead;
+    }
+
+    public void HidePhaseHealthBars()
+    {
+        phaseBarsAllowed = false;
+        ResolvePhaseHealthBars();
+
+        for (int i = 0; i < phaseBarObjects.Length; i++)
+        {
+            GameObject bar = phaseBarObjects[i];
+            if (bar == null) continue;
+
+            if (bar.activeSelf)
+            {
+                bar.SetActive(false);
+                DebugHealth("Made phase " + (i + 1) +
+                            " health bar invisible while the boss is despawned: " +
+                            bar.name + ".");
+            }
+        }
+
+        lastLoggedVisiblePhase = 0;
     }
 
     private float GetPhaseMaxHealth(int phase)
@@ -374,6 +400,22 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
             }
         }
 
+        if (debugHealth && !phaseBarBindingsLogged &&
+            phaseBarObjects[0] != null &&
+            phaseBarObjects[1] != null &&
+            phaseBarObjects[2] != null)
+        {
+            phaseBarBindingsLogged = true;
+            DebugHealth(
+                "Resolved phase bars: phase 1=" + phaseBarObjects[0].name +
+                " (slider=" + (phaseBarSliders[0] != null) + "), phase 2=" +
+                phaseBarObjects[1].name + " (slider=" +
+                (phaseBarSliders[1] != null) + "), phase 3=" +
+                phaseBarObjects[2].name + " (slider=" +
+                (phaseBarSliders[2] != null) + ")."
+            );
+        }
+
         RefreshPhaseHealthBars();
     }
 
@@ -416,13 +458,28 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
             if (bar == null)
                 continue;
 
-            bool active = !isDead && i == currentPhase - 1;
+            bool active = phaseBarsAllowed && !isDead && i == currentPhase - 1;
+
+            if (active && lastLoggedVisiblePhase != currentPhase)
+            {
+                lastLoggedVisiblePhase = currentPhase;
+                DebugHealth(
+                    "Showing phase " + currentPhase + " health bar: " +
+                    bar.name + "."
+                );
+            }
 
             if (active)
                 EnsurePhaseBarVisible(bar);
 
             if (bar.activeSelf != active)
+            {
                 bar.SetActive(active);
+                DebugHealth(
+                    "Made phase " + (i + 1) + " health bar " +
+                    (active ? "visible" : "invisible") + ": " + bar.name + "."
+                );
+            }
 
             if (active)
                 EnsurePhaseBarVisible(bar);

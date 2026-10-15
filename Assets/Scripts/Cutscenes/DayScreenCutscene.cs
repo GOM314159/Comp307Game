@@ -60,6 +60,7 @@ public class DayScreenCutscene : MonoBehaviour
     private bool previousTimeScaleCaptured;
 
     public bool IsPlaying => isPlaying;
+    public bool IsPlayingOrPending => isPlaying || playRoutine != null;
 
     private void Awake()
     {
@@ -116,6 +117,8 @@ public class DayScreenCutscene : MonoBehaviour
 
     public void PlayDayScreenAfterLobbyLoad(int day)
     {
+        DebugDay("Request to play Day " + day + " screen; currently " +
+                 (IsPlayingOrPending ? "already pending/playing" : "idle") + ".");
         if (day < 1 || day > dayVideos.Count)
         {
             DebugDay("No configured day screen for Day " + day + ".");
@@ -302,6 +305,9 @@ public class DayScreenCutscene : MonoBehaviour
 
     private void Finish(int day)
     {
+        // Clear the pending marker before callbacks run. TutorialManager uses
+        // it to reject any competing start request until this exact point.
+        playRoutine = null;
         if (videoPlayer != null)
         {
             videoPlayer.Stop();
@@ -379,7 +385,11 @@ public class DayScreenCutscene : MonoBehaviour
         {
             TutorialManager tutorial = TutorialManager.Instance;
             if (tutorial == null) tutorial = FindAnyObjectByType<TutorialManager>(FindObjectsInactive.Include);
-            if (tutorial != null) tutorial.BeginDay1Tutorial();
+            if (tutorial != null)
+            {
+                DebugDay("Day 1 video finished; starting tutorial now.");
+                tutorial.BeginDay1Tutorial();
+            }
             else Debug.LogError("[DayScreenCutscene] Day 1 ended, but no TutorialManager exists in the loaded scene or persistent managers.");
         }
 

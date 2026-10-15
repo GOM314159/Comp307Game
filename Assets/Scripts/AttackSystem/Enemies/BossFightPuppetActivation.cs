@@ -18,6 +18,7 @@ public class BossFightPuppetActivation : MonoBehaviour
     private bool activated;
     private Coroutine routine;
     private bool barsShownThisFight;
+    [SerializeField] private bool debugActivation = true;
 
     private void Awake()
     {
@@ -39,6 +40,14 @@ public class BossFightPuppetActivation : MonoBehaviour
         {
             ShowHealthBars();
             barsShownThisFight = true;
+            if (debugActivation)
+            {
+                Debug.Log(
+                    "[BossFightPuppetActivation] Boss fight started; " +
+                    "showing health bars for " + name + ".",
+                    this
+                );
+            }
         }
         else if (!bossFight)
         {
@@ -64,10 +73,31 @@ public class BossFightPuppetActivation : MonoBehaviour
             FindObjectsSortMode.None
         );
 
+        int matchedBars = 0;
         for (int i = 0; i < bars.Length; i++)
         {
             if (bars[i] != null && bars[i].BelongsTo(puppetHealth, transform))
+            {
                 bars[i].ShowForBossFight();
+                matchedBars++;
+                if (debugActivation)
+                {
+                    Debug.Log(
+                        "[BossFightPuppetActivation] Requested mini health bar " +
+                        "visible: " + bars[i].name + ".",
+                        bars[i]
+                    );
+                }
+            }
+        }
+
+        if (debugActivation && matchedBars == 0)
+        {
+            Debug.LogWarning(
+                "[BossFightPuppetActivation] No EnemyHealthBar found for " +
+                name + ". Check the Health reference and slider canvas parent.",
+                this
+            );
         }
     }
 
@@ -89,6 +119,13 @@ public class BossFightPuppetActivation : MonoBehaviour
 
         activated = true;
         routine = null;
+        if (debugActivation)
+        {
+            Debug.Log(
+                "[BossFightPuppetActivation] Puppet activated: " + name + ".",
+                this
+            );
+        }
     }
 
     public void ResetPuppetForNextPlay()

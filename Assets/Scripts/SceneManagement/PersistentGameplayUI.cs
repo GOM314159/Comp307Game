@@ -176,6 +176,27 @@ public class PersistentGameplayUI : MonoBehaviour
             if (canvas == null)
                 continue;
 
+            // The persistent gameplay Canvas is authored with a zero local
+            // scale in GamePlayTest. Its descendants remain active and TMP
+            // reports enabled, but Unity cannot render any of that UI.
+            // Screen-space root canvases should retain a normal transform;
+            // CanvasScaler handles their display scaling.
+            if (canvas.isRootCanvas &&
+                canvas.renderMode != RenderMode.WorldSpace &&
+                (Mathf.Abs(canvas.transform.localScale.x) < 0.0001f ||
+                 Mathf.Abs(canvas.transform.localScale.y) < 0.0001f ||
+                 Mathf.Abs(canvas.transform.localScale.z) < 0.0001f))
+            {
+                Vector3 previousScale = canvas.transform.localScale;
+                canvas.transform.localScale = Vector3.one;
+                Debug.LogWarning(
+                    "[PersistentGameplayUI] Restored screen-space root Canvas " +
+                    canvas.name + " scale from " + previousScale + " to (1, 1, 1). " +
+                    "A zero scale prevented DayText and ObjectiveText from rendering.",
+                    canvas
+                );
+            }
+
             if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
             {
                 if (canvas.worldCamera != camera)

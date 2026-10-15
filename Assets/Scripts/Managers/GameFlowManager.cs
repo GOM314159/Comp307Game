@@ -536,6 +536,12 @@ public class GameFlowManager : MonoBehaviour
 
     private void FinishReturnToMainMenu()
     {
+        // A delayed Day 1 respawn callback must not carry over into a new
+        // run and start the tutorial on top of its day-screen video.
+        startDay1TutorialAfterLobbyRespawn = false;
+        playDayScreenAfterLobbyLoad = false;
+        pendingDayScreenDay = -1;
+
         if (TutorialManager.Instance != null)
         {
             TutorialManager.Instance.ResetTutorial();
@@ -728,6 +734,10 @@ public class GameFlowManager : MonoBehaviour
         GameStateManager.DifficultyMode difficulty,
         GameStateManager.PlayerGender gender)
     {
+        startDay1TutorialAfterLobbyRespawn = false;
+        playDayScreenAfterLobbyLoad = false;
+        pendingDayScreenDay = -1;
+
         if (TutorialManager.Instance != null)
         {
             TutorialManager.Instance.ResetTutorial();
@@ -1559,6 +1569,11 @@ public class GameFlowManager : MonoBehaviour
         SetHealthBarVisible(true);
         SetStaminaBarVisible(true);
 
+        // The tutorial is owned by DayScreenCutscene when the video exists.
+        // Reset the fallback respawn flag to prevent an old request from
+        // starting it concurrently with the video.
+        startDay1TutorialAfterLobbyRespawn = false;
+
         if (
             playDayScreenAfterLobbyLoad &&
             pendingDayScreenDay > 0
@@ -1572,6 +1587,8 @@ public class GameFlowManager : MonoBehaviour
 
             if (dayScreenCutscene != null)
             {
+                DebugFlow("Day " + pendingDayScreenDay +
+                          " screen queued; Day 1 tutorial will wait for video completion.");
                 dayScreenCutscene
                     .PlayDayScreenAfterLobbyLoad(
                         pendingDayScreenDay
