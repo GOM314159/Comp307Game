@@ -34,10 +34,14 @@ public class SettingsMenu : MonoBehaviour
     [Tooltip("Pause menu panel/container that should be shown when Settings is closed.")]
     [SerializeField] private GameObject pauseMenuContainer;
 
-    [Header("Optional Controls Panel")]
+    [Header("Controls Panel")]
 
-    [Tooltip("Optional controls panel. Leave empty if you do not currently have one.")]
+    [Tooltip("controls panel")]
     [SerializeField] private GameObject controlsPanel;
+
+
+    [Tooltip("Controller image")]
+    [SerializeField] private GameObject controllerImage;
 
     private const string SensitivityKey = "Settings.CameraSensitivity";
     private const string VolumeKey = "Settings.MasterVolume";
@@ -245,8 +249,21 @@ public class SettingsMenu : MonoBehaviour
             return;
         }
 
-        settingsRoot.SetActive(false);
         controlsPanel.SetActive(true);
+    }
+
+    public void switchControlDisplay()
+    {
+        if (controllerImage == null)
+        {
+            Debug.LogWarning(
+                "SettingsMenu: Switch Control Display was pressed, but no Controller Image is assigned."
+            );
+            return;
+        }
+        // Toggle the keyboard/controller active state.
+        bool isActive = controllerImage.activeSelf;
+        controllerImage.SetActive(!isActive);
     }
 
     public void ControlsBackButton()
