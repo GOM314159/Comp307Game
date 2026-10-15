@@ -377,6 +377,37 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
         RefreshPhaseHealthBars();
     }
 
+    private void EnsurePhaseBarVisible(GameObject bar)
+    {
+        if (bar == null) return;
+
+        // The three phase health bars may sit under canvases or parents that
+        // were left disabled by a scene transition or loading screen. Allow
+        // the currently active phase's bar to actually be shown.
+        Transform node = bar.transform;
+        while (node != null)
+        {
+            if (!node.gameObject.activeSelf)
+                node.gameObject.SetActive(true);
+
+            Canvas canvas = node.GetComponent<Canvas>();
+            if (canvas != null)
+            {
+                if (LoadingScreenManager.Instance == null ||
+                    !LoadingScreenManager.Instance.AreGameplayCanvasesHidden)
+                {
+                    if (!canvas.enabled)
+                        canvas.enabled = true;
+                }
+
+                if (canvas.isRootCanvas)
+                    break;
+            }
+
+            node = node.parent;
+        }
+    }
+
     private void RefreshPhaseHealthBars()
     {
         for (int i = 0; i < phaseBarObjects.Length; i++)
@@ -386,8 +417,15 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
                 continue;
 
             bool active = !isDead && i == currentPhase - 1;
+
+            if (active)
+                EnsurePhaseBarVisible(bar);
+
             if (bar.activeSelf != active)
                 bar.SetActive(active);
+
+            if (active)
+                EnsurePhaseBarVisible(bar);
 
             if (!active)
                 continue;

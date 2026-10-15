@@ -136,6 +136,34 @@ public class PersistentGameplayUI : MonoBehaviour
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         ObjectiveAndDayOverlay overlay = GetObjectiveOverlay();
+
+        // Some levels contain the overlay in the scene instead of under the
+        // persistent root. Adopt that overlay before the scene-local objects
+        // are lost, so DayText has one surviving owner across every scene.
+        if (overlay == null)
+        {
+            ObjectiveAndDayOverlay[] sceneOverlays =
+                FindObjectsByType<ObjectiveAndDayOverlay>(
+                    FindObjectsInactive.Include, FindObjectsSortMode.None);
+
+            for (int i = 0; i < sceneOverlays.Length; i++)
+            {
+                ObjectiveAndDayOverlay candidate = sceneOverlays[i];
+                if (candidate == null || candidate.transform.IsChildOf(transform))
+                    continue;
+                if (candidate.gameObject.scene != scene)
+                    continue;
+
+                Canvas destinationCanvas = GetComponentInChildren<Canvas>(true);
+                Transform destination = destinationCanvas != null
+                    ? destinationCanvas.transform
+                    : transform;
+                candidate.transform.SetParent(destination, false);
+                overlay = candidate;
+                break;
+            }
+        }
+
         if (overlay == null) return;
 
         Transform current = overlay.transform;

@@ -257,7 +257,12 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
     }
 
 
-    /// <summary>Day tracker rule: always on during normal gameplay.</summary>
+    /// <summary>
+    /// DayText has exactly two visibility exceptions: an active loading
+    /// screen, or a cutscene video. It is deliberately independent of
+    /// SetOverlayVisible/HideOverlay calls, menu state, pause state,
+    /// objective state, and all other HUD visibility decisions.
+    /// </summary>
     private bool ShouldShowDay()
     {
         // The loading screen always wins: all GUI is hidden while it is up.
@@ -267,21 +272,19 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
             return false;
         }
 
-        if (!explicitVisibility)
-        {
-            return false;
-        }
-
-        // Keep the day counter independent from temporary gameplay states
-        // such as the gacha reward message, plays, and pause/time-scale
-        // changes. Only menu/loading/credits/cutscene modes hide the HUD.
+        // Day text is visible across every gameplay scene and every day.
+        // It is only hidden for menus, plays, cutscenes, credits, pause
+        // and loading. All other state changes must not disable it.
         if (GameStateManager.Instance != null)
         {
             GameStateManager.GameMode mode = GameStateManager.Instance.GetGameMode();
+
             if (mode == GameStateManager.GameMode.Loading ||
                 mode == GameStateManager.GameMode.MainMenu ||
+                mode == GameStateManager.GameMode.WatchingPlay ||
+                mode == GameStateManager.GameMode.Cutscene ||
                 mode == GameStateManager.GameMode.Credits ||
-                mode == GameStateManager.GameMode.Cutscene)
+                mode == GameStateManager.GameMode.Paused)
             {
                 return false;
             }
@@ -324,11 +327,10 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
         if (caseID < 0)
             return false;
 
-        if (!requireCaseSceneBinding)
-            return true;
-
-        return IsActiveCaseMappedToLoadedScene(caseID) ||
-               !HasAnyCaseSceneBinding();
+        // Each level's objective must be allowed to display while that case
+        // is running, in every level (not only Level 1). Do not gate it on
+        // an optional, scene-local CaseSceneBinding match.
+        return true;
     }
 
 
@@ -414,8 +416,24 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
 
         if (showDay)
         {
+            // DayText may be authored outside this overlay subtree in some
+            // scenes. Activate its own hierarchy and canvas rather than
+            // assuming the overlay's hierarchy owns it.
+            if (dayText != null)
+            {
+                ActivateHierarchy(dayText.transform);
+                EnsureTextCanvasesEnabled(dayText);
+                if (!dayText.enabled) dayText.enabled = true;
+            }
             ActivateOverlayHierarchy();
             EnsureCanvasesEnabled();
+        }
+
+        if (showObjective && objectiveText != null)
+        {
+            ActivateHierarchy(objectiveText.transform);
+            EnsureTextCanvasesEnabled(objectiveText);
+            if (!objectiveText.enabled) objectiveText.enabled = true;
         }
 
         SetActiveIfChanged(dayText, showDay);
@@ -440,24 +458,61 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
     {
         PersistentGameplayUI persistentUI = PersistentGameplayUI.Instance;
 
-        if (dayText == null)
-        {
-            dayText = persistentUI != null
-                ? persistentUI.FindText(dayTextObjectName) as TextMeshProUGUI
-                : FindNamedText(dayTextObjectName);
-        }
+        // Always prefer the DayText that belongs to the persistent gameplay
+        // UI. Do not keep a cached scene-local reference across scene loads.
+        TextMeshProUGUI persistentDay = persistentUI != null
+            ? persistentUI.FindText(dayTextObjectName) as TextMeshProUGUI
+            : null;
+        if (persistentDay != null)
+            dayText = persistentDay;
+        else if (dayText == null || !dayText.gameObject.scene.IsValid())
+            dayText = FindNamedTextAnywhere(dayTextObjectName);
 
-        if (objectiveText == null)
+        if (objectiveText == null || !objectiveText.gameObject.scene.IsValid())
         {
             objectiveText = persistentUI != null
                 ? persistentUI.FindText(objectiveTextObjectName) as TextMeshProUGUI
-                : FindNamedText(objectiveTextObjectName);
+                : null;
+            if (objectiveText == null)
+                objectiveText = FindNamedText(objectiveTextObjectName);
         }
 
         if (objectiveText != null)
-        {
             objectiveText.richText = true;
+    }
+
+    private static TextMeshProUGUI FindNamedTextAnywhere(string objectName)
+    {
+        if (string.IsNullOrWhiteSpace(objectName)) return null;
+        TextMeshProUGUI[] texts = Resources.FindObjectsOfTypeAll<TextMeshProUGUI>();
+        for (int i = 0; i < texts.Length; i++)
+        {
+            TextMeshProUGUI candidate = texts[i];
+            if (candidate != null && candidate.gameObject.scene.IsValid() &&
+                candidate.gameObject.name == objectName)
+                return candidate;
         }
+        return null;
+    }
+
+    private static void ActivateHierarchy(Transform target)
+    {
+        Transform current = target;
+        while (current != null)
+        {
+            if (!current.gameObject.activeSelf)
+                current.gameObject.SetActive(true);
+            current = current.parent;
+        }
+    }
+
+    private static void EnsureTextCanvasesEnabled(TextMeshProUGUI target)
+    {
+        if (target == null) return;
+        Canvas[] canvases = target.GetComponentsInParent<Canvas>(true);
+        for (int i = 0; i < canvases.Length; i++)
+            if (canvases[i] != null && !canvases[i].enabled)
+                canvases[i].enabled = true;
     }
 
 

@@ -1899,6 +1899,19 @@ public class GameFlowManager : MonoBehaviour
                 puppetActivations[i].ShowHealthBarsNow();
         }
 
+        // The dolls sitting in the theater (including ones that do not own a
+        // puppet-activation component) must have their slider canvases shown
+        // the moment the boss fight begins.
+        EnemyHealthBar[] enemyHealthBars = FindObjectsByType<EnemyHealthBar>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+        for (int i = 0; i < enemyHealthBars.Length; i++)
+        {
+            if (enemyHealthBars[i] != null)
+                enemyHealthBars[i].ShowForBossFight();
+        }
+
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayMusic(
