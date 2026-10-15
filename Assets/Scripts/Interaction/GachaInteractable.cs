@@ -76,6 +76,13 @@ public class GachaInteractable : WorldInteractable
             return;
         }
 
+        if (GameStateManager.Instance != null &&
+            GameStateManager.Instance.GetGachaCurrency() < GachaManager.Instance.GetRollCost())
+        {
+            ShowRewardMessage("You do not have enough points to spend on the Gacha.");
+            return;
+        }
+
         bool started =
             GachaManager.Instance.TryStartDelayedRoll(
                 this,
@@ -124,68 +131,10 @@ public class GachaInteractable : WorldInteractable
 
         if (success)
         {
-            ResolveRewardText();
-            SetRewardUI(true);
-            StopRewardMessageRoutine();
             string rewardMessage = reward != null
                 ? "You received: " + reward.displayName
                 : string.Empty;
-
-            if (rewardText != null && reward != null)
-            {
-                // The label lives under the persistent Canvas, which may have
-                // been hidden by a previous scene/cutscene. Reactivate its
-                // hierarchy before showing the won-item message.
-                Transform parent = rewardText.transform;
-                while (parent != null)
-                {
-                    if (!parent.gameObject.activeSelf)
-                        parent.gameObject.SetActive(true);
-
-                    Canvas canvas = parent.GetComponent<Canvas>();
-                    if (canvas != null && !IsLoadingScreenActive())
-                        canvas.enabled = true;
-
-                    CanvasGroup group = parent.GetComponent<CanvasGroup>();
-                    if (group != null)
-                    {
-                        group.alpha = 1f;
-                    }
-                    parent = parent.parent;
-                }
-
-                rewardText.enabled = true;
-                Color textColor = rewardText.color;
-                textColor.a = 1f;
-                rewardText.color = textColor;
-                rewardText.text = rewardMessage;
-                rewardText.gameObject.SetActive(true);
-                rewardText.transform.SetAsLastSibling();
-
-                RectTransform textRect = rewardText.rectTransform;
-                textRect.anchorMin = new Vector2(0.5f, 0.5f);
-                textRect.anchorMax = new Vector2(0.5f, 0.5f);
-                textRect.anchoredPosition = new Vector2(0f, -350f);
-                textRect.sizeDelta = new Vector2(900f, 90f);
-                rewardText.alignment = TextAlignmentOptions.Center;
-                rewardText.enableAutoSizing = true;
-                rewardText.fontSizeMin = 18f;
-                rewardText.fontSizeMax = 36f;
-                rewardText.enableWordWrapping = false;
-                rewardText.raycastTarget = false;
-                rewardText.ForceMeshUpdate();
-                Canvas.ForceUpdateCanvases();
-            }
-
-            // Run on the persistent UI (it survives scene loads and cannot be
-            // stopped by this machine being disabled). The routine also keeps
-            // the label alive for the full duration, so nothing else can hide
-            // it after a fraction of a second.
-            rewardMessageRunner = PersistentGameplayUI.Instance != null
-                ? (MonoBehaviour)PersistentGameplayUI.Instance
-                : this;
-            rewardMessageRoutine = rewardMessageRunner.StartCoroutine(
-                KeepRewardMessageVisible(rewardMessage));
+            ShowRewardMessage(rewardMessage);
 
             if (debugGacha)
             {
@@ -207,6 +156,65 @@ public class GachaInteractable : WorldInteractable
                 );
             }
         }
+    }
+
+    private void ShowRewardMessage(string message)
+    {
+        ResolveRewardText();
+        SetRewardUI(true);
+        StopRewardMessageRoutine();
+
+        if (rewardText != null)
+        {
+            // Reactivate the persistent HUD hierarchy before displaying the
+            // same result label used for a successful reward.
+            Transform parent = rewardText.transform;
+            while (parent != null)
+            {
+                if (!parent.gameObject.activeSelf)
+                    parent.gameObject.SetActive(true);
+
+                Canvas canvas = parent.GetComponent<Canvas>();
+                if (canvas != null && !IsLoadingScreenActive())
+                    canvas.enabled = true;
+
+                CanvasGroup group = parent.GetComponent<CanvasGroup>();
+                if (group != null)
+                    group.alpha = 1f;
+
+                parent = parent.parent;
+            }
+
+            rewardText.enabled = true;
+            Color textColor = rewardText.color;
+            textColor.a = 1f;
+            rewardText.color = textColor;
+            rewardText.text = message;
+            rewardText.gameObject.SetActive(true);
+            rewardText.transform.SetAsLastSibling();
+
+            RectTransform textRect = rewardText.rectTransform;
+            textRect.anchorMin = new Vector2(0.5f, 0.5f);
+            textRect.anchorMax = new Vector2(0.5f, 0.5f);
+            textRect.anchoredPosition = new Vector2(0f, -350f);
+            textRect.sizeDelta = new Vector2(900f, 90f);
+            rewardText.alignment = TextAlignmentOptions.Center;
+            rewardText.enableAutoSizing = true;
+            rewardText.fontSizeMin = 18f;
+            rewardText.fontSizeMax = 36f;
+            rewardText.enableWordWrapping = false;
+            rewardText.raycastTarget = false;
+            rewardText.ForceMeshUpdate();
+            Canvas.ForceUpdateCanvases();
+        }
+
+        // Run on persistent UI so the result text survives scene changes and
+        // remains visible for the same duration as a won-item message.
+        rewardMessageRunner = PersistentGameplayUI.Instance != null
+            ? (MonoBehaviour)PersistentGameplayUI.Instance
+            : this;
+        rewardMessageRoutine = rewardMessageRunner.StartCoroutine(
+            KeepRewardMessageVisible(message));
     }
 
     private IEnumerator KeepRewardMessageVisible(string message)
