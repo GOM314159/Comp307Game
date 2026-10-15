@@ -935,6 +935,16 @@ public class TeleportManager : MonoBehaviour
                 {
                     int caseToStart = caseIDAfterLoad;
 
+                    if (caseToStart <= 0)
+                    {
+                        CaseSceneBinding sceneBinding =
+                            FindAnyObjectByType<CaseSceneBinding>(
+                                FindObjectsInactive.Include
+                            );
+                        if (sceneBinding != null)
+                            caseToStart = sceneBinding.GetCaseID();
+                    }
+
                     if (caseToStart > 0)
                     {
                         CaseManager.Instance.StartCase(caseToStart);

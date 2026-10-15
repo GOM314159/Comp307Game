@@ -290,6 +290,18 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
             }
         }
 
+        // Keep the Day overlay tied to the live gameplay bars: wherever the
+        // Health/Stamina bars are visible, the Day overlay is visible too.
+        GameFlowManager flow = GameFlowManager.Instance;
+        if (flow != null &&
+            (flow.HealthBarObject == null ||
+             !flow.HealthBarObject.activeInHierarchy ||
+             flow.StaminaBarObject == null ||
+             !flow.StaminaBarObject.activeInHierarchy))
+        {
+            return false;
+        }
+
         return true;
     }
 

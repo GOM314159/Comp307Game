@@ -1209,6 +1209,9 @@ public class GameFlowManager : MonoBehaviour
     // INTRO
     // =========================================================
 
+    public GameObject HealthBarObject => HealthBar;
+    public GameObject StaminaBarObject => StaminaBar;
+
     public void SetGameplayHUDVisible(bool visible)
     {
         SetToolbarVisible(visible);

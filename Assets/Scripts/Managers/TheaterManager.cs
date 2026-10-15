@@ -656,6 +656,30 @@ public class TheaterManager : MonoBehaviour
 
         OnFinalPlayCompleted?.Invoke();
 
+        // The dolls' health bars should react as soon as the final play has
+        // been watched, without waiting for the later boss spawn sequence.
+        EnemyHealthBar[] theaterHealthBars =
+            FindObjectsByType<EnemyHealthBar>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+        for (int i = 0; i < theaterHealthBars.Length; i++)
+        {
+            if (theaterHealthBars[i] != null)
+                theaterHealthBars[i].ShowForBossFight();
+        }
+
+        BossFightPuppetActivation[] puppetActivations =
+            FindObjectsByType<BossFightPuppetActivation>(
+                FindObjectsInactive.Include,
+                FindObjectsSortMode.None
+            );
+        for (int i = 0; i < puppetActivations.Length; i++)
+        {
+            if (puppetActivations[i] != null)
+                puppetActivations[i].ShowHealthBarsNow();
+        }
+
         if (GameFlowManager.Instance != null)
         {
             GameFlowManager.Instance

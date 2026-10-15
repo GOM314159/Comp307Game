@@ -62,6 +62,34 @@ public class PersistentGameplayUI : MonoBehaviour
                 );
             }
 
+            // Preserve shared HUD labels before destroying the duplicate root.
+            // Otherwise the surviving persistent root can be left without a
+            // DayText/ObjectiveText, making the overlay blank in later scenes.
+            Canvas textDestination = Instance.GetComponentInChildren<Canvas>(true);
+            Transform textParent = textDestination != null
+                ? textDestination.transform
+                : Instance.transform;
+            TMP_Text[] duplicateTexts = GetComponentsInChildren<TMP_Text>(true);
+            foreach (TMP_Text duplicateText in duplicateTexts)
+            {
+                if (duplicateText == null ||
+                    (duplicateText.gameObject.name != "DayText" &&
+                     duplicateText.gameObject.name != "ObjectiveText"))
+                {
+                    continue;
+                }
+
+                if (Instance.FindText(duplicateText.gameObject.name) != null)
+                    continue;
+
+                duplicateText.transform.SetParent(textParent, false);
+                Debug.Log(
+                    "[PersistentGameplayUI] Adopted " +
+                    duplicateText.gameObject.name +
+                    " from a duplicate UI root before removing it."
+                );
+            }
+
             Destroy(gameObject);
             return;
         }
@@ -85,6 +113,8 @@ public class PersistentGameplayUI : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         SceneManager.sceneLoaded += HandleSceneLoaded;
+
+        EnsurePersistentUICamera();
 
 
         // -----------------------------------------------------
@@ -133,6 +163,30 @@ public class PersistentGameplayUI : MonoBehaviour
     /// parents it lives under) is still active. The overlay is what keeps the
     /// Day tracker alive in the lobby and in every level.
     /// </summary>
+    private void EnsurePersistentUICamera()
+    {
+        Camera camera = Camera.main;
+        if (camera == null)
+            camera = FindAnyObjectByType<Camera>();
+
+        Canvas[] canvases = GetComponentsInChildren<Canvas>(true);
+        for (int i = 0; i < canvases.Length; i++)
+        {
+            Canvas canvas = canvases[i];
+            if (canvas == null)
+                continue;
+
+            if (canvas.renderMode == RenderMode.ScreenSpaceCamera)
+            {
+                if (canvas.worldCamera != camera)
+                    canvas.worldCamera = camera;
+            }
+
+            if (!canvas.enabled)
+                canvas.enabled = true;
+        }
+    }
+
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         ObjectiveAndDayOverlay overlay = GetObjectiveOverlay();
@@ -174,7 +228,41 @@ public class PersistentGameplayUI : MonoBehaviour
             current = current.parent;
         }
 
-        overlay.RefreshNow();
+        EnsurePersistentUICamera();
+
+        if (overlay != null)
+        {
+            overlay.SetOverlayVisible(true);
+            overlay.RefreshNow();
+        }
+
+        // Start the level's case as early as possible so its objective overlay
+        // is relevant immediately on entry.
+        CaseSceneBinding binding =
+            FindAnyObjectByType<CaseSceneBinding>(
+                FindObjectsInactive.Include
+            );
+        if (binding != null &&
+            CaseManager.Instance != null &&
+            GameStateManager.Instance != null &&
+            !GameStateManager.Instance.IsCaseActive())
+        {
+            CaseManager.Instance.StartCase(binding.GetCaseID());
+
+            ObjectiveAndDayOverlay[] overlays =
+                FindObjectsByType<ObjectiveAndDayOverlay>(
+                    FindObjectsInactive.Include,
+                    FindObjectsSortMode.None
+                );
+            foreach (ObjectiveAndDayOverlay sceneOverlay in overlays)
+            {
+                if (sceneOverlay != null)
+                {
+                    sceneOverlay.SetOverlayVisible(true);
+                    sceneOverlay.RefreshNow();
+                }
+            }
+        }
     }
 
     private void OnDestroy()
