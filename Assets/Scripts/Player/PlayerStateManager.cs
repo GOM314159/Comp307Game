@@ -530,6 +530,12 @@ public class PlayerStateManager : MonoBehaviour
         SetState(PlayerState.AllMovement);
     }
 
+    public void ClearNoAttackRestriction()
+    {
+        if (currentState == PlayerState.NoAttack)
+            SetState(PlayerState.AllMovement);
+    }
+
     // =========================================================
     // DEBUG
     // =========================================================

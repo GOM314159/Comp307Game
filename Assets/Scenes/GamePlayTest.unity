@@ -3218,7 +3218,8 @@ MonoBehaviour:
   pointsLostPerMinute: 10
   levelCompletionReward: 50
   normalDeathPenalty: 10
-  dragonBallWinVideoPlayer: {fileID: 1562131585}
+  dragonBallCutsceneSceneName: GamePlayTest
+  dragonBallCutsceneObjectName: GachaWinCutscene
   dragonBallEndScreenObjectName: EndScreen
   debugGacha: 1
 --- !u!1 &117794490
@@ -38499,7 +38500,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1111192985}
         m_TargetAssemblyTypeName: MainMenu, Assembly-CSharp
-        m_MethodName: QuitButton
+        m_MethodName: ReturnToMainMenu
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -46868,7 +46869,7 @@ VideoPlayer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1562131583}
   m_Enabled: 1
-  m_VideoClip: {fileID: 32900000, guid: 00824c7259d996a448a17d69b0cf6255, type: 3}
+  m_VideoClip: {fileID: 32900000, guid: 64e0513e4051a9946b6e0d0aec39f0c0, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
   m_TargetCamera: {fileID: 281335106}
@@ -58680,7 +58681,7 @@ VideoPlayer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2023979853}
   m_Enabled: 1
-  m_VideoClip: {fileID: 32900000, guid: 82862f3db37453640b840a003be90cd0, type: 3}
+  m_VideoClip: {fileID: 32900000, guid: 2b250c4a21dbdc14bb59397a423b5654, type: 3}
   m_TargetCameraAlpha: 1
   m_TargetCamera3DLayout: 0
   m_TargetCamera: {fileID: 281335106}

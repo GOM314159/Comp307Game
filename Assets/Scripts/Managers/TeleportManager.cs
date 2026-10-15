@@ -483,6 +483,8 @@ public class TeleportManager : MonoBehaviour
 
         RestoreGameplayState();
 
+        ApplyLevelOneAttackState(SceneManager.GetActiveScene().name);
+
 
         // -----------------------------------------------------
         // SAME-SCENE RETURN FROM CASE
@@ -1062,6 +1064,8 @@ public class TeleportManager : MonoBehaviour
                         PlayerStateManager.PlayerState.AllMovement
                     );
                 }
+
+                ApplyLevelOneAttackState(loadedScene.name);
 
 
                 // =================================================
@@ -1719,6 +1723,22 @@ public class TeleportManager : MonoBehaviour
 
         pendingTeleportType =
             TeleportPortal.TeleportType.Normal;
+    }
+
+    private void ApplyLevelOneAttackState(string sceneName)
+    {
+        PlayerStateManager state = PlayerStateManager.Instance;
+        if (state == null)
+            return;
+
+        if (sceneName == "Level1Scene")
+        {
+            state.SetState(PlayerStateManager.PlayerState.NoAttack);
+        }
+        else if (state.GetCurrentState() == PlayerStateManager.PlayerState.NoAttack)
+        {
+            state.SetState(PlayerStateManager.PlayerState.AllMovement);
+        }
     }
 
 

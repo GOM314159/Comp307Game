@@ -3,6 +3,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.Video;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class GachaManager : MonoBehaviour
 {
@@ -47,8 +48,11 @@ public class GachaManager : MonoBehaviour
     [SerializeField, Min(0)] private int normalDeathPenalty = 10;
 
     [Header("Dragon Ball win")]
-    [Tooltip("The VideoPlayer that plays the Dragon Ball ending video directly.")]
-    [SerializeField] private VideoPlayer dragonBallWinVideoPlayer;
+    [Tooltip("Scene containing the Dragon Ball ending VideoPlayer.")]
+    [SerializeField] private string dragonBallCutsceneSceneName = "GamePlayTest";
+    [Tooltip("GameObject name of the Dragon Ball ending VideoPlayer.")]
+    [SerializeField] private string dragonBallCutsceneObjectName = "GachaWinCutscene";
+    private VideoPlayer dragonBallWinVideoPlayer;
     [Tooltip("Name of the end screen GameObject to enable when the Dragon Ball video finishes.")]
     [SerializeField] private string dragonBallEndScreenObjectName = "EndScreen";
     private bool dragonBallEndingStarted;
@@ -79,9 +83,56 @@ public class GachaManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
+        // The ending player is authored in GamePlayTest, while this manager
+        // survives scene changes. Keep that player (and its assigned clip)
+        // alive with the manager instead of retaining a reference to an
+        // object Unity will destroy when the source scene unloads.
+        ResolveDragonBallVideoPlayer();
+        if (dragonBallWinVideoPlayer != null)
+        {
+            Transform videoTransform = dragonBallWinVideoPlayer.transform;
+            videoTransform.SetParent(null, true);
+            DontDestroyOnLoad(dragonBallWinVideoPlayer.gameObject);
+        }
+
         if (GachaLevelTimer.Instance == null)
         {
             gameObject.AddComponent<GachaLevelTimer>();
+        }
+    }
+
+    private void ResolveDragonBallVideoPlayer()
+    {
+        if (dragonBallWinVideoPlayer != null)
+            return;
+
+        // The player is detached and persisted after the first lookup, so
+        // subsequent scene changes resolve it by its typed object name.
+        foreach (VideoPlayer player in Resources.FindObjectsOfTypeAll<VideoPlayer>())
+        {
+            if (player != null && player.gameObject.scene.IsValid() &&
+                player.gameObject.scene.name == "DontDestroyOnLoad" &&
+                player.gameObject.name == dragonBallCutsceneObjectName)
+            {
+                dragonBallWinVideoPlayer = player;
+                return;
+            }
+        }
+
+        Scene sourceScene = SceneManager.GetSceneByName(dragonBallCutsceneSceneName);
+        if (!sourceScene.IsValid() || !sourceScene.isLoaded)
+            return;
+
+        foreach (GameObject root in sourceScene.GetRootGameObjects())
+        {
+            foreach (VideoPlayer player in root.GetComponentsInChildren<VideoPlayer>(true))
+            {
+                if (player.gameObject.name == dragonBallCutsceneObjectName)
+                {
+                    dragonBallWinVideoPlayer = player;
+                    return;
+                }
+            }
         }
     }
 
@@ -610,7 +661,7 @@ public class GachaManager : MonoBehaviour
             return;
 
         dragonBallEndingStarted = true;
-        DebugGacha("All seven Dragon Balls collected; ending video starts in 2 seconds.");
+        DebugGacha("All seven Dragon Balls collected; ending video starts in 5 seconds.");
         StartCoroutine(PlayDragonBallEndingAfterDelay());
     }
 
@@ -622,17 +673,19 @@ public class GachaManager : MonoBehaviour
     private IEnumerator PlayDragonBallEndingAfterDelay()
     {
         // The final Dragon Ball is awarded inside the gacha callback. Give
-        // the inventory/UI and persistent video presentation two seconds to
+        // the inventory/UI and persistent video presentation five seconds to
         // settle before taking over the screen.
-        yield return new WaitForSecondsRealtime(2f);
+        yield return new WaitForSecondsRealtime(5f);
         PlayDragonBallEnding();
     }
 
     private void PlayDragonBallEnding()
     {
+        ResolveDragonBallVideoPlayer();
         if (dragonBallWinVideoPlayer == null)
         {
-            Debug.LogError("[GachaManager] Dragon Ball Win Video Player is not assigned.", this);
+            Debug.LogError("[GachaManager] Could not find GameObject '" + dragonBallCutsceneObjectName +
+                "' in scene '" + dragonBallCutsceneSceneName + "' or among persistent objects.", this);
             return;
         }
 
@@ -654,6 +707,8 @@ public class GachaManager : MonoBehaviour
 
         dragonBallWinVideoPlayer.playOnAwake = false;
         dragonBallWinVideoPlayer.isLooping = false;
+        if (Camera.main != null)
+            dragonBallWinVideoPlayer.targetCamera = Camera.main;
         if (!dragonBallWinVideoPlayer.gameObject.activeInHierarchy)
             dragonBallWinVideoPlayer.gameObject.SetActive(true);
         dragonBallWinVideoPlayer.loopPointReached -= OnDragonBallVideoFinished;
@@ -692,6 +747,21 @@ public class GachaManager : MonoBehaviour
         if (endScreen != null)
         {
             endScreen.SetActive(true);
+            if (GameFlowManager.Instance != null)
+                GameFlowManager.Instance.SetGameplayHUDVisible(false);
+            // The end screen is interactive UI. Leave cutscene mode so the
+            // cursor controller no longer locks the mouse to gameplay.
+            if (GameStateManager.Instance != null)
+                GameStateManager.Instance.SetGameMode(GameStateManager.GameMode.Lobby);
+            if (PlayerStateManager.Instance != null)
+                PlayerStateManager.Instance.SetState(PlayerStateManager.PlayerState.Cutscene);
+            if (GameUICursorController.Instance != null)
+                GameUICursorController.Instance.ResetControllerCursorForUI();
+            else
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
         }
         else
         {
