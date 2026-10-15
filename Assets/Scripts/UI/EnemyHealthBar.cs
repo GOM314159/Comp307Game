@@ -33,11 +33,13 @@ public class EnemyHealthBar : MonoBehaviour
     private bool lastBossFightVisibility;
     private bool hasLoggedTargetVisibility;
     private bool lastTargetVisibility;
+    private bool loggedFinalBossDelegation;
 
 
     private void Awake()
     {
         ResolveReferences();
+        EnsureCanvasUsesUiLayer();
         RefreshImmediate();
         ApplyBossFightVisibility();
     }
@@ -60,6 +62,27 @@ public class EnemyHealthBar : MonoBehaviour
 
             if (health == null || healthSlider == null)
             {
+                // Gargamel uses FinalBossHealth, which drives its three
+                // assigned phase sliders directly. Do not treat that custom
+                // health owner as a missing normal Health component: this
+                // Canvas-level helper otherwise alpha-hides all boss bars.
+                FinalBossHealth finalBossHealth =
+                    GetComponentInParent<FinalBossHealth>(true);
+                if (health == null && finalBossHealth != null)
+                {
+                    EnsureCanvasUsesUiLayer();
+                    if (!loggedFinalBossDelegation)
+                    {
+                        loggedFinalBossDelegation = true;
+                        Debug.Log("[EnemyHealthBar] " + name +
+                            " is delegating its assigned phase sliders to " +
+                            "FinalBossHealth on " + finalBossHealth.name +
+                            "; skipping normal Health-owner hiding.", this);
+                    }
+                    FaceWorldSpaceCanvasToCamera();
+                    return;
+                }
+
                 // Theater puppet bars are controlled by the boss-fight mode
                 // gate; a missing Health reference must not hide them.
                 if (!onlyShowDuringBossFight)
@@ -76,6 +99,8 @@ public class EnemyHealthBar : MonoBehaviour
             SetHealthTargetVisibility(targetIsSpawned);
         if (!targetIsSpawned)
             return;
+
+        FaceWorldSpaceCanvasToCamera();
 
         healthSlider.minValue = 0f;
         healthSlider.maxValue = 1f;
@@ -128,6 +153,7 @@ public class EnemyHealthBar : MonoBehaviour
     public void ShowForBossFight()
     {
         ResolveReferences();
+        EnsureCanvasUsesUiLayer();
 
         Transform node = transform;
         while (node != null)
@@ -199,7 +225,7 @@ public class EnemyHealthBar : MonoBehaviour
                 ", owner=" + (health != null ? health.name : "unresolved") +
                 ", mode=" + (GameStateManager.Instance != null
                     ? GameStateManager.Instance.GetGameMode().ToString()
-                    : "Unavailable"),
+                    : "Unavailable") + ", render=" + GetRenderDiagnostic(),
                 this
             );
         }
@@ -214,6 +240,7 @@ public class EnemyHealthBar : MonoBehaviour
 
         if (shouldShow && !IsLoadingScreenActive())
         {
+            EnsureCanvasUsesUiLayer();
             Canvas[] canvases = GetComponentsInParent<Canvas>(true);
             for (int i = 0; i < canvases.Length; i++)
             {
@@ -221,6 +248,72 @@ public class EnemyHealthBar : MonoBehaviour
                     canvases[i].enabled = true;
             }
         }
+    }
+
+    /// <summary>
+    /// Enemy prefabs use the Damage layer for their colliders. Their nested
+    /// world-space health canvases inherit that layer, which some gameplay
+    /// cameras may exclude. Move only the health-bar canvas subtree to UI.
+    /// </summary>
+    private void EnsureCanvasUsesUiLayer()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>(true);
+        int uiLayer = LayerMask.NameToLayer("UI");
+        if (canvas == null || uiLayer < 0) return;
+
+        Transform[] canvasObjects = canvas.GetComponentsInChildren<Transform>(true);
+        bool changed = false;
+        for (int i = 0; i < canvasObjects.Length; i++)
+        {
+            if (canvasObjects[i].gameObject.layer == uiLayer) continue;
+            canvasObjects[i].gameObject.layer = uiLayer;
+            changed = true;
+        }
+
+        if (changed)
+        {
+            Debug.Log("[EnemyHealthBar] Set world-space bar Canvas subtree to UI layer " +
+                      uiLayer + " so the gameplay camera can render it; canvas=" +
+                      canvas.name + ", renderMode=" + canvas.renderMode +
+                      ", sortingOrder=" + canvas.sortingOrder + ".", this);
+        }
+    }
+
+    private string GetRenderDiagnostic()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>(true);
+        Camera camera = Camera.main;
+        int layer = canvas != null ? canvas.gameObject.layer : gameObject.layer;
+        bool cameraIncludesLayer = camera == null ||
+            (camera.cullingMask & (1 << layer)) != 0;
+        return "canvas=" + (canvas != null ? canvas.name : "missing") +
+               ", mode=" + (canvas != null ? canvas.renderMode.ToString() : "n/a") +
+               ", enabled=" + (canvas != null && canvas.enabled) +
+               ", layer=" + LayerMask.LayerToName(layer) + "(" + layer + ")" +
+               ", camera=" + (camera != null ? camera.name : "main camera missing") +
+               ", cameraIncludesLayer=" + cameraIncludesLayer +
+               ", canvasScale=" + (canvas != null
+                   ? canvas.transform.lossyScale.ToString()
+                   : "n/a");
+    }
+
+    private void FaceWorldSpaceCanvasToCamera()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>(true);
+        Camera camera = Camera.main;
+        if (canvas == null || camera == null ||
+            canvas.renderMode != RenderMode.WorldSpace)
+            return;
+
+        Vector3 toCamera = camera.transform.position - canvas.transform.position;
+        if (toCamera.sqrMagnitude > 0.0001f)
+        {
+            canvas.transform.rotation = Quaternion.LookRotation(
+                toCamera.normalized, camera.transform.up);
+        }
+
+        if (canvas.worldCamera != camera)
+            canvas.worldCamera = camera;
     }
 
     private void SetHealthTargetVisibility(bool visible)
@@ -233,7 +326,8 @@ public class EnemyHealthBar : MonoBehaviour
                 "[EnemyHealthBar] Made " + name +
                 (visible ? " visible" : " invisible") +
                 " based on owner spawn state (owner=" +
-                (health != null ? health.name : "unresolved") + ").",
+                (health != null ? health.name : "unresolved") +
+                ", render=" + GetRenderDiagnostic() + ").",
                 this
             );
         }

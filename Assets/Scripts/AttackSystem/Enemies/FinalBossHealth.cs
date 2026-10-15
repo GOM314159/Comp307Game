@@ -423,6 +423,30 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
     {
         if (bar == null) return;
 
+        // Gargamel is on the Damage layer and the attached world-space Canvas
+        // inherits it. A gameplay camera may exclude that layer, so re-layer
+        // only the health Canvas subtree to UI.
+        Canvas barCanvas = bar.GetComponentInParent<Canvas>(true);
+        int uiLayer = LayerMask.NameToLayer("UI");
+        if (barCanvas != null && uiLayer >= 0)
+        {
+            Transform[] canvasObjects =
+                barCanvas.GetComponentsInChildren<Transform>(true);
+            bool changedLayer = false;
+            for (int i = 0; i < canvasObjects.Length; i++)
+            {
+                if (canvasObjects[i].gameObject.layer == uiLayer) continue;
+                canvasObjects[i].gameObject.layer = uiLayer;
+                changedLayer = true;
+            }
+
+            if (changedLayer)
+            {
+                DebugHealth("Set boss health Canvas subtree '" + barCanvas.name +
+                    "' to UI layer " + uiLayer + " for camera rendering.");
+            }
+        }
+
         // The three phase health bars may sit under canvases or parents that
         // were left disabled by a scene transition or loading screen. Allow
         // the currently active phase's bar to actually be shown.
