@@ -472,6 +472,15 @@ public class FinalBossHealth : MonoBehaviour, IDamageable
 
             node = node.parent;
         }
+
+        Camera camera = Camera.main;
+        if (camera != null)
+        {
+            Vector3 toCamera = camera.transform.position - bar.transform.position;
+            if (toCamera.sqrMagnitude > 0.0001f)
+                bar.transform.rotation = Quaternion.LookRotation(
+                    toCamera.normalized, camera.transform.up);
+        }
     }
 
     private void RefreshPhaseHealthBars()

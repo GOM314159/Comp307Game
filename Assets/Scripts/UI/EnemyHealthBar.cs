@@ -25,7 +25,7 @@ public class EnemyHealthBar : MonoBehaviour
     private bool hideWhenDead = true;
 
     [Header("Optional boss-fight visibility")]
-    [Tooltip("Enable this on theater puppet health bars so they remain hidden until GameMode becomes BossFight, then appear.")]
+    [Tooltip("Enable this on theater puppet health bars so they appear while watching a play or during the boss fight.")]
     [SerializeField] private bool onlyShowDuringBossFight = false;
     [SerializeField] private CanvasGroup visibilityCanvasGroup;
 
@@ -54,7 +54,7 @@ public class EnemyHealthBar : MonoBehaviour
     private void LateUpdate()
     {
         ApplyBossFightVisibility();
-        if (onlyShowDuringBossFight && !IsBossFightActive()) return;
+        if (onlyShowDuringBossFight && !IsTheaterOrBossGameplayActive()) return;
 
         if (health == null || healthSlider == null)
         {
@@ -79,7 +79,6 @@ public class EnemyHealthBar : MonoBehaviour
                             "FinalBossHealth on " + finalBossHealth.name +
                             "; skipping normal Health-owner hiding.", this);
                     }
-                    FaceWorldSpaceCanvasToCamera();
                     return;
                 }
 
@@ -182,10 +181,14 @@ public class EnemyHealthBar : MonoBehaviour
     // VISIBILITY
     // ---------------------------------------------------------
 
-    private bool IsBossFightActive()
+    private bool IsTheaterOrBossGameplayActive()
     {
-        return GameStateManager.Instance != null &&
-               GameStateManager.Instance.GetGameMode() == GameStateManager.GameMode.BossFight;
+        if (GameStateManager.Instance == null) return false;
+
+        GameStateManager.GameMode mode =
+            GameStateManager.Instance.GetGameMode();
+        return mode == GameStateManager.GameMode.WatchingPlay ||
+               mode == GameStateManager.GameMode.BossFight;
     }
 
     private static bool IsLoadingScreenActive()
@@ -212,7 +215,7 @@ public class EnemyHealthBar : MonoBehaviour
         if (!onlyShowDuringBossFight) return;
 
         bool dead = hideWhenDead && health != null && health.IsDead();
-        bool shouldShow = IsBossFightActive() && !dead;
+        bool shouldShow = IsTheaterOrBossGameplayActive() && !dead;
 
         if (!hasLoggedBossFightVisibility ||
             lastBossFightVisibility != shouldShow)

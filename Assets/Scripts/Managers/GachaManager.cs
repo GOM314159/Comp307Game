@@ -58,6 +58,8 @@ public class GachaManager : MonoBehaviour
 
     private GachaReward lastReward;
     private bool delayedRollInProgress;
+    private int pendingCompletedLevelReward;
+    private bool hasPendingCompletedLevelReward;
 
     public bool IsDelayedRollInProgress() => delayedRollInProgress;
 
@@ -537,6 +539,9 @@ public class GachaManager : MonoBehaviour
             timeBonus,
             levelCompletionReward);
 
+        pendingCompletedLevelReward = reward;
+        hasPendingCompletedLevelReward = true;
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.AddGachaCurrency(reward);
@@ -549,6 +554,17 @@ public class GachaManager : MonoBehaviour
         );
 
         return reward;
+    }
+
+    public bool TryTakeCompletedLevelReward(out int reward)
+    {
+        reward = pendingCompletedLevelReward;
+        if (!hasPendingCompletedLevelReward)
+            return false;
+
+        hasPendingCompletedLevelReward = false;
+        pendingCompletedLevelReward = 0;
+        return true;
     }
 
     public int GetCurrentLevelPoints()

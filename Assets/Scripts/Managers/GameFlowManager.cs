@@ -1045,6 +1045,7 @@ public class GameFlowManager : MonoBehaviour
         bool playDayScreen,
         int day)
     {
+        bool dayScreenWillShowLevelReward = false;
         SetGameplayHUDVisible(true);
 
         ApplyLobbyChangesToCurrentScene();
@@ -1070,6 +1071,8 @@ public class GameFlowManager : MonoBehaviour
                 dayScreenCutscene.PlayDayScreenAfterLobbyLoad(
                     day
                 );
+                dayScreenWillShowLevelReward =
+                    dayScreenCutscene.IsPlayingOrPending;
             }
             else
             {
@@ -1105,6 +1108,9 @@ public class GameFlowManager : MonoBehaviour
             );
         }
 
+        if (!dayScreenWillShowLevelReward)
+            ShowPendingLevelRewardPoints();
+
         ObjectiveAndDayOverlay[] overlays =
             FindObjectsByType<ObjectiveAndDayOverlay>(
                 FindObjectsInactive.Include,
@@ -1118,6 +1124,25 @@ public class GameFlowManager : MonoBehaviour
                 overlays[i].RefreshNow();
             }
         }
+    }
+
+    private void ShowPendingLevelRewardPoints()
+    {
+        if (GachaManager.Instance == null ||
+            !GachaManager.Instance.TryTakeCompletedLevelReward(out int reward))
+            return;
+
+        if (dayScreenCutscene == null)
+            dayScreenCutscene = DayScreenCutscene.Instance;
+        if (dayScreenCutscene == null)
+            dayScreenCutscene = FindAnyObjectByType<DayScreenCutscene>(
+                FindObjectsInactive.Include);
+
+        if (dayScreenCutscene != null)
+            dayScreenCutscene.ShowLevelRewardPoints(reward);
+        else
+            Debug.LogWarning("[GameFlow] Level reward was earned, but the points " +
+                             "indicator is unavailable.");
     }
 
     // =========================================================

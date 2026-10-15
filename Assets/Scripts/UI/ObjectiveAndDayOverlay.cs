@@ -284,6 +284,14 @@ public class ObjectiveAndDayOverlay : MonoBehaviour
     /// </summary>
     private bool ShouldShowDay()
     {
+        // The day label belongs in gameplay HUD only; keep it off the main
+        // menu even when the persistent health and stamina bar roots are active.
+        GameStateManager state = GameStateManager.Instance;
+        if (state != null && state.GetGameMode() == GameStateManager.GameMode.MainMenu)
+        {
+            return false;
+        }
+
         // Use exactly the player HUD bars as the source of truth. The DayText
         // lives on an isolated Canvas, so separate loading/tutorial/cutscene
         // flags can incorrectly keep it hidden after the HUD has returned.
