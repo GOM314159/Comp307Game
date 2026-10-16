@@ -35,6 +35,7 @@ public class GargamelDeathScript : MonoBehaviour
     private bool subscribedToHealth;
     private VideoPlayer activeVideo;
     private GameObject finalGameScreen;
+    private float playbackStartedAt;
 
     private void Awake()
     {
@@ -355,6 +356,12 @@ public class GargamelDeathScript : MonoBehaviour
         Time.timeScale = 1f;
         Debug.Log("[GargamelDeathScript] Pause state cleared; timeScale=" + Time.timeScale + ".", this);
 
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.StopMusicImmediate();
+            Debug.Log("[GargamelDeathScript] Stopped background music for the final boss ending.", this);
+        }
+
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.DefeatFinalBoss();
@@ -441,11 +448,13 @@ public class GargamelDeathScript : MonoBehaviour
         video.Stop();
         Debug.Log("[GargamelDeathScript] Preparing ending clip '" + video.clip.name +
             "' on active player '" + video.gameObject.name + "'.", video);
+        playbackStartedAt = Time.realtimeSinceStartup;
         video.Prepare();
         StartCoroutine(WatchEndingVideoCompletion(video));
         if (video.isPrepared && !video.isPlaying)
         {
             Debug.Log("[GargamelDeathScript] Clip was already prepared; starting playback directly.", video);
+            playbackStartedAt = Time.realtimeSinceStartup;
             video.Play();
         }
     }
@@ -473,18 +482,30 @@ public class GargamelDeathScript : MonoBehaviour
 
         while (activeVideo == video)
         {
+            double expectedLength = video.length > 0d
+                ? video.length
+                : (video.clip != null ? video.clip.length : 0d);
+            if (expectedLength > 0d &&
+                Time.realtimeSinceStartup >= playbackStartedAt + expectedLength + 3d)
+            {
+                Debug.LogWarning("[GargamelDeathScript] Ending video exceeded its expected duration; forcing completion. time=" +
+                    video.time + "/" + expectedLength + ", isPlaying=" + video.isPlaying + ".", video);
+                OnVideoFinished(video);
+                yield break;
+            }
+
             bool finalFrameReached =
                 video.frameCount > 0 &&
                 video.frameCount != ulong.MaxValue &&
                 video.frame >= 0 &&
                 (ulong)video.frame >= video.frameCount - 1UL;
             bool playbackTimeReachedEnd =
-                video.length > 0d && video.time >= video.length - 0.15d;
+                expectedLength > 0d && video.time >= expectedLength - 0.15d;
 
-            if (!video.isPlaying && video.isPrepared &&
-                (finalFrameReached || playbackTimeReachedEnd))
+            if (video.isPrepared && (finalFrameReached || playbackTimeReachedEnd))
             {
-                Debug.LogWarning("[GargamelDeathScript] Video reached its final frame/time without a loopPointReached callback; completing the ending. frame=" +
+                Debug.LogWarning("[GargamelDeathScript] Video reached its final frame/time (isPlaying=" +
+                    video.isPlaying + ") without a loopPointReached callback; completing the ending. frame=" +
                     video.frame + "/" + video.frameCount + ", time=" + video.time + "/" + video.length + ".", video);
                 OnVideoFinished(video);
                 yield break;
@@ -501,6 +522,7 @@ public class GargamelDeathScript : MonoBehaviour
         }
 
         Debug.Log("[GargamelDeathScript] Ending clip prepared; starting playback.", player);
+        playbackStartedAt = Time.realtimeSinceStartup;
         player.Play();
     }
 
@@ -512,6 +534,8 @@ public class GargamelDeathScript : MonoBehaviour
         }
 
         Debug.Log("[GargamelDeathScript] Ending clip reached its end.", player);
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.StopMusicImmediate();
         UnsubscribeFromVideo(player);
         activeVideo = null;
         FinishEndingVideo(player);
@@ -528,6 +552,9 @@ public class GargamelDeathScript : MonoBehaviour
             "[GargamelDeathScript] Video error: " + message
         );
 
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.StopMusicImmediate();
+
         UnsubscribeFromVideo(player);
         activeVideo = null;
         FinishEndingVideo(player);
@@ -535,6 +562,12 @@ public class GargamelDeathScript : MonoBehaviour
 
     private void FinishEndingVideo(VideoPlayer endingVideo)
     {
+        if (finalGameScreen != null && finalGameScreen.activeInHierarchy)
+        {
+            Debug.Log("[GargamelDeathScript] End screen is already active; duplicate finish call ignored.", this);
+            return;
+        }
+
         Debug.Log("[GargamelDeathScript] FinishEndingVideo entered. Video='" +
             (endingVideo != null ? endingVideo.gameObject.name : "<none>") + "'.", this);
         HideEndingVideo(normalEndingVideo);
