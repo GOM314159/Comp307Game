@@ -612,7 +612,7 @@ MonoBehaviour:
   attackCooldown: 2
   audioSource: {fileID: 36972584}
   alertClip: {fileID: 8300000, guid: f54cb0cd34f0b3a47989e367446ae205, type: 3}
-  alertRange: 10
+  alertRange: 2
   attackClip: {fileID: 8300000, guid: f46cfcbf8dff3a942a603ac698562260, type: 3}
   hardcoreDamageMultiplier: 1.5
   hardcoreCooldownMultiplier: 0.75
@@ -4004,7 +4004,7 @@ MonoBehaviour:
   attackCooldown: 0.2
   audioSource: {fileID: 0}
   alertClip: {fileID: 0}
-  alertRange: 10
+  alertRange: 2
   attackClip: {fileID: 0}
   hardcoreDamageMultiplier: 1.5
   hardcoreCooldownMultiplier: 0.75
@@ -17535,7 +17535,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8675477743785760849, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: m_Convex
-      value: 1
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8675477743785760849, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
+      propertyPath: m_ProvidesContacts
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8708403095437327820, guid: d0cff94ac55fccb4fa901f773da20f0c, type: 3}
       propertyPath: m_StaticEditorFlags
@@ -18403,7 +18407,7 @@ MonoBehaviour:
   attackCooldown: 2
   audioSource: {fileID: 1587671501}
   alertClip: {fileID: 8300000, guid: f54cb0cd34f0b3a47989e367446ae205, type: 3}
-  alertRange: 10
+  alertRange: 2
   attackClip: {fileID: 8300000, guid: f46cfcbf8dff3a942a603ac698562260, type: 3}
   hardcoreDamageMultiplier: 1.5
   hardcoreCooldownMultiplier: 0.75
