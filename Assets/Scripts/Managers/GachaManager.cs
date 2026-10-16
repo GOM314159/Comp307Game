@@ -695,6 +695,16 @@ public class GachaManager : MonoBehaviour
             return;
         }
 
+        // This manager plays the persistent VideoPlayer directly, bypassing
+        // GachaWinCutscene.Play(), so close inventory here before taking over
+        // the screen and disabling player input.
+        PlayerInventory playerInventory = FindAnyObjectByType<PlayerInventory>();
+        if (playerInventory != null && playerInventory.IsInventoryOpen())
+        {
+            playerInventory.CloseInventory();
+            Debug.Log("[GachaManager] Closed the open inventory before starting the Dragon Ball ending.", this);
+        }
+
         // Put the game into cutscene mode before playing the video directly.
         if (GameStateManager.Instance != null)
             GameStateManager.Instance.SetGameMode(GameStateManager.GameMode.Cutscene);
@@ -707,6 +717,9 @@ public class GachaManager : MonoBehaviour
 
         dragonBallWinVideoPlayer.playOnAwake = false;
         dragonBallWinVideoPlayer.isLooping = false;
+        dragonBallWinVideoPlayer.enabled = true;
+        dragonBallWinVideoPlayer.renderMode = VideoRenderMode.CameraNearPlane;
+        dragonBallWinVideoPlayer.targetCameraAlpha = 1f;
         if (Camera.main != null)
             dragonBallWinVideoPlayer.targetCamera = Camera.main;
         if (!dragonBallWinVideoPlayer.gameObject.activeInHierarchy)
@@ -721,7 +734,17 @@ public class GachaManager : MonoBehaviour
     private void OnDragonBallVideoFinished(VideoPlayer source)
     {
         if (source != null)
+        {
             source.loopPointReached -= OnDragonBallVideoFinished;
+            source.Stop();
+            source.targetCameraAlpha = 0f;
+            source.renderMode = VideoRenderMode.APIOnly;
+            source.enabled = false;
+            source.gameObject.SetActive(false);
+            Debug.Log("[GachaManager] Hid Dragon Ball ending video '" + source.gameObject.name +
+                "': activeSelf=" + source.gameObject.activeSelf + ", enabled=" + source.enabled +
+                ", cameraAlpha=" + source.targetCameraAlpha, source);
+        }
 
         GameObject endScreen = null;
         if (!string.IsNullOrWhiteSpace(dragonBallEndScreenObjectName))
@@ -746,7 +769,6 @@ public class GachaManager : MonoBehaviour
 
         if (endScreen != null)
         {
-            endScreen.SetActive(true);
             if (GameFlowManager.Instance != null)
                 GameFlowManager.Instance.SetGameplayHUDVisible(false);
             // The end screen is interactive UI. Leave cutscene mode so the
@@ -755,6 +777,10 @@ public class GachaManager : MonoBehaviour
                 GameStateManager.Instance.SetGameMode(GameStateManager.GameMode.Lobby);
             if (PlayerStateManager.Instance != null)
                 PlayerStateManager.Instance.SetState(PlayerStateManager.PlayerState.Cutscene);
+            endScreen.SetActive(true);
+            Debug.Log("[GachaManager] Dragon Ball end screen activation requested. activeSelf=" +
+                endScreen.activeSelf + ", activeInHierarchy=" + endScreen.activeInHierarchy +
+                ", parent=" + (endScreen.transform.parent != null ? endScreen.transform.parent.name : "<root>"), this);
             if (GameUICursorController.Instance != null)
                 GameUICursorController.Instance.ResetControllerCursorForUI();
             else

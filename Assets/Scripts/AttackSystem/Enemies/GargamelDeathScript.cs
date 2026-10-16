@@ -20,12 +20,10 @@ public class GargamelDeathScript : MonoBehaviour
     [SerializeField] private VideoPlayer secretEndingVideo;
 
     [Header("Final Game Screen")]
-    [Tooltip("Optional direct reference. Leave empty to find by object name.")]
-    [SerializeField] private GameObject finalGameScreen;
-
+    [Tooltip("Scene to search first. If the UI has moved to DontDestroyOnLoad, name lookup falls back to all loaded scenes.")]
+    [SerializeField] private string finalGameScreenSceneName = "GamePlayTest";
     [Tooltip(
-        "Exact GameObject name of the final end screen UI in the loaded scene " +
-        "(e.g. EndScreen). Used when the direct reference is missing."
+        "Exact GameObject name of the final end screen UI."
     )]
     [SerializeField] private string finalGameScreenObjectName = "EndScreen";
 
@@ -38,6 +36,7 @@ public class GargamelDeathScript : MonoBehaviour
     private bool endingStarted;
     private bool subscribedToHealth;
     private VideoPlayer activeVideo;
+    private GameObject finalGameScreen;
 
     private void Awake()
     {
@@ -138,8 +137,29 @@ public class GargamelDeathScript : MonoBehaviour
 
         string targetName = finalGameScreenObjectName.Trim();
 
-        finalGameScreen =
-            FindSceneObjectByNameAcrossLoadedScenes(targetName);
+        if (!string.IsNullOrWhiteSpace(finalGameScreenSceneName))
+        {
+            Scene preferredScene = SceneManager.GetSceneByName(finalGameScreenSceneName.Trim());
+            if (preferredScene.IsValid() && preferredScene.isLoaded)
+            {
+                finalGameScreen = FindSceneObjectByName(preferredScene, targetName);
+                if (debugDeath)
+                {
+                    Debug.Log("[GargamelDeathScript] Searched scene '" + preferredScene.name +
+                        "' for end screen '" + targetName + "': " + (finalGameScreen != null ? "found" : "not found") + ".", this);
+                }
+            }
+            else if (debugDeath)
+            {
+                Debug.LogWarning("[GargamelDeathScript] Configured end screen scene '" +
+                    finalGameScreenSceneName + "' is not loaded. Will search all loaded scenes.", this);
+            }
+        }
+
+        if (finalGameScreen == null)
+        {
+            finalGameScreen = FindSceneObjectByNameAcrossLoadedScenes(targetName);
+        }
 
         if (finalGameScreen == null)
         {
@@ -186,8 +206,7 @@ public class GargamelDeathScript : MonoBehaviour
         }
     }
 
-    private GameObject FindSceneObjectByNameAcrossLoadedScenes(
-        string objectName)
+    private GameObject FindSceneObjectByNameAcrossLoadedScenes(string objectName)
     {
         for (int i = 0; i < SceneManager.sceneCount; i++)
         {
@@ -198,20 +217,21 @@ public class GargamelDeathScript : MonoBehaviour
                 continue;
             }
 
-            GameObject[] roots = scene.GetRootGameObjects();
-
-            for (int r = 0; r < roots.Length; r++)
-            {
-                GameObject found =
-                    FindChildObjectByName(roots[r].transform, objectName);
-
-                if (found != null)
-                {
-                    return found;
-                }
-            }
+            GameObject found = FindSceneObjectByName(scene, objectName);
+            if (found != null) return found;
         }
 
+        return null;
+    }
+
+    private GameObject FindSceneObjectByName(Scene scene, string objectName)
+    {
+        GameObject[] roots = scene.GetRootGameObjects();
+        for (int i = 0; i < roots.Length; i++)
+        {
+            GameObject found = FindChildObjectByName(roots[i].transform, objectName);
+            if (found != null) return found;
+        }
         return null;
     }
 
@@ -314,6 +334,9 @@ public class GargamelDeathScript : MonoBehaviour
             GameStateManager.Instance != null &&
             GameStateManager.Instance.HasCollectedAllExodiaPieces();
 
+        Debug.Log("[GargamelDeathScript] Boss death received. Playing " +
+            (secretEnding ? "Exodia" : "normal") + " ending.", this);
+
         if (secretEnding)
         {
             if (AchievementManager.Instance != null)
@@ -333,13 +356,32 @@ public class GargamelDeathScript : MonoBehaviour
     {
         if (video == null)
         {
+            Debug.LogError("[GargamelDeathScript] The selected ending VideoPlayer is not assigned. Continuing to the end screen.", this);
+            FinishEndingVideo(video);
+            return;
+        }
+
+        if (video.clip == null)
+        {
+            Debug.LogError("[GargamelDeathScript] Ending VideoPlayer '" + video.gameObject.name +
+                "' has no VideoClip. Continuing to the end screen.", video);
             FinishEndingVideo(video);
             return;
         }
 
         activeVideo = video;
+        video.gameObject.SetActive(true);
+        video.enabled = true;
+        video.playOnAwake = false;
+        video.isLooping = false;
+        video.renderMode = VideoRenderMode.CameraNearPlane;
+        video.targetCameraAlpha = 1f;
+        if (Camera.main != null)
+            video.targetCamera = Camera.main;
         SubscribeToVideo(video);
         video.Stop();
+        Debug.Log("[GargamelDeathScript] Preparing ending clip '" + video.clip.name +
+            "' on active player '" + video.gameObject.name + "'.", video);
         video.Prepare();
     }
 
@@ -350,6 +392,7 @@ public class GargamelDeathScript : MonoBehaviour
             return;
         }
 
+        Debug.Log("[GargamelDeathScript] Ending clip prepared; starting playback.", player);
         player.Play();
     }
 
@@ -360,6 +403,7 @@ public class GargamelDeathScript : MonoBehaviour
             return;
         }
 
+        Debug.Log("[GargamelDeathScript] Ending clip reached its end.", player);
         UnsubscribeFromVideo(player);
         activeVideo = null;
         FinishEndingVideo(player);
@@ -383,17 +427,39 @@ public class GargamelDeathScript : MonoBehaviour
 
     private void FinishEndingVideo(VideoPlayer endingVideo)
     {
-        if (endingVideo != null)
-        {
-            endingVideo.Stop();
-            endingVideo.gameObject.SetActive(false);
-        }
+        HideEndingVideo(normalEndingVideo);
+        HideEndingVideo(secretEndingVideo);
+
+        Debug.Log("[GargamelDeathScript] Ending video finished. Video players hidden; resolving end screen.", this);
 
         ResolveFinalGameScreen();
 
+        // GameFlowManager owns the persistent end-of-game transition.
+        // Completing the cutscene marks the run complete, but switches to
+        // Credits mode. The interactive end screen belongs to the lobby UI,
+        // so restore that mode before activating it.
+        if (GameFlowManager.Instance != null)
+        {
+            GameFlowManager.Instance.FinalCutsceneFinished();
+        }
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.SetGameMode(GameStateManager.GameMode.Lobby);
+        }
+
+        if (PlayerStateManager.Instance != null)
+        {
+            PlayerStateManager.Instance.SetState(PlayerStateManager.PlayerState.Cutscene);
+        }
+
         if (finalGameScreen != null)
         {
+            // Let mode-change listeners finish updating canvases before
+            // showing this UI. Some of them hide gameplay presentation roots.
             finalGameScreen.SetActive(true);
+            Debug.Log("[GargamelDeathScript] End screen activation requested. activeSelf=" +
+                finalGameScreen.activeSelf + ", activeInHierarchy=" + finalGameScreen.activeInHierarchy +
+                ", parent=" + (finalGameScreen.transform.parent != null ? finalGameScreen.transform.parent.name : "<root>"), this);
         }
         else
         {
@@ -407,25 +473,26 @@ public class GargamelDeathScript : MonoBehaviour
             );
         }
 
-        // GameFlowManager owns the persistent end-of-game transition.
-        // It will open Credits and then return to MainMenu.
-        if (GameFlowManager.Instance != null)
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    private void HideEndingVideo(VideoPlayer video)
+    {
+        if (video == null)
         {
-            GameFlowManager.Instance.FinalCutsceneFinished();
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
+            Debug.LogWarning("[GargamelDeathScript] One ending VideoPlayer reference is missing.", this);
             return;
         }
 
-        if (GameStateManager.Instance != null)
-        {
-            GameStateManager.Instance.SetGameMode(
-                GameStateManager.GameMode.Credits
-            );
-        }
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
+        video.Stop();
+        video.targetCameraAlpha = 0f;
+        video.renderMode = VideoRenderMode.APIOnly;
+        video.enabled = false;
+        video.gameObject.SetActive(false);
+        Debug.Log("[GargamelDeathScript] Hid ending video '" + video.gameObject.name +
+            "': activeSelf=" + video.gameObject.activeSelf + ", enabled=" + video.enabled +
+            ", cameraAlpha=" + video.targetCameraAlpha, video);
     }
 
     private void SetupVideo(VideoPlayer video)
@@ -481,11 +548,13 @@ public class GargamelDeathScript : MonoBehaviour
         if (normalEndingVideo != null)
         {
             normalEndingVideo.Stop();
+            PrepareVideoForReplay(normalEndingVideo);
         }
 
         if (secretEndingVideo != null)
         {
             secretEndingVideo.Stop();
+            PrepareVideoForReplay(secretEndingVideo);
         }
 
         ResolveFinalGameScreen();
@@ -505,5 +574,15 @@ public class GargamelDeathScript : MonoBehaviour
     {
         ResolveBossHealth();
         return bossHealth;
+    }
+
+    private static void PrepareVideoForReplay(VideoPlayer video)
+    {
+        video.gameObject.SetActive(true);
+        video.enabled = true;
+        video.targetCameraAlpha = 1f;
+        video.renderMode = VideoRenderMode.CameraNearPlane;
+        if (Camera.main != null)
+            video.targetCamera = Camera.main;
     }
 }
