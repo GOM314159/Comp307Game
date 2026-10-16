@@ -31,6 +31,9 @@ public class GargamelDeathScript : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool debugDeath = true;
 
+    [Header("miniDolls")]
+    [SerializeField] private GameObject [] miniDolls;
+
     private bool endingStarted;
     private bool subscribedToHealth;
     private VideoPlayer activeVideo;
@@ -325,7 +328,19 @@ public class GargamelDeathScript : MonoBehaviour
     private void HandleBossDeath()
     {
         Debug.Log("[GargamelDeathScript] FinalBossHealth.OnDied was received.", this);
+        disableDolls();
         TriggerDeathSequence();
+    }
+
+    private void disableDolls()
+    {
+
+        foreach (GameObject miniDoll in miniDolls)
+        {
+            if (miniDoll != null)
+            miniDoll.SetActive(false);
+        }
+
     }
 
     /// <summary>
