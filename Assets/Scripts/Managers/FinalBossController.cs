@@ -13,7 +13,7 @@ public class FinalBossController : MonoBehaviour
     [SerializeField] private GameObject finalBoss;
 
     [Header("Minis")]
-    [SerializeField] private BehaviorGraph graphAgent;
+    [SerializeField] private BehaviorGraphAgent [] graphAgents;
 
     [Header("Spawn Cue")]
     [SerializeField] private AudioClip bossSpawnCue;
@@ -59,10 +59,16 @@ public class FinalBossController : MonoBehaviour
 
     public void enableMinis()
     {
-        if (graphAgent != null)
+        if (graphAgents != null)
         {
-            graphAgent.BlackboardReference.SetVariableValue("GargAlive", true);
-            DebugSequence("Minis enabled.");
+            foreach (BehaviorGraphAgent graphAgent in graphAgents)
+            {
+                if (graphAgent != null)
+                {
+                    graphAgent.SetVariableValue("GargAlive", true);
+                    DebugSequence($"Enabled mini {graphAgent.gameObject.name}.");
+                }
+            }
         }
     }
 
@@ -149,6 +155,8 @@ public class FinalBossController : MonoBehaviour
             bossHealth.ResetBossHealth();
             DebugSequence("Boss spawned; phase 1 health bar activated.");
         }
+
+        enableMinis();
 
         DebugSequence("Gargamel spawned.");
     }

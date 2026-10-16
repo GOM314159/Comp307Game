@@ -24,6 +24,9 @@ public class PlayerEquipmentManager : MonoBehaviour
     // REFERENCES
     // =========================================================
 
+    [Header("Audio & Animation Integration")]
+    [SerializeField] private AxeSwingInput axeSwingInput;
+
     [Header("Player")]
 
     [SerializeField]
@@ -60,6 +63,19 @@ public class PlayerEquipmentManager : MonoBehaviour
 
     [SerializeField]
     private bool debugEquipment = true;
+
+    // =========================================================
+    // UNITY LIFECYCLE
+    // =========================================================
+
+    private void Awake()
+    {
+        // Automatically find AxeSwingInput on Nephew if not manually assigned
+        if (axeSwingInput == null)
+        {
+            axeSwingInput = GetComponent<AxeSwingInput>();
+        }
+    }
 
 
     // =========================================================
@@ -106,6 +122,8 @@ public class PlayerEquipmentManager : MonoBehaviour
 
             if (!mapped && instantiateEquippedPrefabWhenUnmapped)
                 TryInstantiateWeaponPrefab(weapon);
+
+            SyncWeaponAudio(weapon);
 
             Debug.Log("[Equipment] Equipped weapon: " + weapon.itemName);
             return;
@@ -174,6 +192,39 @@ public class PlayerEquipmentManager : MonoBehaviour
             "Equipped Axe. Damage: "
             + axe.GetAttackDamage()
         );
+    }
+
+    private void SyncWeaponAudio(WeaponItem weapon)
+    {
+        if (axeSwingInput == null || weapon == null) return;
+
+        string itemName = weapon.itemName.ToLower();
+
+        if (itemName.Contains("katana"))
+        {
+            axeSwingInput.SetActiveWeapon(AxeSwingInput.ActiveWeapon.Katana);
+        }
+        else if (itemName.Contains("guitar"))
+        {
+            axeSwingInput.SetActiveWeapon(AxeSwingInput.ActiveWeapon.Guitar);
+        }
+        else if (itemName.Contains("pan"))
+        {
+            axeSwingInput.SetActiveWeapon(AxeSwingInput.ActiveWeapon.Pan);
+        }
+        else if (itemName.Contains("stormbreaker") || itemName.Contains("storm"))
+        {
+            axeSwingInput.SetActiveWeapon(AxeSwingInput.ActiveWeapon.StormBreaker);
+        }
+        else if (itemName.Contains("gun"))
+        {
+            axeSwingInput.SetActiveWeapon(AxeSwingInput.ActiveWeapon.Gun);
+        }
+        else
+        {
+            // Default fallback to Axe
+            axeSwingInput.SetActiveWeapon(AxeSwingInput.ActiveWeapon.Axe);
+        }
     }
 
 
