@@ -93,6 +93,11 @@ public class PlayerMovement : MonoBehaviour
 [SerializeField]
     private PlayerAttackController playerAttackController;
 
+    [Header("Death Animations")]
+    [SerializeField] private PlayerHealth playerHealth;
+
+    private bool deathAnimationPlaying = false;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -179,6 +184,15 @@ public class PlayerMovement : MonoBehaviour
         }
 
         mainMenuPositionApplied = false;
+
+        if (deathAnimationPlaying ||
+    (playerHealth != null && playerHealth.IsDead()))
+        {
+            moveInput = Vector2.zero;
+            velocity = Vector3.zero;
+            horizontalVelocity = Vector3.zero;
+            return;
+        }
 
         CheckGround();
 
@@ -335,6 +349,15 @@ public class PlayerMovement : MonoBehaviour
         // =====================================
         // MOVEMENT LOCK
         // =====================================
+
+        if (deathAnimationPlaying ||
+    (playerHealth != null && playerHealth.IsDead()))
+        {
+            moveInput = Vector2.zero;
+            horizontalVelocity = Vector3.zero;
+            stamina.SetSprinting(false);
+            return;
+        }
 
         if (!stateManager.CanMove())
         {
@@ -770,6 +793,11 @@ public class PlayerMovement : MonoBehaviour
 
     private void TriggerAttackAnimation()
     {
+
+        if (deathAnimationPlaying ||
+        (playerHealth != null && playerHealth.IsDead()))
+            return;
+
         if (animator == null || equipmentManager == null)
             return;
 
@@ -792,8 +820,75 @@ public class PlayerMovement : MonoBehaviour
     }
 
 
+
+    public void PlayDeathAnimation()
+    {
+        if (deathAnimationPlaying)
+            return;
+
+        if (animator == null)
+        {
+            Debug.LogWarning(
+                "[PlayerMovement] No Animator assigned for death.");
+            return;
+        }
+
+        deathAnimationPlaying = true;
+
+        // Stop movement input
+        moveInput = Vector2.zero;
+        horizontalVelocity = Vector3.zero;
+        velocity = Vector3.zero;
+        isSprinting = false;
+
+        // Clear existing animation triggers
+        if (!string.IsNullOrEmpty(currentAnimState))
+        {
+            animator.ResetTrigger(currentAnimState);
+        }
+
+        animator.ResetTrigger("SwingWeapon");
+        animator.ResetTrigger("FireGun");
+
+        animator.ResetTrigger("Death 1");
+        animator.ResetTrigger("Death 2");
+        animator.ResetTrigger("Death 3");
+
+        // Randomly choose a death animation
+        int deathNumber = Random.Range(1, 4);
+
+        string deathTrigger = "Death " + deathNumber;
+
+        currentAnimState = deathTrigger;
+
+        animator.SetTrigger(deathTrigger);
+
+        Debug.Log(
+            "[PlayerMovement] Playing death animation: " +
+            deathTrigger
+        );
+    }
+
+    public void ResetDeathAnimation()
+    {
+        deathAnimationPlaying = false;
+        currentAnimState = "";
+
+        if (animator != null)
+        {
+            animator.ResetTrigger("Death1");
+            animator.ResetTrigger("Death2");
+            animator.ResetTrigger("Death3");
+        }
+    }
+
+
     private void ChangeAnimationState(string newState)
     {
+
+        if (deathAnimationPlaying)
+            return;
+
         // Prevent spamming the same trigger every frame
         if (currentAnimState == newState) return;
 

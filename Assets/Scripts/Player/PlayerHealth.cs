@@ -14,6 +14,9 @@ public class PlayerHealth : MonoBehaviour, IDamageable
     private GameStateManager.DeathCause pendingDeathCause =
         GameStateManager.DeathCause.Other;
 
+    [SerializeField]
+    private PlayerMovement playerMovement;
+
     private void Awake()
     {
         currentHealth = maxHealth;
@@ -32,6 +35,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
                 "[PlayerHealth] PlayerStateManager "
                 + "not found on Player."
             );
+        }
+
+        if (playerMovement == null)
+        {
+            playerMovement = GetComponent<PlayerMovement>();
         }
     }
 
@@ -80,23 +88,30 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         return false;
     }
 
+
     private void Die()
     {
         if (isDead)
-        {
             return;
-        }
 
         isDead = true;
 
         Debug.Log("[PlayerHealth] Player died.");
 
+        // Play one of the three death animations
+        if (playerMovement != null)
+        {
+            playerMovement.PlayDeathAnimation();
+        }
+
+        // Preserve the existing player death state
         if (playerStateManager != null)
         {
             playerStateManager.ClearNoAttackRestriction();
             playerStateManager.SetRIP();
         }
 
+        // Preserve the existing GameStateManager flow
         if (GameStateManager.Instance != null)
         {
             GameStateManager.Instance.HandlePlayerDeath(
@@ -106,11 +121,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         else
         {
             Debug.LogError(
-                "[PlayerHealth] GameStateManager.Instance "
-                + "is missing."
+                "[PlayerHealth] GameStateManager.Instance is missing."
             );
         }
     }
+
 
     /// <summary>Restores health without exceeding maxHealth.</summary>
     public void Heal(float amount)
@@ -132,6 +147,11 @@ public class PlayerHealth : MonoBehaviour, IDamageable
         if (playerStateManager != null)
         {
             playerStateManager.ResetToDefault();
+        }
+
+        if (playerMovement != null)
+        {
+            playerMovement.ResetDeathAnimation();
         }
 
         Debug.Log("[PlayerHealth] Player health reset.");
