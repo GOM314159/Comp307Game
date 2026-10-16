@@ -150,6 +150,8 @@ public class FinalBossController : MonoBehaviour
             DebugSequence("Boss spawned; phase 1 health bar activated.");
         }
 
+        enableMinis();
+
         DebugSequence("Gargamel spawned.");
     }
 
