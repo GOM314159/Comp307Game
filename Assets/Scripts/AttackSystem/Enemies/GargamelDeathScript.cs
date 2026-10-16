@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Video;
@@ -26,9 +27,6 @@ public class GargamelDeathScript : MonoBehaviour
         "Exact GameObject name of the final end screen UI."
     )]
     [SerializeField] private string finalGameScreenObjectName = "EndScreen";
-
-    [Header("Settings")]
-    [SerializeField] private bool playOnDeath = true;
 
     [Header("Debug")]
     [SerializeField] private bool debugDeath = true;
@@ -158,6 +156,11 @@ public class GargamelDeathScript : MonoBehaviour
 
         if (finalGameScreen == null)
         {
+            finalGameScreen = FindEndScreenInPersistentScene(targetName);
+        }
+
+        if (finalGameScreen == null)
+        {
             finalGameScreen = FindSceneObjectByNameAcrossLoadedScenes(targetName);
         }
 
@@ -199,11 +202,43 @@ public class GargamelDeathScript : MonoBehaviour
         {
             Debug.Log(
                 "[GargamelDeathScript] Bound final game screen '" +
-                finalGameScreen.name +
+                GetHierarchyPath(finalGameScreen.transform) + "' in scene '" +
+                finalGameScreen.scene.name +
                 "'.",
                 this
             );
         }
+    }
+
+    private GameObject FindEndScreenInPersistentScene(string objectName)
+    {
+        GameObject[] allObjects = Resources.FindObjectsOfTypeAll<GameObject>();
+        for (int i = 0; i < allObjects.Length; i++)
+        {
+            GameObject candidate = allObjects[i];
+            if (candidate != null && candidate.name == objectName &&
+                candidate.scene.IsValid() && candidate.scene.isLoaded &&
+                candidate.scene.name == "DontDestroyOnLoad")
+            {
+                if (debugDeath)
+                    Debug.Log("[GargamelDeathScript] Found persistent end screen at '" +
+                        GetHierarchyPath(candidate.transform) + "'.", candidate);
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private static string GetHierarchyPath(Transform target)
+    {
+        if (target == null) return "<missing>";
+        string path = target.name;
+        while (target.parent != null)
+        {
+            target = target.parent;
+            path = target.name + "/" + path;
+        }
+        return path;
     }
 
     private GameObject FindSceneObjectByNameAcrossLoadedScenes(string objectName)
@@ -288,6 +323,7 @@ public class GargamelDeathScript : MonoBehaviour
 
     private void HandleBossDeath()
     {
+        Debug.Log("[GargamelDeathScript] FinalBossHealth.OnDied was received.", this);
         TriggerDeathSequence();
     }
 
@@ -296,12 +332,33 @@ public class GargamelDeathScript : MonoBehaviour
     /// </summary>
     public void TriggerDeathSequence()
     {
-        if (endingStarted || !playOnDeath)
+        // A stale started flag must not strand a new run. Only suppress a
+        // duplicate if playback is active or the end screen is already open.
+        ResolveFinalGameScreen();
+        if (endingStarted &&
+            ((activeVideo != null && activeVideo.isPlaying) ||
+             (finalGameScreen != null && finalGameScreen.activeInHierarchy)))
         {
+            Debug.Log("[GargamelDeathScript] Ignoring duplicate death trigger; ending is already active or complete.", this);
             return;
         }
 
         endingStarted = true;
+        Debug.Log("[GargamelDeathScript] Starting final boss death sequence.", this);
+
+        // Death can happen while the pause UI is open. Clear it and restore
+        // scaled time before starting the VideoPlayer and ending UI.
+        if (PauseMenu.Instance != null)
+        {
+            PauseMenu.Instance.ContinueButton();
+        }
+        Time.timeScale = 1f;
+        Debug.Log("[GargamelDeathScript] Pause state cleared; timeScale=" + Time.timeScale + ".", this);
+
+        if (GameStateManager.Instance != null)
+        {
+            GameStateManager.Instance.DefeatFinalBoss();
+        }
 
         if (debugDeath)
         {
@@ -350,6 +407,8 @@ public class GargamelDeathScript : MonoBehaviour
         {
             PlayVideo(normalEndingVideo);
         }
+
+        Debug.Log("[GargamelDeathScript] Ending playback request dispatched.", this);
     }
 
     private void PlayVideo(VideoPlayer video)
@@ -383,6 +442,55 @@ public class GargamelDeathScript : MonoBehaviour
         Debug.Log("[GargamelDeathScript] Preparing ending clip '" + video.clip.name +
             "' on active player '" + video.gameObject.name + "'.", video);
         video.Prepare();
+        StartCoroutine(WatchEndingVideoCompletion(video));
+        if (video.isPrepared && !video.isPlaying)
+        {
+            Debug.Log("[GargamelDeathScript] Clip was already prepared; starting playback directly.", video);
+            video.Play();
+        }
+    }
+
+    private IEnumerator WatchEndingVideoCompletion(VideoPlayer video)
+    {
+        float prepareDeadline = Time.realtimeSinceStartup + 20f;
+        while (activeVideo == video && !video.isPrepared && !video.isPlaying &&
+               Time.realtimeSinceStartup < prepareDeadline)
+        {
+            yield return null;
+        }
+
+        if (activeVideo != video)
+            yield break;
+
+        if (!video.isPrepared && !video.isPlaying)
+        {
+            Debug.LogError("[GargamelDeathScript] Ending video did not prepare within 20 seconds; moving to the end screen.", video);
+            UnsubscribeFromVideo(video);
+            activeVideo = null;
+            FinishEndingVideo(video);
+            yield break;
+        }
+
+        while (activeVideo == video)
+        {
+            bool finalFrameReached =
+                video.frameCount > 0 &&
+                video.frameCount != ulong.MaxValue &&
+                video.frame >= 0 &&
+                (ulong)video.frame >= video.frameCount - 1UL;
+            bool playbackTimeReachedEnd =
+                video.length > 0d && video.time >= video.length - 0.15d;
+
+            if (!video.isPlaying && video.isPrepared &&
+                (finalFrameReached || playbackTimeReachedEnd))
+            {
+                Debug.LogWarning("[GargamelDeathScript] Video reached its final frame/time without a loopPointReached callback; completing the ending. frame=" +
+                    video.frame + "/" + video.frameCount + ", time=" + video.time + "/" + video.length + ".", video);
+                OnVideoFinished(video);
+                yield break;
+            }
+            yield return null;
+        }
     }
 
     private void OnVideoPrepared(VideoPlayer player)
@@ -427,6 +535,8 @@ public class GargamelDeathScript : MonoBehaviour
 
     private void FinishEndingVideo(VideoPlayer endingVideo)
     {
+        Debug.Log("[GargamelDeathScript] FinishEndingVideo entered. Video='" +
+            (endingVideo != null ? endingVideo.gameObject.name : "<none>") + "'.", this);
         HideEndingVideo(normalEndingVideo);
         HideEndingVideo(secretEndingVideo);
 
@@ -454,12 +564,7 @@ public class GargamelDeathScript : MonoBehaviour
 
         if (finalGameScreen != null)
         {
-            // Let mode-change listeners finish updating canvases before
-            // showing this UI. Some of them hide gameplay presentation roots.
-            finalGameScreen.SetActive(true);
-            Debug.Log("[GargamelDeathScript] End screen activation requested. activeSelf=" +
-                finalGameScreen.activeSelf + ", activeInHierarchy=" + finalGameScreen.activeInHierarchy +
-                ", parent=" + (finalGameScreen.transform.parent != null ? finalGameScreen.transform.parent.name : "<root>"), this);
+            StartCoroutine(ShowFinalGameScreenAndVerify());
         }
         else
         {
@@ -475,6 +580,73 @@ public class GargamelDeathScript : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+    }
+
+    private void ShowFinalGameScreen()
+    {
+        Transform current = finalGameScreen.transform;
+        while (current != null)
+        {
+            if (!current.gameObject.activeSelf)
+            {
+                Debug.LogWarning("[GargamelDeathScript] Enabling inactive end screen hierarchy object '" +
+                    current.name + "'.", current);
+                current.gameObject.SetActive(true);
+            }
+            current = current.parent;
+        }
+        finalGameScreen.SetActive(true);
+
+        Canvas[] canvases = finalGameScreen.GetComponentsInParent<Canvas>(true);
+        foreach (Canvas canvas in canvases)
+        {
+            if (canvas != null && !canvas.enabled)
+            {
+                Debug.LogWarning("[GargamelDeathScript] Enabling disabled Canvas '" +
+                    GetHierarchyPath(canvas.transform) + "' for the end screen.", canvas);
+                canvas.enabled = true;
+            }
+        }
+
+        CanvasGroup[] groups = finalGameScreen.GetComponentsInParent<CanvasGroup>(true);
+        foreach (CanvasGroup group in groups)
+        {
+            if (group != null && group.alpha < 1f)
+            {
+                Debug.LogWarning("[GargamelDeathScript] Restoring CanvasGroup alpha on '" +
+                    GetHierarchyPath(group.transform) + "' for the end screen.", group);
+                group.alpha = 1f;
+                group.interactable = true;
+                group.blocksRaycasts = true;
+            }
+        }
+
+        Canvas.ForceUpdateCanvases();
+    }
+
+    private IEnumerator ShowFinalGameScreenAndVerify()
+    {
+        ShowFinalGameScreen();
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+
+        Canvas canvas = finalGameScreen != null
+            ? finalGameScreen.GetComponentInParent<Canvas>(true)
+            : null;
+        bool visibleInHierarchy = finalGameScreen != null && finalGameScreen.activeInHierarchy;
+        bool canvasEnabled = canvas != null && canvas.enabled;
+
+        Debug.Log("[GargamelDeathScript] End screen verification: path='" +
+            (finalGameScreen != null ? GetHierarchyPath(finalGameScreen.transform) : "<missing>") +
+            "', activeSelf=" + (finalGameScreen != null && finalGameScreen.activeSelf) +
+            ", activeInHierarchy=" + visibleInHierarchy +
+            ", canvas=" + (canvas != null ? canvas.name : "<missing>") +
+            ", canvasEnabled=" + canvasEnabled + ".", this);
+
+        if (!visibleInHierarchy || !canvasEnabled)
+        {
+            Debug.LogError("[GargamelDeathScript] End screen is still not renderable after activation.", this);
+        }
     }
 
     private void HideEndingVideo(VideoPlayer video)
