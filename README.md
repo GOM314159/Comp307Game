@@ -6,11 +6,11 @@ Will you survive the puppet show, or will they pull your strings?
 
 🌟 Key Features
 
-Immersive First-Person Controller: Features procedural headbob, dynamic crouching, and physical bone-tracking for an incredibly grounded, realistic survival horror camera experience (inspired by Outlast and Resident Evil 7).
+Immersive First-Person Controller: Features procedural headbob, dynamic crouching, and physical bone-tracking for an incredibly grounded, realistic survival horror camera experience.
 
 Dynamic Environments: The world reacts to your actions. Cutting cables, solving cases, and progressing through the days will physically alter the level (e.g., transitioning the PuppetShow Theater into its destroyed state).
 
-Advanced AI & Behavior Trees: Enemies like the Miniboss, Vashin, and the Minions are powered by the Unity Behavior package. They dynamically patrol, hunt, and react to environmental triggers (like falling chandeliers) in real-time.
+Advanced AI & Behavior Trees: Enemies like the Miniboss, Vashin, and the Minions are powered by the Unity Behavior package. They dynamically patrol, hunt, and react to environmental triggers in real-time.
 
 Day & Case System: Survive through 4 escalating days of terror. Features a built-in Case Manager, objective tracking, and a high-stakes Hardcore Mode that resets all progress upon death.
 
@@ -40,32 +40,10 @@ C / Ctrl - Crouch
 
 Space - Jump
 
-E / Left Click - Interact (Pick up items, cut cables)
+Right Click - Interact (Pick up items, cut cables)
 
-🚀 Getting Started for Developers
+I - inventory
 
-Prerequisites
-
-Unity 6 (6000.0.x or higher)
-
-Universal Render Pipeline (URP)
-
-Unity Behavior Package
-
-Input System Package
-
-Installation
-
-Clone the repository:
-
-git clone https://github.com/YourUsername/String-Theory.git
-
-
-Open Unity Hub and click Add.
-
-Navigate to the cloned folder and select it.
-
-Open the GamePlayTest or MainMenu scene located in Assets/Scenes/ to begin testing.
 
 📁 Core Systems Overview
 
